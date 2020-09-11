@@ -1,8 +1,8 @@
 {
   "name": "websocket-ts",
-  "version": "1.0.0",
+  "version": "1.0.0-rc3",
   "main": "lib/index.js",
-  "types": "lib",
+  "types": "lib/",
   "license": "MIT",
   "scripts": {
     "build": "tsc -p .",
