@@ -1,4 +1,4 @@
-import {ConstantBackoff, ExponentialBackoff} from "../../src/backoff/backoff";
+import {ConstantBackoff, ExponentialBackoff} from "../../src";
 
 describe("Testsuite for ConstantBackoff", () => {
     const delay = 5;

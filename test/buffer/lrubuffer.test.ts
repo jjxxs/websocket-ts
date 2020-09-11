@@ -1,4 +1,4 @@
-import {LRUBuffer} from "../../src/buffer/lrubuffer";
+import {LRUBuffer} from "../../src";
 
 describe("Testsuite for LRUBuffer", () => {
     const cap = 5;
