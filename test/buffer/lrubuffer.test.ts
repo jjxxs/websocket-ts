@@ -1,4 +1,5 @@
 import {LRUBuffer} from "../../src";
+import {createEmptyArray, createSequentialArray} from "./common";
 
 describe("Testsuite for LRUBuffer", () => {
     const cap = 5;
@@ -148,14 +149,3 @@ describe("Testsuite for LRUBuffer", () => {
         expect(es.length).toBe(0);
     })
 });
-
-const createEmptyArray = (len: number): Array<number> => {
-    return new Array<number>(len);
-}
-
-const createSequentialArray = (len: number): Array<number> => {
-    const arr = new Array<number>(len);
-    for (let i = 0; i < arr.length; i++)
-        arr[i] = i;
-    return arr;
-}
