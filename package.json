@@ -1,6 +1,6 @@
 {
   "name": "websocket-ts",
-  "version": "1.0.0-rc3",
+  "version": "1.0.0-rc4",
   "main": "lib/index.js",
   "types": "lib/",
   "license": "MIT",
@@ -12,6 +12,9 @@
     "reconnecting",
     "buffered"
   ],
+  "repository": {
+    "url": "github:jjxxs/websocket-ts"
+  },
   "scripts": {
     "build": "tsc -p .",
     "compile": "tsc",
