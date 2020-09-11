@@ -12,6 +12,9 @@
     "reconnecting",
     "buffered"
   ],
+  "repository": {
+    "url": "github:jjxxs/websocket-ts"
+  },
   "scripts": {
     "build": "tsc -p .",
     "compile": "tsc",
