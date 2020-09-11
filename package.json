@@ -4,6 +4,14 @@
   "main": "lib/index.js",
   "types": "lib/",
   "license": "MIT",
+  "keywords": [
+    "websocket",
+    "browser",
+    "client",
+    "typescript",
+    "reconnecting",
+    "buffered"
+  ],
   "scripts": {
     "build": "tsc -p .",
     "compile": "tsc",
