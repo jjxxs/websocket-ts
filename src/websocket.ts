@@ -20,7 +20,7 @@ interface WebsocketEventMap {
     open: Event;
 }
 
-export type Listeners = {
+type Listeners = {
     open: eventListener<WebsocketEvents.open>[];
     close: eventListener<WebsocketEvents.close>[];
     error: eventListener<WebsocketEvents.error>[];
@@ -90,7 +90,7 @@ export class Websocket {
             if (l.options !== undefined && (l.options as AddEventListenerOptions).once)
                 remove.push(l);
             if (l.options !== undefined && (l.options as AddEventListenerOptions).passive && ev.defaultPrevented)
-                console.log("default was prevent when listener was market as passive");
+                console.log("default was prevent when listener was marked as passive");
         }
         const listeners = this.listeners[type] as eventListener<K>[];
         listeners.forEach(l => dispatch(l));
@@ -110,7 +110,7 @@ export class Websocket {
         const wsIsClosed = this.websocket?.readyState == this.websocket?.CLOSED;
         const wsIsClosing = this.websocket?.readyState === this.websocket?.CLOSING;
         if (!this.closedByUser && (wsIsClosed || wsIsClosing)) {
-            this.reconnect();
+            this.reconnectWithBackoff();
         }
         if (type === WebsocketEvents.open) {
             if (this.timer !== undefined)
@@ -122,8 +122,10 @@ export class Websocket {
         this.dispatchEvent<K>(type, ev);
     }
 
-    private reconnect() {
-        const backoff = this.backoff?.Next() || 0;
+    private reconnectWithBackoff() {
+        if (this.backoff === undefined)
+            return;
+        const backoff = this.backoff.Next() || 0;
         this.timer = setTimeout(() => {
             this.tryConnect();
         }, backoff);

@@ -1,12 +1,12 @@
-import {Builder, LRUBuffer, Websocket} from "../src";
+import {WsBuilder, LRUBuffer, Websocket} from "../src";
 import {ConstantBackoff} from "../src/backoff/constantbackoff";
 
 describe("Testsuite for Builder", () => {
     const url = "ws://localhost:42421";
-    let builder: Builder
+    let builder: WsBuilder
 
     beforeEach(() => {
-        builder = new Builder(url);
+        builder = new WsBuilder(url);
     });
 
     test("Builder should set protocols", () => {

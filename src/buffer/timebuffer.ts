@@ -5,6 +5,9 @@ import {Buffer} from "./buffer";
  * within maxAge milliseconds. E.g. to only keep items in the
  * buffer that are less than a minute old, create the buffer with
  * a maximum age of 60.000.
+ *
+ * When reading from the TimeBuffer, elements will be returned
+ * in FIFO-order (queue).
  */
 export class TimeBuffer<E> implements Buffer<E> {
     private readonly maxAge: number;

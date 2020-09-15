@@ -2,7 +2,7 @@ import {Backoff} from "./backoff/backoff";
 import {Buffer} from "./buffer/buffer";
 import {Websocket, WebsocketEvents} from "./websocket";
 
-export class Builder {
+export class WsBuilder {
     private readonly url: string;
     private protocols?: string | string[]
     private backoff?: Backoff
@@ -16,22 +16,22 @@ export class Builder {
         this.url = url;
     }
 
-    public withProtocols(p: string | string[]): Builder {
+    public withProtocols(p: string | string[]): WsBuilder {
         this.protocols = p;
         return this;
     }
 
-    public withBackoff(backoff: Backoff): Builder {
+    public withBackoff(backoff: Backoff): WsBuilder {
         this.backoff = backoff;
         return this;
     }
 
-    public withBuffer(buffer: Buffer<any>): Builder {
+    public withBuffer(buffer: Buffer<any>): WsBuilder {
         this.buffer = buffer;
         return this;
     }
 
-    public onOpen(fn: (instance: Websocket, ev: Event) => any): Builder {
+    public onOpen(fn: (instance: Websocket, ev: Event) => any): WsBuilder {
         const onOpen = this.onOpenChain;
         this.onOpenChain = (instance: Websocket, ev2: Event) => {
             fn(instance, ev2);
@@ -41,7 +41,7 @@ export class Builder {
         return this;
     }
 
-    public onClose(fn: (instance: Websocket, ev: CloseEvent) => any): Builder {
+    public onClose(fn: (instance: Websocket, ev: CloseEvent) => any): WsBuilder {
         const onClose = this.onCloseChain;
         this.onCloseChain = (instance: Websocket, ev2: CloseEvent) => {
             fn(instance, ev2);
@@ -51,7 +51,7 @@ export class Builder {
         return this;
     }
 
-    public onError(fn: (instance: Websocket, ev: Event) => any): Builder {
+    public onError(fn: (instance: Websocket, ev: Event) => any): WsBuilder {
         const onError = this.onErrorChain;
         this.onErrorChain = (instance: Websocket, ev2: Event) => {
             fn(instance, ev2);
@@ -61,7 +61,7 @@ export class Builder {
         return this;
     }
 
-    public onMessage(fn: (instance: Websocket, ev: MessageEvent) => any): Builder {
+    public onMessage(fn: (instance: Websocket, ev: MessageEvent) => any): WsBuilder {
         const onMessage = this.onMessageChain;
         this.onMessageChain = (instance: Websocket, ev2: MessageEvent) => {
             fn(instance, ev2);

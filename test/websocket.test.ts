@@ -1,5 +1,5 @@
-import {Websocket, WebsocketEvents} from "../src/websocket";
-import {Builder} from "../src/builder";
+import {Websocket, WebsocketEvents} from "../src";
+import {WsBuilder} from "../src";
 import {Server} from "ws";
 
 describe("Testsuite for Websocket events", () => {
@@ -27,7 +27,7 @@ describe("Testsuite for Websocket events", () => {
 
     test("Websocket event-onOpen", async () => {
         await new Promise<wsWithEv<Event>>(resolve => {
-            ws = new Builder(url).onOpen((instance, ev) => {
+            ws = new WsBuilder(url).onOpen((instance, ev) => {
                 resolve({instance, ev});
             }).build();
         }).then(e => {
@@ -38,7 +38,7 @@ describe("Testsuite for Websocket events", () => {
 
     test("Websocket event-onClose", async () => {
         await new Promise<wsWithEv<CloseEvent>>(resolve => {
-            ws =new Builder(url).onClose((instance, ev) => {
+            ws =new WsBuilder(url).onClose((instance, ev) => {
                 resolve({instance, ev});
             }).build();
             wss?.close();
@@ -51,7 +51,7 @@ describe("Testsuite for Websocket events", () => {
     test("Websocket event-onError", async () => {
         await new Promise<wsWithEv<Event>>(resolve => {
             wss?.close();
-            ws = new Builder(url).onError((instance, ev) => {
+            ws = new WsBuilder(url).onError((instance, ev) => {
                 resolve({instance, ev});
             }).build();
         }).then(e => {
@@ -63,7 +63,7 @@ describe("Testsuite for Websocket events", () => {
     test("Websocket event-onMessage", async () => {
         const testMsg = "this is a test-message!";
         const onMessagePromise = new Promise<wsWithEv<MessageEvent>>(resolve => {
-            ws = new Builder(url).onMessage((instance, ev) => {
+            ws = new WsBuilder(url).onMessage((instance, ev) => {
                 resolve({instance, ev});
             }).build();
         }).then(e => {
