@@ -110,7 +110,7 @@ export class Websocket {
         const wsIsClosed = this.websocket?.readyState == this.websocket?.CLOSED;
         const wsIsClosing = this.websocket?.readyState === this.websocket?.CLOSING;
         if (!this.closedByUser && (wsIsClosed || wsIsClosing)) {
-            this.reconnect();
+            this.reconnectWithBackoff();
         }
         if (type === WebsocketEvents.open) {
             if (this.timer !== undefined)
@@ -122,8 +122,10 @@ export class Websocket {
         this.dispatchEvent<K>(type, ev);
     }
 
-    private reconnect() {
-        const backoff = this.backoff?.Next() || 0;
+    private reconnectWithBackoff() {
+        if (this.backoff === undefined)
+            return;
+        const backoff = this.backoff.Next() || 0;
         this.timer = setTimeout(() => {
             this.tryConnect();
         }, backoff);
