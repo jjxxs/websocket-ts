@@ -1,6 +1,6 @@
 import {Backoff} from "./backoff/backoff";
 import {Buffer} from "./buffer/buffer";
-import {Websocket, WebsocketEvents} from "./websocket";
+import {RetryEventDetails, Websocket, WebsocketEvents} from "./websocket";
 
 export class WsBuilder {
     private readonly url: string;
@@ -11,6 +11,7 @@ export class WsBuilder {
     private onCloseChain?: (instance: Websocket, ev: CloseEvent) => any;
     private onErrorChain?: (instance: Websocket, ev: Event) => any;
     private onMessageChain?: (instance: Websocket, ev: MessageEvent) => any;
+    private onRetryChain?: (instance: Websocket, ev: CustomEvent<RetryEventDetails>) => any;
     private ws?: Websocket;
 
     constructor(url: string) {
@@ -72,6 +73,16 @@ export class WsBuilder {
         return this;
     }
 
+    public onRetry(fn: (instance: Websocket, ev: CustomEvent<RetryEventDetails>) => any): WsBuilder {
+        const onRetry = this.onRetryChain;
+        this.onRetryChain = (instance: Websocket, ev2: CustomEvent<RetryEventDetails>) => {
+            fn(instance, ev2);
+            if (onRetry !== undefined)
+                onRetry(instance, ev2);
+        }
+        return this;
+    }
+
     /**
      * Multiple calls to build() will always return the same websocket-instance.
      */
@@ -87,6 +98,8 @@ export class WsBuilder {
             this.ws.addEventListener(WebsocketEvents.error, this.onErrorChain);
         if (this.onMessageChain !== undefined)
             this.ws.addEventListener(WebsocketEvents.message, this.onMessageChain);
+        if (this.onRetryChain !== undefined)
+            this.ws.addEventListener(WebsocketEvents.retry, this.onRetryChain);
         return this.ws;
     }
 }

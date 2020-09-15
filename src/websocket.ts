@@ -10,7 +10,8 @@ export enum WebsocketEvents {
     open = 'open',
     close = 'close',
     error = 'error',
-    message = 'message'
+    message = 'message',
+    retry = 'retry'
 }
 
 interface WebsocketEventMap {
@@ -18,6 +19,12 @@ interface WebsocketEventMap {
     error: Event;
     message: MessageEvent;
     open: Event;
+    retry: CustomEvent<RetryEventDetails>;
+}
+
+export interface RetryEventDetails {
+    readonly retriesSinceLastConnection: number;
+    readonly lastBackoff: number
 }
 
 type Listeners = {
@@ -25,19 +32,21 @@ type Listeners = {
     close: eventListener<WebsocketEvents.close>[];
     error: eventListener<WebsocketEvents.error>[];
     message: eventListener<WebsocketEvents.message>[];
+    retry: eventListener<WebsocketEvents.retry>[];
 }
 
 type WebsocketBuffer = Buffer<string | ArrayBufferLike | Blob | ArrayBufferView>;
 
 export class Websocket {
-    private readonly url;
+    private readonly url: string;
     private readonly protocols?: string | string[];
     private readonly buffer?: Buffer<string | ArrayBufferLike | Blob | ArrayBufferView>;
     private readonly backoff?: Backoff;
-    private readonly listeners: Listeners = {open: [], close: [], error: [], message: []};
+    private readonly listeners: Listeners = {open: [], close: [], error: [], message: [], retry: []};
     private closedByUser: boolean = false;
     private websocket?: WebSocket;
     private timer?: ReturnType<typeof setTimeout>;
+    private retriesSinceLastConnection: number = 0;
 
     constructor(url: string, protocols?: string | string[], buffer?: WebsocketBuffer, backoff?: Backoff) {
         this.url = url;
@@ -75,7 +84,7 @@ export class Websocket {
 
     public removeEventListener<K extends WebsocketEvents>(
         type: K,
-        listener: (instance: Websocket, ev: WebSocketEventMap[K]) => any,
+        listener: (instance: Websocket, ev: WebsocketEventMap[K]) => any,
         options?: boolean | EventListenerOptions): void {
         const shouldRemove = (l: eventListener<K>): boolean => l.listener === listener && l.options === options;
         let listeners = this.listeners[type] as eventListener<K>[];
@@ -98,7 +107,13 @@ export class Websocket {
     }
 
     private tryConnect(): void {
-        this.websocket?.close();
+        if (this.websocket !== undefined) {
+            this.websocket.removeEventListener(WebsocketEvents.open, ev => this.handleEvent(WebsocketEvents.open, ev))
+            this.websocket.removeEventListener(WebsocketEvents.close, ev => this.handleEvent(WebsocketEvents.close, ev))
+            this.websocket.removeEventListener(WebsocketEvents.error, ev => this.handleEvent(WebsocketEvents.error, ev))
+            this.websocket.removeEventListener(WebsocketEvents.message, ev => this.handleEvent(WebsocketEvents.message, ev))
+            this.websocket.close();
+        }
         this.websocket = new WebSocket(this.url, this.protocols);
         this.websocket.addEventListener(WebsocketEvents.open, ev => this.handleEvent(WebsocketEvents.open, ev));
         this.websocket.addEventListener(WebsocketEvents.close, ev => this.handleEvent(WebsocketEvents.close, ev));
@@ -115,6 +130,7 @@ export class Websocket {
         if (type === WebsocketEvents.open) {
             if (this.timer !== undefined)
                 clearTimeout(this.timer);
+            this.retriesSinceLastConnection = 0;
             this.backoff?.Reset();
             if (this.buffer !== undefined)
                 this.buffer.forEach(e => this.send(e));
@@ -125,8 +141,18 @@ export class Websocket {
     private reconnectWithBackoff() {
         if (this.backoff === undefined)
             return;
-        const backoff = this.backoff.Next() || 0;
+        if (this.timer !== undefined)
+            clearTimeout(this.timer);
+        const backoff = this.backoff.Next();
         this.timer = setTimeout(() => {
+            this.dispatchEvent(WebsocketEvents.retry,
+                new CustomEvent<RetryEventDetails>(WebsocketEvents.retry,
+                    {
+                        detail: {
+                            retriesSinceLastConnection: ++this.retriesSinceLastConnection,
+                            lastBackoff: backoff
+                        }
+                    }));
             this.tryConnect();
         }, backoff);
     }
