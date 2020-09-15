@@ -11,6 +11,7 @@ export class WsBuilder {
     private onCloseChain?: (instance: Websocket, ev: CloseEvent) => any;
     private onErrorChain?: (instance: Websocket, ev: Event) => any;
     private onMessageChain?: (instance: Websocket, ev: MessageEvent) => any;
+    private ws?: Websocket;
 
     constructor(url: string) {
         this.url = url;
@@ -71,16 +72,21 @@ export class WsBuilder {
         return this;
     }
 
+    /**
+     * Multiple calls to build() will always return the same websocket-instance.
+     */
     public build(): Websocket {
-        const ws = new Websocket(this.url, this.protocols, this.buffer, this.backoff);
+        if (this.ws !== undefined)
+            return this.ws;
+        this.ws = new Websocket(this.url, this.protocols, this.buffer, this.backoff);
         if (this.onOpenChain !== undefined)
-            ws.addEventListener(WebsocketEvents.open, this.onOpenChain);
+            this.ws.addEventListener(WebsocketEvents.open, this.onOpenChain);
         if (this.onCloseChain !== undefined)
-            ws.addEventListener(WebsocketEvents.close, this.onCloseChain);
+            this.ws.addEventListener(WebsocketEvents.close, this.onCloseChain);
         if (this.onErrorChain !== undefined)
-            ws.addEventListener(WebsocketEvents.error, this.onErrorChain);
+            this.ws.addEventListener(WebsocketEvents.error, this.onErrorChain);
         if (this.onMessageChain !== undefined)
-            ws.addEventListener(WebsocketEvents.message, this.onMessageChain);
-        return ws;
+            this.ws.addEventListener(WebsocketEvents.message, this.onMessageChain);
+        return this.ws;
     }
 }
