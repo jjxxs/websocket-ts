@@ -17,7 +17,7 @@ export class ExponentialBackoff implements Backoff {
     private readonly expMax: number;
     private expCur: number;
 
-    constructor(k: number, expMin: number, expMax: number) {
+    constructor(k: number, expMin: number = 0, expMax: number = 5) {
         this.k = k;
         this.expMin = expMin;
         this.expMax = expMax;
