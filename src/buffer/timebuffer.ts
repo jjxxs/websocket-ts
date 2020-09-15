@@ -20,7 +20,6 @@ export class TimeBuffer<E> implements Buffer<E> {
     }
 
     Len(): number {
-        this.forwardTail();
         let cur = this.tail;
         let i = 0;
         while (cur !== undefined) {
