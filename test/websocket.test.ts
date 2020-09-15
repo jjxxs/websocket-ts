@@ -1,6 +1,6 @@
-import {Websocket, WebsocketEvents} from "../src";
-import {WsBuilder} from "../src";
+import {Websocket, WebsocketEvents, WsBuilder} from "../src";
 import {Server} from "ws";
+import {ConstantBackoff} from "../src/backoff/constantbackoff";
 
 describe("Testsuite for Websocket events", () => {
     const port = 42421;
@@ -78,7 +78,27 @@ describe("Testsuite for Websocket events", () => {
 
         await onMessagePromise;
     });
-})
+});
+
+describe("TestSuite for Websocket reconnect-function", () => {
+    const port = 42421;
+    const url = `ws://localhost:${port}`;
+
+    let ws: Websocket | undefined;
+    let wss: Server | undefined;
+    type wsWithEv<K extends Event> = { instance: Websocket, ev: K };
+
+    test("Websocket reconnect with constant backoff", async () => {
+        let retries = 0;
+        ws = new Websocket(url, undefined, undefined, new ConstantBackoff(200));
+        ws.addEventListener(WebsocketEvents.retry, (_, e) => {
+            expect(e.detail.lastBackoff).toBe(200);
+        });
+        delay(5000).then(() => {
+            expect(retries).toBe(6);
+        });
+    }, 10000);
+});
 
 function delay(ms: number): Promise<void> {
     return new Promise<void>(resolve => {
