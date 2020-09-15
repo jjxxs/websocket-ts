@@ -20,7 +20,7 @@ interface WebsocketEventMap {
     open: Event;
 }
 
-export type Listeners = {
+type Listeners = {
     open: eventListener<WebsocketEvents.open>[];
     close: eventListener<WebsocketEvents.close>[];
     error: eventListener<WebsocketEvents.error>[];
@@ -90,7 +90,7 @@ export class Websocket {
             if (l.options !== undefined && (l.options as AddEventListenerOptions).once)
                 remove.push(l);
             if (l.options !== undefined && (l.options as AddEventListenerOptions).passive && ev.defaultPrevented)
-                console.log("default was prevent when listener was market as passive");
+                console.log("default was prevent when listener was marked as passive");
         }
         const listeners = this.listeners[type] as eventListener<K>[];
         listeners.forEach(l => dispatch(l));
