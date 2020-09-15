@@ -11,67 +11,76 @@ A client-websocket written in TypeScript to be used from within browsers with fo
 - Uses the browser-native WebSocket-functionality
    - Copies the event-based WebSocket-API
    - Provides low-level access to the underlying WebSocket if needed
-- Optional automatic reconnects
+- Optionally automatic reconnect when disconnected
    - With easy-to-configure parameters (time between retries)
-- Optional pending-messages
+- Optionally buffer messages while disconnected
    - With easy-to-configure buffers (size, behaviour)
 - Builder-class for easy initialization and configuration
 
 ## Usage
-New instances can be easily created through the Builder-class.
+New instances can be created with the Builder.
 
 ```typescript
-const ws = new Builder('ws://localhost:42421').build();
+const ws = new WsBuilder('ws://localhost:42421').build();
 ```
 
 #### Callbacks
-You can register callbacks for `onOpen`-, `onClose`-, `onError`- and `onMessage`-events. The callbacks get called with the websocket-instance that caused the event plus the event as parameters.
+You can register callbacks for `onOpen`-, `onClose`-, `onError`- and `onMessage`-events. The callbacks get called with the websocket-instance plus the event itself as parameters.
 ```typescript
-const ws = new Builder('ws://localhost:42421')
-    .onOpen((i, e) => { console.log("opened") })
-    .onClose((i, e) => { console.log("closed") })
-    .onError((i, e) => { console.log("error") })
-    .onMessage((i, e) => { i.send(e.data) })
+const ws = new WsBuilder('ws://localhost:42421')
+    .onOpen((ws, e) => { console.log("opened") })
+    .onClose((ws, e) => { console.log("closed") })
+    .onError((ws, e) => { console.log("error") })
+    .onMessage((ws, e) => { ws.send(e.data) })
     .build();
 ```
 
 It is possible to register multiple callbacks for the same event, they are called in stack-order:
 ```typescript
-const ws = new Builder('ws://localhost:42421')
-    .onMessage((i, e) => { console.log("sent echo") })
-    .onMessage((i, e) => { i.send(e.data) })
-    .onMessage((i, e) => { console.log("message received") })
+const ws = new WsBuilder('ws://localhost:42421')
+    .onMessage((ws, e) => { console.log("sent echo") })
+    .onMessage((ws, e) => { i.send(e.data) })
+    .onMessage((ws, e) => { console.log("message received") })
     .build();
 ```
 
 #### Buffer
-To buffer pending messages while your websocket is disconnected, configure it to use a Buffer. These pending messages
- will be sent out as soon as the connection is (re)-established.
+To buffer pending messages while your websocket is disconnected, configure it to use a ```Buffer```. While disconnected,
+calls to the `send()`-method will write the message you want to send to the buffer. These pending messages
+will be sent out in the order that they were inserted as soon as the connection is (re)-established.
 
 ```typescript
-const ws = new Builder('ws://localhost:42421')
-    .withBuffer(new LRUBuffer(100)) // buffers up to 100 messages, substitutes old messages with new ones
+// LRUBuffer with a capacity of 1000 messages. If the buffer is full,
+// the oldest message will be replaced by the newest and so on.
+const ws = new WsBuilder('ws://localhost:42421')
+    .withBuffer(new LRUBuffer(1000))
     .build();
 ```
 
 ```typescript
-const ws = new Builder('ws://localhost:42421')
-    .withBuffer(new TimeBuffer(5 * 60 * 1000)) // buffers messages that were written within the last 5 minutes
+// TimeBuffer keeping all messages from the last five minutes,
+// older messages are dropped.
+const ws = new WsBuilder('ws://localhost:42421')
+    .withBuffer(new TimeBuffer(5 * 60 * 1000))
     .build();
 ```
 
 #### Reconnect / Backoff
-To configure the websocket to automatically reconnect when the connection gets lost, provide it with a Backoff.
-The type of backoff provided decides the delay between connection-retries.
+When provided with a ```Backoff```, the websocket will automatically try to reconnect when the connection got lost. The
+type of backoff provided dictates the delay between connection-retries in milliseconds.
 
 ```typescript
-const ws  = new Builder('ws://localhost:42421')
-    .withBackoff(new ConstantBackoff(500)) // Always waits 500 ms between retries
+// ConstantBackoff will wait a fixed time between connection-retries.
+const ws  = new WsBuilder('ws://localhost:42421')
+    .withBackoff(new ConstantBackoff(500))
     .build();
 ```
 
 ```typescript
-const ws  = new Builder('ws://localhost:42421')
-    .withBackoff(new ExponentialBackoff(100)) // Doubles the time between reconnects with every try
+// ExponentialBackoff will double the time to wait between retries with 
+// every unsuccessful retry until a maximum is reached. This one goes from
+// 100 * 2^0 to 100 * 2^5, so [100, 200, 400, 800, 1600, 3200] milliseconds.
+const ws  = new WsBuilder('ws://localhost:42421')
+    .withBackoff(new ExponentialBackoff(100, 0, 5))
     .build();
 ```
