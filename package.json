@@ -1,6 +1,6 @@
 {
   "name": "websocket-ts",
-  "version": "1.0.1",
+  "version": "1.0.2-rc1",
   "main": "lib/index.js",
   "types": "lib/",
   "license": "MIT",
