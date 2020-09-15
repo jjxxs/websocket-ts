@@ -21,13 +21,13 @@ A client-websocket written in TypeScript to be used from within browsers with fo
 New instances can be easily created through the Builder-class.
 
 ```typescript
-const ws = new Builder('ws://localhost:42421').build();
+const ws = new WsBuilder('ws://localhost:42421').build();
 ```
 
 #### Callbacks
 You can register callbacks for `onOpen`-, `onClose`-, `onError`- and `onMessage`-events. The callbacks get called with the websocket-instance that caused the event plus the event as parameters.
 ```typescript
-const ws = new Builder('ws://localhost:42421')
+const ws = new WsBuilder('ws://localhost:42421')
     .onOpen((i, e) => { console.log("opened") })
     .onClose((i, e) => { console.log("closed") })
     .onError((i, e) => { console.log("error") })
@@ -37,7 +37,7 @@ const ws = new Builder('ws://localhost:42421')
 
 It is possible to register multiple callbacks for the same event, they are called in stack-order:
 ```typescript
-const ws = new Builder('ws://localhost:42421')
+const ws = new WsBuilder('ws://localhost:42421')
     .onMessage((i, e) => { console.log("sent echo") })
     .onMessage((i, e) => { i.send(e.data) })
     .onMessage((i, e) => { console.log("message received") })
@@ -49,13 +49,13 @@ To buffer pending messages while your websocket is disconnected, configure it to
  will be sent out as soon as the connection is (re)-established.
 
 ```typescript
-const ws = new Builder('ws://localhost:42421')
+const ws = new WsBuilder('ws://localhost:42421')
     .withBuffer(new LRUBuffer(100)) // buffers up to 100 messages, substitutes old messages with new ones
     .build();
 ```
 
 ```typescript
-const ws = new Builder('ws://localhost:42421')
+const ws = new WsBuilder('ws://localhost:42421')
     .withBuffer(new TimeBuffer(5 * 60 * 1000)) // buffers messages that were written within the last 5 minutes
     .build();
 ```
@@ -65,13 +65,13 @@ To configure the websocket to automatically reconnect when the connection gets l
 The type of backoff provided decides the delay between connection-retries.
 
 ```typescript
-const ws  = new Builder('ws://localhost:42421')
+const ws  = new WsBuilder('ws://localhost:42421')
     .withBackoff(new ConstantBackoff(500)) // Always waits 500 ms between retries
     .build();
 ```
 
 ```typescript
-const ws  = new Builder('ws://localhost:42421')
+const ws  = new WsBuilder('ws://localhost:42421')
     .withBackoff(new ExponentialBackoff(100)) // Doubles the time between reconnects with every try
     .build();
 ```
