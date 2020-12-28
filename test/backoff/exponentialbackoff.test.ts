@@ -1,26 +1,13 @@
-import {ExponentialBackoff} from "../../src/backoff/exponentialbackoff";
+import {ExponentialBackoff} from "../../src/";
 
 describe("Testsuite for ExponentialBackoff", () => {
-    const k = 0, expMin = 0, expMax = 8;
-    let backoff: ExponentialBackoff;
-
-    beforeEach(() => {
-       backoff = new ExponentialBackoff(k, expMin, expMax);
-    });
-
-    test("ExponentialBackoff should increase exponentially", () => {
-        let expCur = expMin;
-        const calc = (): number => {
-            const next = k * Math.pow(2, expCur);
-            if (expMax > expCur)
-                expCur++;
-            return next;
-        }
-        for (let i = 0; i < expMax + 5; i++)
-            expect(backoff.Next()).toBe(calc());
-        backoff.Reset()
-        expCur = expMin;
-        for (let i = 0; i < expMax + 5; i++)
-            expect(backoff.Next()).toBe(calc());
+    test("ExponentialBackoff should produce an exponentially increasing series", () => {
+        const sut = new ExponentialBackoff(100, 7);
+        const expected = [100, 200, 400, 800, 1600, 3200, 6400, 6400, 6400, 6400];
+        for (let i = 0; i < expected.length; i++)
+            expect(sut.Next()).toBe(expected[i]);
+        sut.Reset()
+        for (let i = 0; i < expected.length; i++)
+            expect(sut.Next()).toBe(expected[i]);
     });
 });
