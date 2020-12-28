@@ -1,4 +1,4 @@
-import {TimeBuffer} from "../../src/buffer/timebuffer";
+import {TimeBuffer} from "../../src";
 import {createEmptyArray, createSequentialArray} from "./common";
 
 describe("Testsuite for TimeBuffer", () => {
