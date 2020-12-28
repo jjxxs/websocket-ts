@@ -27,7 +27,7 @@ export interface RetryEventDetails {
     readonly lastBackoff: number
 }
 
-type Listeners = {
+type WebsocketEventListeners = {
     open: eventListener<WebsocketEvents.open>[];
     close: eventListener<WebsocketEvents.close>[];
     error: eventListener<WebsocketEvents.error>[];
@@ -40,9 +40,9 @@ type WebsocketBuffer = Buffer<string | ArrayBufferLike | Blob | ArrayBufferView>
 export class Websocket {
     private readonly url: string;
     private readonly protocols?: string | string[];
-    private readonly buffer?: Buffer<string | ArrayBufferLike | Blob | ArrayBufferView>;
+    private readonly buffer?: WebsocketBuffer;
     private readonly backoff?: Backoff;
-    private readonly listeners: Listeners = {open: [], close: [], error: [], message: [], retry: []};
+    private readonly eventListeners: WebsocketEventListeners = {open: [], close: [], error: [], message: [], retry: []};
     private closedByUser: boolean = false;
     private websocket?: WebSocket;
     private timer?: ReturnType<typeof setTimeout>;
@@ -61,11 +61,10 @@ export class Websocket {
     }
 
     public send(data: string | ArrayBufferLike | Blob | ArrayBufferView): void {
-        if (this.websocket === undefined || this.websocket.readyState !== this.websocket.OPEN) {
+        if (this.websocket === undefined || this.websocket.readyState !== this.websocket.OPEN)
             this.buffer?.Write([data]);
-        } else {
+        else
             this.websocket.send(data);
-        }
     }
 
     public close(code?: number, reason?: string): void {
@@ -78,7 +77,7 @@ export class Websocket {
         listener: (instance: Websocket, ev: WebsocketEventMap[K]) => any,
         options?: boolean | AddEventListenerOptions): void {
         const eventListener = {listener, options} as eventListener<K>;
-        const eventListeners = this.listeners[type] as eventListener<K>[];
+        const eventListeners = this.eventListeners[type] as eventListener<K>[];
         eventListeners.push(eventListener);
     }
 
@@ -87,9 +86,9 @@ export class Websocket {
         listener: (instance: Websocket, ev: WebsocketEventMap[K]) => any,
         options?: boolean | EventListenerOptions): void {
         const shouldRemove = (l: eventListener<K>): boolean => l.listener === listener && l.options === options;
-        let listeners = this.listeners[type] as eventListener<K>[];
+        let listeners = this.eventListeners[type] as eventListener<K>[];
         listeners = listeners.filter(l => shouldRemove(l));
-        (this.listeners[type] as eventListener<K>[]) = listeners;
+        (this.eventListeners[type] as eventListener<K>[]) = listeners;
     }
 
     private dispatchEvent<K extends WebsocketEvents>(type: K, ev: WebsocketEventMap[K]) {
@@ -99,9 +98,9 @@ export class Websocket {
             if (l.options !== undefined && (l.options as AddEventListenerOptions).once)
                 remove.push(l);
             if (l.options !== undefined && (l.options as AddEventListenerOptions).passive && ev.defaultPrevented)
-                console.log("default was prevent when listener was marked as passive");
+                console.log("default was prevented when listener was marked as passive");
         }
-        const listeners = this.listeners[type] as eventListener<K>[];
+        const listeners = this.eventListeners[type] as eventListener<K>[];
         listeners.forEach(l => dispatch(l));
         remove.forEach(l => this.removeEventListener(type, l.listener, l.options))
     }
