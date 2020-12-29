@@ -1,4 +1,4 @@
-import {Websocket, WebsocketBuilder, WebsocketEvents} from "../src";
+import {ConstantBackoff, LRUBuffer, Websocket, WebsocketBuilder, WebsocketEvents} from "../src";
 import {Server} from "ws";
 
 describe("Testsuite for Websocket", () => {
@@ -109,11 +109,120 @@ describe("Testsuite for Websocket", () => {
         await onMessagePromise;
     });
 
+    test("Websocket should send messages when connected", async () => {
+        const testMessage = "this is a test message.";
+        const onConnectAndSendPromise = new Promise<void>(resolve => {
+            ws = new WebsocketBuilder(url)
+                .onOpen((instance, _) => {
+                    instance.send(testMessage); // send message as soon as we are connected
+                    resolve();
+                }).build();
+        });
+        const onReceivePromise = new Promise<string>(resolve => {
+            wss?.on('connection', socket => {
+                socket.onmessage = me => {
+                    resolve(me.data.toString());
+                }
+            });
+        });
+
+        await onConnectAndSendPromise;  // wait for client to connect and send the message
+        await onReceivePromise.then(actual => { // wait for server to receive the message and compare
+            expect(actual).toBe(testMessage);
+        })
+    });
+
+    test("Websocket should ignore send()-calls when the connection was closed by the user", async () => {
+        const testMessage = "this is a test message.";
+        await new Promise<void>(resolve => { // connect to server
+            ws = new WebsocketBuilder(url)
+                .onOpen((instance, _) => {
+                    resolve();
+                }).build();
+        });
+
+        // monkey-patch the underlying websockets send()-method, to see if it is still called
+        let messagesSent = 0;
+        if (ws !== undefined && ws.underlyingWebsocket !== undefined) {
+            ws.underlyingWebsocket.send = (data: string | ArrayBufferLike | Blob | ArrayBufferView) => {
+                messagesSent++;
+            }
+        }
+
+        ws?.close(); // close connection from client-side
+        expect(ws!['closedByUser']).toBe(true);  // should indicate that the connection was closed by user
+        ws?.send(testMessage);
+        expect(messagesSent).toBe(0); // should still be 0 since send() was never really called
+    });
+
+    test("Websocket should send buffered messages when the connection is (re-)established", async () => {
+        const testMessages = ["one", "two", "three"];
+        await new Promise<void>(resolve => { // connect to server
+            ws = new WebsocketBuilder(url)
+                .withBuffer(new LRUBuffer<string>(10))
+                .withBackoff(new ConstantBackoff(100))
+                .onOpen((instance, _) => {
+                    resolve();
+                }).build();
+        });
+
+        const clientClosePromise = new Promise<void>(resolve => {
+            ws?.addEventListener(WebsocketEvents.close, () => {
+                resolve();
+            })
+        });
+
+        if (wss !== undefined) // close server and wait for client to register the connection-loss
+            await shutdownServerOrTimeout(wss, 100);
+        await clientClosePromise;
+
+        // send messages, they should be buffered while disconnected
+        expect((ws!['buffer'] as LRUBuffer<string>).len()).toBe(0);
+        testMessages.forEach(msg => ws?.send(msg));
+        expect((ws!['buffer'] as LRUBuffer<string>).len()).toBe(testMessages.length);
+
+        await startServer(port).then(server => { // re-start the server
+            wss = server;
+        });
+
+        // the client should automatically reconnect and send out all buffered messages...
+        /*await new Promise<void>(resolve => {
+            ws?.addEventListener(WebsocketEvents.open, () => {
+                resolve();
+            })
+        });*/
+
+        // ...which are then received by the server in correct order
+        await new Promise<string[]>(resolve => {
+            wss?.on('connection', socket => {
+                let buf = [] as string[];
+                socket.onmessage = me => {
+                    buf.push(me.data.toString());
+                    if (buf.length === testMessages.length)
+                        resolve(buf);
+                }
+            })
+        }).then(actual => {
+            expect(actual).toEqual(testMessages);
+        });
+
+        // after which the clients message-buffer should be empty again
+        expect((ws!['buffer'] as LRUBuffer<string>).len()).toBe(0);
+    });
+
+    test("Websocket should remove event-listeners when asked to", async () => {
+
+    });
+
+    test("Websocket should remove event-listeners if they declare the 'once'-property as true", async () => {
+
+    });
+
     test("Websocket should try to reconnect when the connection is lost", async () => {
 
     });
 
-    test("Websocket should send buffered messages when the connection is (re-)established", async () => {
+    test("Websocket should fire retryEvent when trying to reconnect", async () => {
 
     });
 });

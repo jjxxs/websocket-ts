@@ -1,152 +1,119 @@
 import {LRUBuffer} from "../../src";
 
 describe("Testsuite for LRUBuffer", () => {
-    const cap = 5;
-    let lru: LRUBuffer<number>;
+    const capacity = 5;
 
-    beforeEach(() => {
-        lru = new LRUBuffer<number>(cap);
-    });
-
-    test("LRUBuffer length", () => {
-        expect(lru.Len()).toBe(0);
-        for (let i = 0; i < 2 * cap; i++) {
-            expect(lru.Write([0])).toBe(1);
-            expect(lru.Len()).toBe(i >= cap ? cap : i + 1);
-        }
-    });
-
-    test("LRUBuffer capacity", () => {
-        expect(lru.Cap()).toBe(cap);
+    test("LRUBuffer should return correct capacity", () => {
+        const sut = new LRUBuffer<number>(capacity);
+        expect(sut.cap()).toBe(capacity);
     })
 
-    test("LRUBuffer read/write", () => {
-        for (let i = 0; i < 2 * cap; i++) {
-            lru = new LRUBuffer<number>(cap);
-            const w1 = createSequentialArray(i);
-            expect(lru.Write(w1)).toBe(i);
-            const r1 = createEmptyArray(i);
-            expect(lru.Read(r1)).toBe(i > cap ? cap : i);
-            for (let j = 0; j < i; j++) {
-                if (j > cap - 1)
-                    expect(r1[j]).toBeUndefined();
-                else
-                    expect(r1[j]).toBe(w1[i > cap ? j - (cap - i) : j]);
-            }
+    test("LRUBuffer should return correct length", () => {
+        const sut = new LRUBuffer<number>(capacity);
+        expect(sut.len()).toBe(0);
+        for (let i = 0; i <= 2 * capacity; i++) {
+            expect(sut.write([i])).toBe(1);
+            expect(sut.len()).toBe(i >= capacity ? capacity : i + 1);
         }
+    });
+
+    test("LRUBuffer read/write zero elements", () => {
+        const sut1 = new LRUBuffer<number>(capacity);
+        const writeArr1 = createSequentialArray(0);
+        const readArr1 = createEmptyArray(0);
+        expect(sut1.write(writeArr1)).toBe(writeArr1.length);
+        expect(sut1.len()).toBe(writeArr1.length);
+        expect(sut1.read(readArr1)).toBe(writeArr1.length);
+        expect(readArr1).toEqual(writeArr1);
     });
 
     test("LRUBuffer read/write single elements", () => {
-        const shouldBe = [] as number[];
-        for (let i = 0; i < cap * 2; i++) {
-            const w = [i];
-            expect(lru.Write(w)).toBe(1);
-            shouldBe.push(i);
-            if (i > cap - 1)
-                shouldBe.shift();
+        const sut = new LRUBuffer<number>(capacity)
+        const expected = [] as number[];
+        for (let i = 0; i < capacity * 3 + 2; i++) {
+            // write new element to buffer
+            expect(sut.write([i])).toBe(1);
+            expected.push(i);
+
+            // drop the last written element from expected if we exceed capacity
+            if (i > capacity - 1)
+                expected.shift();
+
+            // read actual elements
             const r = createEmptyArray(i);
-            expect(lru.Read(r)).toBe(i > cap ? cap : i);
+            expect(sut.read(r)).toBe(i > capacity ? capacity : i);
             for (let j = 0; j < i; j++) {
-                if (j > cap - 1)
+                if (j > capacity - 1)
                     expect(r[j]).toBeUndefined();
                 else
-                    expect(r[j]).toBe(shouldBe[j]);
-            }
-        }
-    })
-
-    test("LRUBuffer read/write smaller chunk", () => {
-        const oneLessThanCap = cap - 1;
-        const w1 = createSequentialArray(oneLessThanCap);
-        expect(lru.Write(w1)).toBe(oneLessThanCap);
-        for (let i = 0; i < oneLessThanCap; i++) {
-            const r1 = createEmptyArray(i);
-            expect(lru.Read(r1)).toBe(i);
-            for (let j = 0; j < i; j++) {
-                if (j > oneLessThanCap - 1)
-                    expect(r1[j]).toBeUndefined();
-                else
-                    expect(r1[j]).toBe(w1[j]);
+                    expect(r[j]).toBe(expected[j]);
             }
         }
     });
 
-    test("LRUBuffer read/write smaller chunk when wrapped", () => {
-        const w1 = createSequentialArray(cap);
-        expect(lru.Write(w1)).toBe(cap);
-        for (let i = 0; i < cap; i++) {
-            const r1 = createEmptyArray(i);
-            expect(lru.Read(r1)).toBe(i);
+    test("LRUBuffer read/write multiple elements", () => {
+        for (let i = 0; i < 2 * capacity; i++) {
+            const sut = new LRUBuffer<number>(capacity);
+            const writeArr = createSequentialArray(i);
+            const readArr = createEmptyArray(i);
+            expect(sut.write(writeArr)).toBe(i);
+            expect(sut.read(readArr)).toBe(i > capacity ? capacity : i);
             for (let j = 0; j < i; j++) {
-                if (j > cap - 1)
-                    expect(r1[j]).toBeUndefined();
+                if (j > capacity - 1)
+                    expect(readArr[j]).toBeUndefined();
                 else
-                    expect(r1[j]).toBe(w1[j]);
+                    expect(readArr[j]).toBe(writeArr[i > capacity ? j - (capacity - i) : j]);
             }
         }
     });
 
-    test("LRUBuffer multiple read/write", () => {
-        const w1 = createSequentialArray(cap - 1);
-        expect(lru.Write(w1)).toBe(cap - 1);
-        const r1 = createSequentialArray(cap - 1);
-        expect(lru.Read(r1)).toBe(cap - 1);
-        for (let i = 0; i < cap - 1; i++) {
-            expect(w1[i]).toBe(r1[i]);
-        }
-        const w2 = createSequentialArray(2);
-        expect(lru.Write(w2)).toBe(2);
-        const r2 = createEmptyArray(cap);
-        expect(lru.Read(r2)).toBe(cap);
+    test("LRUBuffer read/write on buffer with zero capacity should always return zero", () => {
+        const sut = new LRUBuffer<number>(0);
+        expect(sut.write([1])).toBe(0);
+        expect(sut.read([0])).toBe(0);
+    });
+
+    test("LRUBuffer read from empty buffer should return zero elements", () => {
+        const sut = new LRUBuffer<number>(capacity);
+        const readArr = new Array<number>(capacity);
+        expect(sut.read(readArr)).toBe(0);
     });
 
     test("LRUBuffer forEach should apply function to every element in the buffer", () => {
-        const w1 = [0];
-        expect(lru.Write(w1)).toBe(w1.length);
-        const res = [] as number[];
-        lru.forEach((e) => res.push(e));
-        expect(res.length).toBe(w1.length);
-        for (let i = 0; i < w1.length; i++) {
-            expect(res[i]).toBe(w1[i]);
-        }
-        const w2 = [1, 2, 3, 4];
-        const expected2 = [0, 1, 2, 3, 4];
-        expect(lru.Write(w2)).toBe(w2.length);
-        const res2 = [] as number[];
-        lru.forEach((e) => res2.push(e));
-        expect(res2.length).toBe(cap);
-        for (let i = 0; i < cap; i++) {
-            expect(res2[i]).toBe(expected2[i]);
-        }
-        const w3 = [5, 6];
-        const expected3 = [2, 3, 4, 5, 6];
-        expect(lru.Write(w3)).toBe(w3.length);
-        const res3 = [] as number[];
-        lru.forEach((e) => res3.push(e));
-        expect(res3.length).toBe(cap);
-        for (let i = 0; i < cap; i++) {
-            expect(res3[i]).toBe(expected3[i]);
-        }
+       const sut = new LRUBuffer<number>(capacity);
+       const es = [] as number[];
+       sut.write([0]);
+       sut.forEach(e => es.push(e));
+       expect(es).toEqual([0]);
+
+       const es2 = [] as number[];
+       sut.write([1, 2, 3, 4]);
+       sut.forEach(e => es2.push(e));
+       expect(es2).toEqual([0, 1, 2, 3, 4]);
+
+        const es3 = [] as number[];
+        sut.write([5, 6]);
+        sut.forEach(e => es3.push(e));
+        expect(es3).toEqual([2, 3, 4, 5, 6]);
     });
 
-    test("LRUBuffer read/write on buffer with zero length should always return zero", () => {
-        lru = new LRUBuffer<number>(0);
-        expect(lru.Write([1])).toBe(0);
-        expect(lru.Read([0])).toBe(0);
-    });
-
-    test("LRUBuffer read from buffer with no elements", () => {
-        const lru = new LRUBuffer<number>(cap);
-        const r1 = createEmptyArray(cap);
-        expect(lru.Read(r1)).toBe(0);
-    });
-
-    test("LRUBuffer forEach on buffer with no elements", () => {
-        const lru = new LRUBuffer<number>(cap);
+    test("LRUBuffer forEach on empty buffer should do nothing", () => {
+        const sut = new LRUBuffer<number>(capacity);
         const es = [] as number[];
-        lru.forEach(e => es.push(e));
+        sut.forEach(e => es.push(e));
         expect(es.length).toBe(0);
-    })
+    });
+
+    test("LRUBuffer should contain zero items when cleared", () => {
+        const sut = new LRUBuffer<number>(capacity);
+        const writeArr = createSequentialArray(capacity);
+        const readArr = createEmptyArray(capacity);
+        sut.write(writeArr);
+        sut.clear();
+        expect(sut.len()).toBe(0);
+        expect(sut.read(readArr)).toBe(0);
+        expect(readArr).toEqual(createEmptyArray(capacity));
+    });
 });
 
 const createEmptyArray = (len: number): Array<number> => {

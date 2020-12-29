@@ -9,10 +9,10 @@ export interface Backoff {
      * series.
      * @return the next number
      */
-    Next(): number
+    next(): number
 
     /**
      *  Resets the series to its starting-value.
      */
-    Reset(): void
+    reset(): void
 }

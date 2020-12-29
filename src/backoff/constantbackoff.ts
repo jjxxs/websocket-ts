@@ -10,11 +10,11 @@ export class ConstantBackoff implements Backoff {
         this.backoff = backoff;
     }
 
-    Next(): number {
+    next(): number {
         return this.backoff;
     }
 
-    Reset = () => {
+    reset = () => {
         // no-op
     }
 }

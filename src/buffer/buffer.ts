@@ -1,38 +1,45 @@
 /**
- * Container for generic elements.
+ * Temporary container for generic elements.
  */
 export interface Buffer<E> {
     /**
-     * Length of the buffer, e.g. the count of elements
-     * currently in the buffer.
+     * Length of the buffer, the count of elements
+     * that can be read from the buffer.
      * @return the length of the buffer
      */
-    Len(): number
+    len(): number
 
     /**
-     * Capacity of the buffer.
+     * Capacity of the buffer, the total amount of
+     * elements the buffer can contain.
      * @return the capacity of the buffer
      */
-    Cap(): number
+    cap(): number
 
     /**
-     * Reads up to es.length elements from the buffer.
-     * @param es to read from the buffer
-     * @return the count of elements read
+     * Reads elements from the buffer.
+     * @param es array to read into from the buffer
+     * @return the count of elements that were read
      */
-    Read(es: E[]): number
+    read(es: E[]): number
 
     /**
-     * Writes up to es.length elements to the buffer.
-     * @param es to write to the buffer
-     * @return the count of elements written
+     * Writes elements to the buffer.
+     * @param es array to write to the buffer
+     * @return the count of elements that were written
      */
-    Write(es: E[]): number
+    write(es: E[]): number
 
     /**
      * Applies a function to every element in the buffer.
-     * @param fn the function to apply
-     * @return: the count of elements handled
+     * @param fn the function to apply to every element
+     * @return: the count of elements that were used
      */
     forEach(fn: (e: E) => any): number
+
+    /**
+     * Clears the buffer. This effectively removes all
+     * items in the buffer.
+     */
+    clear(): void
 }
