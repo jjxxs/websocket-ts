@@ -21,7 +21,7 @@ export class LinearBackoff implements Backoff {
         this.current = this.initial;
     }
 
-    Next() {
+    next() {
         const backoff = this.current;
         const next = this.current + this.increment;
         if (this.maximum === undefined)
@@ -31,7 +31,7 @@ export class LinearBackoff implements Backoff {
         return backoff;
     }
 
-    Reset() {
+    reset() {
         this.current = this.initial;
     }
 }

@@ -24,14 +24,14 @@ export class ExponentialBackoff implements Backoff {
         this.current = this.initial;
     }
 
-    Next(): number {
+    next(): number {
         const backoff = this.current;
         if (this.expMax > this.expCurrent++)
             this.current = this.current * 2;
         return backoff;
     }
 
-    Reset() {
+    reset() {
         this.expCurrent = 1;
         this.current = this.initial;
     }

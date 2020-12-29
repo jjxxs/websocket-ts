@@ -2,9 +2,9 @@ import {Buffer} from "./buffer";
 
 /**
  * TimeBuffer keeps the elements that were written to the buffer
- * within maxAge milliseconds. E.g. to only keep items in the
+ * within maxAge milliseconds. For example, to  keep items in the
  * buffer that are less than a minute old, create the buffer with
- * a maximum age of 60.000.
+ * maxAge equal to 60.000.
  *
  * When reading from the TimeBuffer, elements will be returned
  * in FIFO-order (queue).
@@ -18,11 +18,11 @@ export class TimeBuffer<E> implements Buffer<E> {
         this.maxAge = maxAge;
     }
 
-    Cap(): number {
+    cap(): number {
         return Number.POSITIVE_INFINITY;
     }
 
-    Len(): number {
+    len(): number {
         this.forwardTail();
         let cur = this.tail;
         let i = 0;
@@ -33,7 +33,7 @@ export class TimeBuffer<E> implements Buffer<E> {
         return i;
     }
 
-    Read(es: E[]): number {
+    read(es: E[]): number {
         this.forwardTail();
         if (es.length === 0)
             return 0;
@@ -48,7 +48,7 @@ export class TimeBuffer<E> implements Buffer<E> {
         return i;
     }
 
-    Write(es: E[]): number {
+    write(es: E[]): number {
         for (let i = 0; i < es.length; i++)
             this.putElement(es[i]);
         return es.length;
@@ -91,6 +91,10 @@ export class TimeBuffer<E> implements Buffer<E> {
             if (this.tail === undefined)
                 break;
         }
+    }
+
+    clear(): void {
+        // TODO
     }
 }
 
