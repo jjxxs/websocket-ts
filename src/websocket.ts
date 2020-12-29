@@ -7,11 +7,11 @@ type eventListener<K extends WebsocketEvents> = {
 }
 
 export enum WebsocketEvents {
-    open = 'open',
-    close = 'close',
-    error = 'error',
-    message = 'message',
-    retry = 'retry'
+    open = 'open',          // When the connection is opened or re-opened
+    close = 'close',        // When the connection is closed
+    error = 'error',        // When an error occurs
+    message = 'message',    // When a message was received
+    retry = 'retry'         // When a try to re-connect is made after the connection was closed
 }
 
 interface WebsocketEventMap {

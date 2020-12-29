@@ -8,7 +8,7 @@ import {Backoff} from "./backoff";
  * The calculation-specification is:
  *          backoff = k * 2^s with s in [1, expMax].
  *
- * Example: for k=100, expMax=7 the ExponentialBackoff will pro-
+ * Example: for initial=100, expMax=7 the ExponentialBackoff will pro-
  * duce the backoff-series [100, 200, 400, 800, 1600, 3200, 6400].
  */
 export class ExponentialBackoff implements Backoff {
