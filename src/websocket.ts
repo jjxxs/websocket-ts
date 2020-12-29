@@ -89,7 +89,7 @@ export class Websocket {
         (this.eventListeners[type] as eventListener<K>[]) =
             (this.eventListeners[type] as eventListener<K>[])
                 .filter(l => {
-                    return l.listener !== listener && l.options !== options;
+                    return l.listener !== listener && (l.options === undefined || l.options !== options);
                 });
     }
 
