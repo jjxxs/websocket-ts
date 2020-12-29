@@ -7,15 +7,30 @@ import {RetryEventDetails, Websocket, WebsocketEvents} from "./websocket";
  */
 export class WebsocketBuilder {
     private readonly url: string;
+    private ws: Websocket | null = null;
     private protocols?: string | string[];
     private backoff?: Backoff;
     private buffer?: Buffer<string | ArrayBufferLike | Blob | ArrayBufferView>;
-    private onOpenChain: ((instance: Websocket, ev: Event) => any) | null = null;
-    private onCloseChain: ((instance: Websocket, ev: CloseEvent) => any) | null = null;
-    private onErrorChain: ((instance: Websocket, ev: Event) => any) | null = null;
-    private onMessageChain: ((instance: Websocket, ev: MessageEvent) => any) | null = null;
-    private onRetryChain: ((instance: Websocket, ev: CustomEvent<RetryEventDetails>) => any) | null = null;
-    private ws: Websocket | null = null;
+    private onOpenListeners: ({
+        listener: (instance: Websocket, ev: Event) => any,
+        options?: boolean | EventListenerOptions
+    })[] = [];
+    private onCloseListeners: ({
+        listener: (instance: Websocket, ev: CloseEvent) => any,
+        options?: boolean | EventListenerOptions
+    })[] = [];
+    private onErrorListeners: ({
+        listener: (instance: Websocket, ev: Event) => any,
+        options?: boolean | EventListenerOptions
+    })[] = [];
+    private onMessageListeners: ({
+        listener: (instance: Websocket, ev: MessageEvent) => any,
+        options?: boolean | EventListenerOptions
+    })[] = [];
+    private onRetryListeners: ({
+        listener: (instance: Websocket, ev: CustomEvent<RetryEventDetails>) => any,
+        options?: boolean | EventListenerOptions
+    })[] = [];
 
     constructor(url: string) {
         this.url = url;
@@ -36,53 +51,33 @@ export class WebsocketBuilder {
         return this;
     }
 
-    public onOpen(fn: (instance: Websocket, ev: Event) => any): WebsocketBuilder {
-        const onOpen = this.onOpenChain;
-        this.onOpenChain = (instance: Websocket, ev2: Event) => {
-            fn(instance, ev2);
-            if (onOpen !== null)
-                onOpen(instance, ev2);
-        }
+    public onOpen(listener: (instance: Websocket, ev: Event) => any,
+                  options?: boolean | EventListenerOptions): WebsocketBuilder {
+        this.onOpenListeners.push({listener, options});
         return this;
     }
 
-    public onClose(fn: (instance: Websocket, ev: CloseEvent) => any): WebsocketBuilder {
-        const onClose = this.onCloseChain;
-        this.onCloseChain = (instance: Websocket, ev2: CloseEvent) => {
-            fn(instance, ev2);
-            if (onClose !== null)
-                onClose(instance, ev2);
-        }
+    public onClose(listener: (instance: Websocket, ev: CloseEvent) => any,
+                   options?: boolean | EventListenerOptions): WebsocketBuilder {
+        this.onCloseListeners.push({listener, options});
         return this;
     }
 
-    public onError(fn: (instance: Websocket, ev: Event) => any): WebsocketBuilder {
-        const onError = this.onErrorChain;
-        this.onErrorChain = (instance: Websocket, ev2: Event) => {
-            fn(instance, ev2);
-            if (onError !== null)
-                onError(instance, ev2);
-        }
+    public onError(listener: (instance: Websocket, ev: Event) => any,
+                   options?: boolean | EventListenerOptions): WebsocketBuilder {
+        this.onErrorListeners.push({listener, options});
         return this;
     }
 
-    public onMessage(fn: (instance: Websocket, ev: MessageEvent) => any): WebsocketBuilder {
-        const onMessage = this.onMessageChain;
-        this.onMessageChain = (instance: Websocket, ev2: MessageEvent) => {
-            fn(instance, ev2);
-            if (onMessage !== null)
-                onMessage(instance, ev2);
-        }
+    public onMessage(listener: (instance: Websocket, ev: MessageEvent) => any,
+                     options?: boolean | EventListenerOptions): WebsocketBuilder {
+        this.onMessageListeners.push({listener, options});
         return this;
     }
 
-    public onRetry(fn: (instance: Websocket, ev: CustomEvent<RetryEventDetails>) => any): WebsocketBuilder {
-        const onRetry = this.onRetryChain;
-        this.onRetryChain = (instance: Websocket, ev2: CustomEvent<RetryEventDetails>) => {
-            fn(instance, ev2);
-            if (onRetry !== null)
-                onRetry(instance, ev2);
-        }
+    public onRetry(listener: (instance: Websocket, ev: CustomEvent<RetryEventDetails>) => any,
+                   options?: boolean | EventListenerOptions): WebsocketBuilder {
+        this.onRetryListeners.push({listener, options});
         return this;
     }
 
@@ -93,16 +88,11 @@ export class WebsocketBuilder {
         if (this.ws !== null)
             return this.ws;
         this.ws = new Websocket(this.url, this.protocols, this.buffer, this.backoff);
-        if (this.onOpenChain !== null)
-            this.ws.addEventListener(WebsocketEvents.open, this.onOpenChain);
-        if (this.onCloseChain !== null)
-            this.ws.addEventListener(WebsocketEvents.close, this.onCloseChain);
-        if (this.onErrorChain !== null)
-            this.ws.addEventListener(WebsocketEvents.error, this.onErrorChain);
-        if (this.onMessageChain !== null)
-            this.ws.addEventListener(WebsocketEvents.message, this.onMessageChain);
-        if (this.onRetryChain !== null)
-            this.ws.addEventListener(WebsocketEvents.retry, this.onRetryChain);
+        this.onOpenListeners.forEach(h => this.ws?.addEventListener(WebsocketEvents.open, h.listener, h.options));
+        this.onCloseListeners.forEach(h => this.ws?.addEventListener(WebsocketEvents.close, h.listener, h.options));
+        this.onErrorListeners.forEach(h => this.ws?.addEventListener(WebsocketEvents.error, h.listener, h.options));
+        this.onMessageListeners.forEach(h => this.ws?.addEventListener(WebsocketEvents.message, h.listener, h.options));
+        this.onRetryListeners.forEach(h => this.ws?.addEventListener(WebsocketEvents.retry, h.listener, h.options));
         return this.ws;
     }
 }
