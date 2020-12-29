@@ -1,5 +1,5 @@
 # websocket-ts
-A client-websocket written in TypeScript to be used from within browsers with focus on simplicity, reliability and extensibility. It provides convenient features to automatically reconnect and buffer pending messages.
+A client-websocket written in TypeScript meant to be used from within browsers with focus on simplicity, reliability and extensibility. It provides convenient features to automatically reconnect and buffer pending messages.
 
 [![Build Status](https://travis-ci.org/jjxxs/websocket-ts.svg?branch=master)](https://travis-ci.org/jjxxs/websocket-ts)
 [![Coverage Status](https://coveralls.io/repos/github/jjxxs/websocket-ts/badge.svg?branch=master)](https://coveralls.io/github/jjxxs/websocket-ts?branch=master)
@@ -7,80 +7,132 @@ A client-websocket written in TypeScript to be used from within browsers with fo
 [![License](https://img.shields.io/github/license/jjxxs/websocket-ts)](/LICENSE)
 
 ## Features
-- Dependency-free & small in size
+- Dependency-free and small in size
 - Uses the browser-native WebSocket-functionality
    - Copies the event-based WebSocket-API
-   - Provides low-level access to the underlying WebSocket if needed
-- Optionally automatic reconnect when disconnected
-   - With easy-to-configure parameters (time between retries)
-- Optionally buffer messages while disconnected
-   - With easy-to-configure buffers (size, behaviour)
+   - Provides access to the underlying WebSocket
+- When the connection is lost, it can optionally be configured to
+   - Automatically try to reconnect in a smart way
+   - Buffer messages that are sent when the connection is re-established
 - Builder-class for easy initialization and configuration
+- High test-coverage and in-code documentation
+    - Enables you to easily modify the code if you are missing any features
+
+## Installation
+In your project-root:
+```
+$ npm install websocket-ts 
+```
+
+In your project-code:
+```typescript
+import {WebsocketBuilder} from 'websocket-ts';
+```
 
 ## Usage
-New instances can be created with the Builder.
+
+#### Initialization
+New instances are most easily created with the provided `WebsocketBuilder`:
 
 ```typescript
-const ws = new WsBuilder('ws://localhost:42421').build();
+const ws = new WebsocketBuilder('ws://localhost:42421').build();
 ```
 
-#### Callbacks
-You can register callbacks for `onOpen`-, `onClose`-, `onError`- and `onMessage`-events. The callbacks get called with the websocket-instance plus the event itself as parameters.
+#### Events & Callbacks
+There are five events which can be subscribed to through callbacks:
 ```typescript
-const ws = new WsBuilder('ws://localhost:42421')
-    .onOpen((ws, e) => { console.log("opened") })
-    .onClose((ws, e) => { console.log("closed") })
-    .onError((ws, e) => { console.log("error") })
-    .onMessage((ws, e) => { ws.send(e.data) })
+export enum WebsocketEvents {
+    open = 'open',          // When the connection is opened or re-opened
+    close = 'close',        // When the connection is closed
+    error = 'error',        // When an error occurs
+    message = 'message',    // When a message was received
+    retry = 'retry'         // When a try to re-connect is made after the connection was closed
+}
+```
+The callbacks are called with the issuing websocket-instance and the causing event as parameters:
+```typescript
+const ws = new WebsocketBuilder('ws://localhost:42421')
+    .onOpen((i, ev) => { console.log("opened") })
+    .onClose((i, ev) => { console.log("closed") })
+    .onError((i, ev) => { console.log("error") })
+    .onMessage((i, ev) => { console.log("message") })
+    .onRetry((i, ev) => { console.log("retry") })
     .build();
 ```
 
-It is possible to register multiple callbacks for the same event, they are called in stack-order:
+You can register multiple callbacks for the same event. They will be called in stack-order:
 ```typescript
-const ws = new WsBuilder('ws://localhost:42421')
-    .onMessage((ws, e) => { console.log("sent echo") })
-    .onMessage((ws, e) => { i.send(e.data) })
-    .onMessage((ws, e) => { console.log("message received") })
+const ws = new WebsocketBuilder('ws://localhost:42421')
+    .onMessage((i, e) => { console.log("echo sent") })
+    .onMessage((i, e) => { i.send(e.data) })
+    .onMessage((i, e) => { console.log("message received") })
     .build();
 ```
 
-#### Buffer
-To buffer pending messages while your websocket is disconnected, configure it to use a ```Buffer```. While disconnected,
-calls to the `send()`-method will write the message you want to send to the buffer. These pending messages
-will be sent out in the order that they were inserted as soon as the connection is (re)-established.
-
+#### Send & buffer messages
+To send messages, use the websockets `send()`-method:
 ```typescript
-// LRUBuffer with a capacity of 1000 messages. If the buffer is full,
-// the oldest message will be replaced by the newest and so on.
-const ws = new WsBuilder('ws://localhost:42421')
+let ws: Websocket;
+/* ... */
+ws.send("Hello World!");
+```
+
+If you want to buffer to-be-send messages while the websocket is disconnected, you can provide it with a `Buffer`.
+The websocket will then use the buffer to temporarily keep your messages and send them in correct order once the 
+connection is re-established. There are currently two `Buffer`-implementations. You can also implement your own
+ by inheriting from the `Buffer`-interface.
+
+##### LRUBuffer
+The `LRUBuffer` keeps the last `n` messages. When the buffer is full, the oldest message in the buffer will be replaced.
+It uses an array as a circular-buffer for linear space- and time-requirements. To use the `LRUBuffer` with a capacity of `1000`:
+```typescript
+const ws = new WebsocketBuilder('ws://localhost:42421')
     .withBuffer(new LRUBuffer(1000))
     .build();
 ```
 
+##### TimeBuffer
+The `TimeBuffer` will keep all messages that were written within the last `n` milliseconds. It will drop messages that are
+older than the specified amount. To use the `TimeBuffer` that keeps messages from the last `5 minutes`:
 ```typescript
-// TimeBuffer keeping all messages from the last five minutes,
-// older messages are dropped.
-const ws = new WsBuilder('ws://localhost:42421')
+const ws = new WebsocketBuilder('ws://localhost:42421')
     .withBuffer(new TimeBuffer(5 * 60 * 1000))
     .build();
 ```
 
-#### Reconnect / Backoff
-When provided with a ```Backoff```, the websocket will automatically try to reconnect when the connection got lost. The
-type of backoff provided dictates the delay between connection-retries in milliseconds.
+#### Reconnect & Backoff
+If you want the websocket to automatically try to re-connect when the connection is lost, you can provide it with a `Backoff`.
+The websocket will use the `Backoff` to determine how long it should wait between re-tries. There are currently three 
+`Backoff`-implementations. You can also implement your own by inheriting from the `Backoff`-interface.
 
+##### ConstantBackoff
+The `ConstantBackoff` will make the websocket wait a constant time between each connection retry. To use the `ConstantBackoff`
+with a wait-time of `1 second`:
 ```typescript
-// ConstantBackoff will wait a fixed time between connection-retries.
-const ws  = new WsBuilder('ws://localhost:42421')
+const ws  = new WebsocketBuilder('ws://localhost:42421')
     .withBackoff(new ConstantBackoff(500))
     .build();
 ```
 
+##### LinearBackoff
+The `LinearBackoff` linearly increases the wait-time between connection-retries until an optional maximum is reached.
+To use the `LinearBackoff` to initially wait `0 seconds` and increase the wait-time by `1 second` with every retry until
+a maximum of `8 seconds` is reached:
 ```typescript
-// ExponentialBackoff will double the time to wait between retries with 
-// every unsuccessful retry until a maximum is reached. This one goes from
-// 100 * 2^0 to 100 * 2^5, so [100, 200, 400, 800, 1600, 3200] milliseconds.
-const ws  = new WsBuilder('ws://localhost:42421')
-    .withBackoff(new ExponentialBackoff(100, 0, 5))
+const ws  = new WebsocketBuilder('ws://localhost:42421')
+    .withBackoff(new LinearBackoff(0, 1000, 8000))
     .build();
 ```
+
+##### ExponentialBackoff
+The `ExponentialBackoff` doubles the backoff with every retry until a maximum is reached. This is modelled after the binary
+exponential-backoff algorithm used in computer-networking. To use the `ExponentialBackoff` that will produce the series
+`[100, 200, 400, 800, 1600, 3200, 6400]`:
+```typescript
+const ws  = new WebsocketBuilder('ws://localhost:42421')
+    .withBackoff(new ExponentialBackoff(100, 7))
+    .build();
+```
+
+#### Build & Tests
+To build the project run `yarn build`. All provided components are covered with unit-tests. To run the tests run `yarn test`.
