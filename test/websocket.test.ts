@@ -144,7 +144,7 @@ describe("Testsuite for Websocket", () => {
         // monkey-patch the underlying websockets send()-method, to see if it is still called
         let messagesSent = 0;
         if (ws !== undefined && ws.underlyingWebsocket !== undefined) {
-            ws.underlyingWebsocket.send = (data: string | ArrayBufferLike | Blob | ArrayBufferView) => {
+            ws.underlyingWebsocket.send = (_: string | ArrayBufferLike | Blob | ArrayBufferView) => {
                 messagesSent++;
             }
         }
@@ -157,61 +157,82 @@ describe("Testsuite for Websocket", () => {
 
     test("Websocket should send buffered messages when the connection is (re-)established", async () => {
         const testMessages = ["one", "two", "three"];
-        await new Promise<void>(resolve => { // connect to server
-            ws = new WebsocketBuilder(url)
-                .withBuffer(new LRUBuffer<string>(10))
-                .withBackoff(new ConstantBackoff(100))
-                .onOpen((instance, _) => {
-                    resolve();
-                }).build();
-        });
 
-        const clientClosePromise = new Promise<void>(resolve => {
-            ws?.addEventListener(WebsocketEvents.close, () => {
-                resolve();
-            })
-        });
+        let onOpen: () => void;
+        let onClose: () => void;
+        let wsOnOpenPromise = new Promise<void>(resolve => onOpen = resolve);
+        const wsOnClosePromise = new Promise<void>(resolve => onClose = resolve);
+        ws = new WebsocketBuilder(url)
+            .withBuffer(new LRUBuffer<string>(10))
+            .withBackoff(new ConstantBackoff(100))
+            .onOpen(() => onOpen())
+            .onClose(() => onClose())
+            .build();
 
-        if (wss !== undefined) // close server and wait for client to register the connection-loss
+        await wsOnOpenPromise; // wait for client to be connected
+        if (wss !== undefined)  // shutdown the server
             await shutdownServerOrTimeout(wss, 100);
-        await clientClosePromise;
+        await wsOnClosePromise; // wait for client to register the disconnect
 
-        // send messages, they should be buffered while disconnected
+        // sending messages while disconnected should be buffered
         expect((ws!['buffer'] as LRUBuffer<string>).len()).toBe(0);
         testMessages.forEach(msg => ws?.send(msg));
         expect((ws!['buffer'] as LRUBuffer<string>).len()).toBe(testMessages.length);
 
-        await startServer(port).then(server => { // re-start the server
+        // re-start the server and create promise for when all messages are received
+        let onMessagesReceived: (msg: string[]) => void;
+        const onMessagesReceivedPromise = new Promise<string[]>(resolve => onMessagesReceived = resolve);
+        await startServer(port).then(server => {
             wss = server;
-        });
-
-        // the client should automatically reconnect and send out all buffered messages...
-        /*await new Promise<void>(resolve => {
-            ws?.addEventListener(WebsocketEvents.open, () => {
-                resolve();
-            })
-        });*/
-
-        // ...which are then received by the server in correct order
-        await new Promise<string[]>(resolve => {
-            wss?.on('connection', socket => {
+            wss.on('connection', socket => {
                 let buf = [] as string[];
                 socket.onmessage = me => {
                     buf.push(me.data.toString());
                     if (buf.length === testMessages.length)
-                        resolve(buf);
+                        onMessagesReceived(buf);
                 }
             })
-        }).then(actual => {
-            expect(actual).toEqual(testMessages);
         });
 
-        // after which the clients message-buffer should be empty again
+        // wait for the client to re-connect, it should send out all pending messages...
+        wsOnOpenPromise = new Promise<void>(resolve => onOpen = resolve);
+        await wsOnOpenPromise;
+
+        // ...which are then received by the server in correct order...
+        await onMessagesReceivedPromise.then(actual => {
+            expect(actual).toEqual(testMessages);
+        })
+
+        // ...after which the clients message-buffer should be empty again
         expect((ws!['buffer'] as LRUBuffer<string>).len()).toBe(0);
     });
 
-    test("Websocket should remove event-listeners when asked to", async () => {
+    test("Websocket should remove event-listener correctly when removeEventListener() is called", async () => {
+        let count = 0;
+        const onOpenEventListener = () => count++; // increment counter on every connect
+        let onOpen: () => void;
+        let onClose: () => void;
+        let wsOnOpenPromise = new Promise<void>(resolve => onOpen = resolve);
+        const wsOnClosePromise = new Promise<void>(resolve => onClose = resolve);
+        ws = new WebsocketBuilder(url)
+            .withBuffer(new LRUBuffer<string>(10))
+            .withBackoff(new ConstantBackoff(100))
+            .onOpen(() => onOpen())
+            .onOpen(onOpenEventListener)
+            .onClose(() => onClose())
+            .build();
+        await wsOnOpenPromise; // wait for initial connection
+        expect(count).toBe(1); // openEventListener should be called exactly once at this point
+        ws.removeEventListener(WebsocketEvents.open, onOpenEventListener); // unregister the event-handler
+        if (wss !== undefined)  // shutdown the server
+            await shutdownServerOrTimeout(wss, 100);
+        await wsOnClosePromise; // wait for client to register the disconnect
 
+        // restart the server and wait for the client to connect
+        await startServer(port).then(server => wss = server);
+        wsOnOpenPromise = new Promise<void>(resolve => onOpen = resolve);
+        await wsOnOpenPromise;
+        expect(count).toBe(1); // count should still be 1, since the incrementing event-handler was unregistered
     });
 
     test("Websocket should remove event-listeners if they declare the 'once'-property as true", async () => {
@@ -226,26 +247,6 @@ describe("Testsuite for Websocket", () => {
 
     });
 });
-
-/*describe("TestSuite for Websocket reconnect-function", () => {
-    const port = 42421;
-    const url = `ws://localhost:${port}`;
-
-    let ws: Websocket | undefined;
-    let wss: Server | undefined;
-    type wsWithEv<K extends Event> = { instance: Websocket, ev: K };
-
-    test("Websocket reconnect with constant backoff", async () => {
-        let retries = 0;
-        ws = new Websocket(url, undefined, undefined, new ConstantBackoff(200));
-        ws.addEventListener(WebsocketEvents.retry, (_, e) => {
-            expect(e.detail.lastBackoff).toBe(200);
-        });
-        delay(5000).then(() => {
-            expect(retries).toBe(6);
-        });
-    }, 10000);
-});*/
 
 function delay(ms: number): Promise<void> {
     return new Promise<void>(resolve => {
