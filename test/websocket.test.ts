@@ -215,7 +215,6 @@ describe("Testsuite for Websocket", () => {
         let wsOnOpenPromise = new Promise<void>(resolve => onOpen = resolve);
         const wsOnClosePromise = new Promise<void>(resolve => onClose = resolve);
         ws = new WebsocketBuilder(url)
-            .withBuffer(new LRUBuffer<string>(10))
             .withBackoff(new ConstantBackoff(100))
             .onOpen(() => onOpen())
             .onOpen(onOpenEventListener)
@@ -236,7 +235,29 @@ describe("Testsuite for Websocket", () => {
     });
 
     test("Websocket should remove event-listeners if they declare the 'once'-property as true", async () => {
+        let count = 0;
+        const onOpenEventListener = () => count++; // increment counter on every connect
+        let onOpen: () => void;
+        let onClose: () => void;
+        let wsOnOpenPromise = new Promise<void>(resolve => onOpen = resolve);
+        const wsOnClosePromise = new Promise<void>(resolve => onClose = resolve);
+        ws = new WebsocketBuilder(url)
+            .withBackoff(new ConstantBackoff(100))
+            .onOpen(() => onOpen())
+            .onOpen(onOpenEventListener, {once: true} as AddEventListenerOptions) // declare 'once'-property
+            .onClose(() => onClose())
+            .build();
+        await wsOnOpenPromise; // wait for initial connection
+        expect(count).toBe(1); // openEventListener should be called exactly once at this point
+        if (wss !== undefined)  // shutdown the server
+            await shutdownServerOrTimeout(wss, 100);
+        await wsOnClosePromise; // wait for client to register the disconnect
 
+        // restart the server and wait for the client to connect
+        await startServer(port).then(server => wss = server);
+        wsOnOpenPromise = new Promise<void>(resolve => onOpen = resolve);
+        await wsOnOpenPromise;
+        expect(count).toBe(1); // count should still be 1, since the incrementing event-handler was unregistered
     });
 
     test("Websocket should try to reconnect when the connection is lost", async () => {
@@ -244,7 +265,27 @@ describe("Testsuite for Websocket", () => {
     });
 
     test("Websocket should fire retryEvent when trying to reconnect", async () => {
-
+        let retryCount = 0;
+        let onOpen: () => void;
+        let onClose: () => void;
+        let onRetry: () => void;
+        let wsOnOpenPromise = new Promise<void>(resolve => onOpen = resolve);
+        const wsOnClosePromise = new Promise<void>(resolve => onClose = resolve);
+        let wsOnRetryPromise = new Promise<void>(resolve => onRetry = resolve);
+        ws = new WebsocketBuilder(url)
+            .withBackoff(new ConstantBackoff(100)) // 100ms between retries
+            .onOpen(() => onOpen())
+            .onClose(() => onClose())
+            .onRetry(() => retryCount++)
+            .onRetry(() => onRetry())
+            .build();
+        await wsOnOpenPromise;
+        if (wss !== undefined)  // shutdown the server
+            await shutdownServerOrTimeout(wss, 100);
+        await wsOnClosePromise; // wait for client to register the disconnect
+        await wsOnRetryPromise; // it should retry after 100ms and this will trigger the event
+        await delay(450); // after 450 more ms, it should've triggered another 4 times
+        expect(retryCount >= 3 || retryCount <= 6).toBeTruthy();
     });
 });
 
