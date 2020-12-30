@@ -16,7 +16,7 @@ A client-websocket written in TypeScript meant to be used from within browsers w
    - Buffer messages that are sent when the connection is re-established
 - Builder-class for easy initialization and configuration
 - High test-coverage and in-code documentation
-    - Enables you to easily modify the code if you are missing any features
+    - Enables you to easily modify and extend the code
 
 ## Installation
 In your project-root:
@@ -42,14 +42,14 @@ const ws = new WebsocketBuilder('ws://localhost:42421').build();
 There are five events which can be subscribed to through callbacks:
 ```typescript
 export enum WebsocketEvents {
-    open = 'open',          // When the connection is opened or re-opened
-    close = 'close',        // When the connection is closed
-    error = 'error',        // When an error occurs
-    message = 'message',    // When a message was received
-    retry = 'retry'         // When a try to re-connect is made after the connection was closed
+    open = 'open',          // Connection is opened or re-opened
+    close = 'close',        // Connection is closed
+    error = 'error',        // An error occurred
+    message = 'message',    // A message was received
+    retry = 'retry'         // A try to re-connect is made
 }
 ```
-The callbacks are called with the issuing websocket-instance and the causing event as parameters:
+The callbacks are called with the issuing websocket-instance and the causing event as arguments:
 ```typescript
 const ws = new WebsocketBuilder('ws://localhost:42421')
     .onOpen((i, ev) => { console.log("opened") })
