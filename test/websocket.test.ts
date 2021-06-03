@@ -209,7 +209,7 @@ describe("Testsuite for Websocket", () => {
 
     test("Websocket should remove event-listener correctly when removeEventListener() is called", async () => {
         let count = 0;
-        const onOpenEventListener = () => count++; // increment counter on every connect
+        const openEventListener = () => count++; // increment counter on every connect
         let onOpen: () => void;
         let onClose: () => void;
         let wsOnOpenPromise = new Promise<void>(resolve => onOpen = resolve);
@@ -217,12 +217,12 @@ describe("Testsuite for Websocket", () => {
         ws = new WebsocketBuilder(url)
             .withBackoff(new ConstantBackoff(100))
             .onOpen(() => onOpen())
-            .onOpen(onOpenEventListener)
+            .onOpen(openEventListener)
             .onClose(() => onClose())
             .build();
         await wsOnOpenPromise; // wait for initial connection
         expect(count).toBe(1); // openEventListener should be called exactly once at this point
-        ws.removeEventListener(WebsocketEvents.open, onOpenEventListener); // unregister the event-handler
+        ws.removeEventListener(WebsocketEvents.open, openEventListener); // unregister the event-handler
         if (wss !== undefined)  // shutdown the server
             await shutdownServerOrTimeout(wss, 100);
         await wsOnClosePromise; // wait for client to register the disconnect
@@ -236,7 +236,7 @@ describe("Testsuite for Websocket", () => {
 
     test("Websocket should remove event-listeners if they declare the 'once'-property as true", async () => {
         let count = 0;
-        const onOpenEventListener = () => count++; // increment counter on every connect
+        const openEventListener = () => count++; // increment counter on every connect
         let onOpen: () => void;
         let onClose: () => void;
         let wsOnOpenPromise = new Promise<void>(resolve => onOpen = resolve);
@@ -244,7 +244,7 @@ describe("Testsuite for Websocket", () => {
         ws = new WebsocketBuilder(url)
             .withBackoff(new ConstantBackoff(100))
             .onOpen(() => onOpen())
-            .onOpen(onOpenEventListener, {once: true} as AddEventListenerOptions) // declare 'once'-property
+            .onOpen(openEventListener, {once: true} as AddEventListenerOptions) // declare 'once'-property
             .onClose(() => onClose())
             .build();
         await wsOnOpenPromise; // wait for initial connection
