@@ -1,5 +1,5 @@
 # websocket-ts
-A client-websocket written in TypeScript meant to be used from within browsers with focus on simplicity, reliability and extensibility. It provides convenient features to automatically reconnect and buffer pending messages.
+A client-websocket written in TypeScript for browser-applications. Focus is on simplicity, reliability and extensibility. It provides convenient features to automatically reconnect and buffer pending messages.
 
 [![Build Status](https://travis-ci.org/jjxxs/websocket-ts.svg?branch=master)](https://travis-ci.org/jjxxs/websocket-ts)
 [![Coverage Status](https://coveralls.io/repos/github/jjxxs/websocket-ts/badge.svg?branch=master&service=github)](https://coveralls.io/github/jjxxs/websocket-ts?branch=master)
@@ -32,7 +32,7 @@ import {WebsocketBuilder} from 'websocket-ts';
 ## Usage
 
 #### Initialization
-New instances are most easily created with the provided `WebsocketBuilder`:
+Create a new instance with the provided `WebsocketBuilder`:
 
 ```typescript
 const ws = new WebsocketBuilder('ws://localhost:42421').build();
@@ -69,7 +69,14 @@ const ws = new WebsocketBuilder('ws://localhost:42421')
     .build();
 ```
 
-#### Send & buffer messages
+You can remove event-listener with `removeEventListener`:
+```typescript
+let ws: Websocket
+/* ... */
+ws.removeEventListener(WebsocketEvents.open, openEventListener);
+```
+
+#### Send
 To send messages, use the websockets `send()`-method:
 ```typescript
 let ws: Websocket;
@@ -77,32 +84,9 @@ let ws: Websocket;
 ws.send("Hello World!");
 ```
 
-If you want to buffer to-be-send messages while the websocket is disconnected, you can provide it with a `Buffer`.
-The websocket will then use the buffer to temporarily keep your messages and send them in correct order once the 
-connection is re-established. There are currently two `Buffer`-implementations. You can also implement your own
- by inheriting from the `Buffer`-interface.
-
-##### LRUBuffer
-The `LRUBuffer` keeps the last `n` messages. When the buffer is full, the oldest message in the buffer will be replaced.
-It uses an array as a circular-buffer for linear space- and time-requirements. To use the `LRUBuffer` with a capacity of `1000`:
-```typescript
-const ws = new WebsocketBuilder('ws://localhost:42421')
-    .withBuffer(new LRUBuffer(1000))
-    .build();
-```
-
-##### TimeBuffer
-The `TimeBuffer` will keep all messages that were written within the last `n` milliseconds. It will drop messages that are
-older than the specified amount. To use the `TimeBuffer` that keeps messages from the last `5 minutes`:
-```typescript
-const ws = new WebsocketBuilder('ws://localhost:42421')
-    .withBuffer(new TimeBuffer(5 * 60 * 1000))
-    .build();
-```
-
 #### Reconnect & Backoff
 If you want the websocket to automatically try to re-connect when the connection is lost, you can provide it with a `Backoff`.
-The websocket will use the `Backoff` to determine how long it should wait between re-tries. There are currently three 
+The websocket will use the `Backoff` to determine how long it should wait between re-tries. There are currently three
 `Backoff`-implementations. You can also implement your own by inheriting from the `Backoff`-interface.
 
 ##### ConstantBackoff
@@ -110,7 +94,7 @@ The `ConstantBackoff` will make the websocket wait a constant time between each 
 with a wait-time of `1 second`:
 ```typescript
 const ws  = new WebsocketBuilder('ws://localhost:42421')
-    .withBackoff(new ConstantBackoff(500))
+    .withBackoff(new ConstantBackoff(1000)) // 1000ms = 1s
     .build();
 ```
 
@@ -134,5 +118,30 @@ const ws  = new WebsocketBuilder('ws://localhost:42421')
     .build();
 ```
 
+#### Buffer
+
+If you want to buffer to-be-send messages while the websocket is disconnected, you can provide it with a `Buffer`.
+The websocket will use the buffer to temporarily keep your messages and send them in order once the websocket
+(re-)connects. There are currently two `Buffer`-implementations. You can also implement your own
+ by inheriting from the `Buffer`-interface.
+
+##### LRUBuffer
+The `LRUBuffer` keeps the last `n` messages. When the buffer is full, the oldest message in the buffer will be replaced.
+It uses an array as a circular-buffer for linear space- and time-requirements. To use the `LRUBuffer` with a capacity of `1000`:
+```typescript
+const ws = new WebsocketBuilder('ws://localhost:42421')
+    .withBuffer(new LRUBuffer(1000))
+    .build();
+```
+
+##### TimeBuffer
+The `TimeBuffer` will keep all messages that were written within the last `n` milliseconds. It will drop messages that are
+older than the specified amount. To use the `TimeBuffer` that keeps messages from the last `5 minutes`:
+```typescript
+const ws = new WebsocketBuilder('ws://localhost:42421')
+    .withBuffer(new TimeBuffer(5 * 60 * 1000))
+    .build();
+```
+
 #### Build & Tests
-To build the project run `yarn build`. All provided components are covered with unit-tests. To run the tests run `yarn test`.
+To build the project run `yarn build`. All provided components are covered with unit-tests. Run the tests with `yarn test`.
