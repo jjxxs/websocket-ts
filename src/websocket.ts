@@ -22,6 +22,9 @@ interface WebsocketEventMap {
     retry: CustomEvent<RetryEventDetails>;
 }
 
+type ProtocolValue = string | string[]
+export type Protocols = ProtocolValue | (() => Promise<ProtocolValue>)
+
 export interface RetryEventDetails {
     readonly retries: number;
     readonly backoff: number
@@ -39,7 +42,7 @@ type WebsocketBuffer = Buffer<string | ArrayBufferLike | Blob | ArrayBufferView>
 
 export class Websocket {
     private readonly url: string;
-    private readonly protocols?: string | string[];
+    private readonly protocols?: Protocols;
     private readonly buffer?: WebsocketBuffer;
     private readonly backoff?: Backoff;
     private readonly eventListeners: WebsocketEventListeners = {open: [], close: [], error: [], message: [], retry: []};
@@ -47,7 +50,7 @@ export class Websocket {
     private websocket?: WebSocket;
     private retries: number = 0;
 
-    constructor(url: string, protocols?: string | string[], buffer?: WebsocketBuffer, backoff?: Backoff) {
+    constructor(url: string, protocols?: Protocols, buffer?: WebsocketBuffer, backoff?: Backoff) {
         this.url = url;
         this.protocols = protocols;
         this.buffer = buffer;
@@ -104,7 +107,7 @@ export class Websocket {
         onceListeners.forEach(l => this.removeEventListener(type, l.listener, l.options)); // remove 'once'-listeners
     }
 
-    private tryConnect(): void {
+    private async tryConnect(): Promise<void> {
         if (this.websocket !== undefined) { // remove all event-listeners from broken socket
             this.websocket.removeEventListener(WebsocketEvents.open, this.handleOpenEvent);
             this.websocket.removeEventListener(WebsocketEvents.close, this.handleCloseEvent);
@@ -112,11 +115,24 @@ export class Websocket {
             this.websocket.removeEventListener(WebsocketEvents.message, this.handleMessageEvent);
             this.websocket.close();
         }
-        this.websocket = new WebSocket(this.url, this.protocols); // create new socket and attach handlers
+
+        const protocols = await this.getProtocols()
+
+        this.websocket = new WebSocket(this.url, protocols); // create new socket and attach handlers
         this.websocket.addEventListener(WebsocketEvents.open, this.handleOpenEvent);
         this.websocket.addEventListener(WebsocketEvents.close, this.handleCloseEvent);
         this.websocket.addEventListener(WebsocketEvents.error, this.handleErrorEvent);
         this.websocket.addEventListener(WebsocketEvents.message, this.handleMessageEvent);
+    }
+
+    private async getProtocols() {
+        let protocols = this.protocols
+
+        if (typeof protocols === 'function') {
+            protocols = await protocols()
+        }
+
+        return protocols
     }
 
     private handleOpenEvent = (ev: Event) => this.handleEvent(WebsocketEvents.open, ev);

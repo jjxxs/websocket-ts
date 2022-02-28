@@ -289,6 +289,50 @@ describe("Testsuite for Websocket", () => {
     });
 });
 
+describe('Websocket Protocols', () => {
+    let websocketSpy: jest.SpyInstance<WebSocket, [url: string | URL, protocols?: string | string[]]>
+    beforeEach(() => {
+        // @ts-ignore
+        websocketSpy = jest.spyOn(window, 'WebSocket').mockImplementation(() => ({
+            addEventListener(){}
+        }))
+    })
+
+    afterEach(() => {
+        websocketSpy.mockRestore()
+    })
+
+    it('uses protocols if value of protocols is a function', async () => {
+        const getProtocols = () => Promise.resolve('a protocol')
+
+        new WebsocketBuilder('any url')
+        .withProtocols(getProtocols)
+        .build()
+
+        await emptySetTimeoutPromise()
+
+        expect(websocketSpy).toBeCalledWith('any url', 'a protocol')
+    })
+
+    it('uses protocols if value of protocols is a string', async () => {
+        new WebsocketBuilder('any url')
+        .withProtocols('string protocol')
+        .build()
+
+        await emptySetTimeoutPromise()
+
+        expect(websocketSpy).toBeCalledWith('any url', 'string protocol')
+    })
+
+    function emptySetTimeoutPromise() {
+        return new Promise((resolve) => {
+            setTimeout(() => {
+                resolve(undefined)
+            })
+        });
+    }
+})
+
 function delay(ms: number): Promise<void> {
     return new Promise<void>(resolve => {
         setTimeout(() => {

@@ -1,6 +1,6 @@
 import {Backoff} from "./backoff/backoff";
 import {Buffer} from "./buffer/buffer";
-import {RetryEventDetails, Websocket, WebsocketEvents} from "./websocket";
+import { Protocols, RetryEventDetails, Websocket, WebsocketEvents} from "./websocket";
 
 /**
  * Used to build Websocket-instances.
@@ -8,7 +8,7 @@ import {RetryEventDetails, Websocket, WebsocketEvents} from "./websocket";
 export class WebsocketBuilder {
     private readonly url: string;
     private ws: Websocket | null = null;
-    private protocols?: string | string[];
+    private protocols?: Protocols;
     private backoff?: Backoff;
     private buffer?: Buffer<string | ArrayBufferLike | Blob | ArrayBufferView>;
     private onOpenListeners: ({
@@ -36,7 +36,7 @@ export class WebsocketBuilder {
         this.url = url;
     }
 
-    public withProtocols(p: string | string[]): WebsocketBuilder {
+    public withProtocols(p: Protocols): WebsocketBuilder {
         this.protocols = p;
         return this;
     }
