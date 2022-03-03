@@ -291,18 +291,14 @@ describe("Testsuite for Websocket", () => {
 
 function delay(ms: number): Promise<void> {
     return new Promise<void>(resolve => {
-        setTimeout(() => {
-            resolve();
-        }, ms);
+        setTimeout(resolve, ms);
     })
 }
 
 function startServer(port: number): Promise<Server> {
     return new Promise(resolve => {
         const wss = new Server({port});
-        wss.on('listening', () => {
-            resolve(wss);
-        });
+        wss.on('listening', () => resolve(wss));
     });
 }
 
@@ -314,7 +310,8 @@ function shutdownServerOrTimeout(wss: Server, timeout: number) {
 
 function shutdownServer(wss: Server): Promise<void> {
     return new Promise<void>(resolve => {
-        wss.addListener("close", () => resolve());
+        wss.addListener("close", resolve);
+        wss.clients.forEach(c => c.terminate())
         wss.close();
     });
 }
