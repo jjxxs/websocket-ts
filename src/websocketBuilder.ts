@@ -87,12 +87,12 @@ export class WebsocketBuilder {
     public build(): Websocket {
         if (this.ws !== null)
             return this.ws;
-        this.ws = new Websocket(this.url, this.protocols, this.buffer, this.backoff);
-        this.onOpenListeners.forEach(h => this.ws?.addEventListener(WebsocketEvents.open, h.listener, h.options));
-        this.onCloseListeners.forEach(h => this.ws?.addEventListener(WebsocketEvents.close, h.listener, h.options));
-        this.onErrorListeners.forEach(h => this.ws?.addEventListener(WebsocketEvents.error, h.listener, h.options));
-        this.onMessageListeners.forEach(h => this.ws?.addEventListener(WebsocketEvents.message, h.listener, h.options));
-        this.onRetryListeners.forEach(h => this.ws?.addEventListener(WebsocketEvents.retry, h.listener, h.options));
+        const ws = this.ws = new Websocket(this.url, this.protocols, this.buffer, this.backoff);
+        this.onOpenListeners.forEach(h => ws.addEventListener(WebsocketEvents.open, h.listener, h.options));
+        this.onCloseListeners.forEach(h => ws.addEventListener(WebsocketEvents.close, h.listener, h.options));
+        this.onErrorListeners.forEach(h => ws.addEventListener(WebsocketEvents.error, h.listener, h.options));
+        this.onMessageListeners.forEach(h => ws.addEventListener(WebsocketEvents.message, h.listener, h.options));
+        this.onRetryListeners.forEach(h => ws.addEventListener(WebsocketEvents.retry, h.listener, h.options));
         return this.ws;
     }
 }
