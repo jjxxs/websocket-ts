@@ -144,4 +144,4 @@ const ws = new WebsocketBuilder('ws://localhost:42421')
 ```
 
 #### Build & Tests
-To build the project run `yarn build`. All provided components are covered with unit-tests. Run the tests with `yarn test`.
+To build the project run `npm run build`. All provided components are covered with unit-tests. Run the tests with `npm run test`.
