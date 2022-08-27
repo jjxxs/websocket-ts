@@ -1,6 +1,6 @@
 import {Backoff} from "./backoff/backoff";
 import {Buffer} from "./buffer/buffer";
-import {RetryEventDetails, Websocket, WebsocketEvents} from "./websocket";
+import {RetryEventDetails, Websocket, WebsocketEvent} from "./websocket";
 
 /**
  * Used to build Websocket-instances.
@@ -88,11 +88,11 @@ export class WebsocketBuilder {
         if (this.ws !== null)
             return this.ws;
         const ws = this.ws = new Websocket(this.url, this.protocols, this.buffer, this.backoff);
-        this.onOpenListeners.forEach(h => ws.addEventListener(WebsocketEvents.open, h.listener, h.options));
-        this.onCloseListeners.forEach(h => ws.addEventListener(WebsocketEvents.close, h.listener, h.options));
-        this.onErrorListeners.forEach(h => ws.addEventListener(WebsocketEvents.error, h.listener, h.options));
-        this.onMessageListeners.forEach(h => ws.addEventListener(WebsocketEvents.message, h.listener, h.options));
-        this.onRetryListeners.forEach(h => ws.addEventListener(WebsocketEvents.retry, h.listener, h.options));
+        this.onOpenListeners.forEach(h => ws.addEventListener(WebsocketEvent.open, h.listener, h.options));
+        this.onCloseListeners.forEach(h => ws.addEventListener(WebsocketEvent.close, h.listener, h.options));
+        this.onErrorListeners.forEach(h => ws.addEventListener(WebsocketEvent.error, h.listener, h.options));
+        this.onMessageListeners.forEach(h => ws.addEventListener(WebsocketEvent.message, h.listener, h.options));
+        this.onRetryListeners.forEach(h => ws.addEventListener(WebsocketEvent.retry, h.listener, h.options));
         return this.ws;
     }
 }

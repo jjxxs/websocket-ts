@@ -1,4 +1,4 @@
-import {ConstantBackoff, LRUBuffer, Websocket, WebsocketBuilder, WebsocketEvents} from "../src";
+import {ConstantBackoff, LRUBuffer, Websocket, WebsocketBuilder, WebsocketEvent} from "../src";
 import {Server} from "ws";
 
 describe("Testsuite for Websocket", () => {
@@ -30,7 +30,7 @@ describe("Testsuite for Websocket", () => {
             }).build();
         }).then(e => {
             expect(e.instance).toBe(ws);
-            expect(e.event.type).toBe(WebsocketEvents.open);
+            expect(e.event.type).toBe(WebsocketEvent.open);
             expect(e.instance.underlyingWebsocket?.readyState).toBe(WebSocket.OPEN);
         });
     });
@@ -44,7 +44,7 @@ describe("Testsuite for Websocket", () => {
             wss?.close(); // close server
         }).then(e => {
             expect(e.instance).toBe(ws);
-            expect(e.event.type).toBe(WebsocketEvents.close);
+            expect(e.event.type).toBe(WebsocketEvent.close);
             expect(e.instance.underlyingWebsocket?.readyState).toBe(WebSocket.CLOSED);
         });
     });
@@ -63,7 +63,7 @@ describe("Testsuite for Websocket", () => {
                 }).build();
         }).then(e => {
             expect(e.instance).toBe(ws);
-            expect(e.event.type).toBe(WebsocketEvents.close);
+            expect(e.event.type).toBe(WebsocketEvent.close);
             expect(e.event.code).toBe(closeCode);
             expect(e.event.reason).toBe(closeReason);
             expect(e.instance.underlyingWebsocket?.readyState).toBe(WebSocket.CLOSED);
@@ -79,7 +79,7 @@ describe("Testsuite for Websocket", () => {
                 }).build();
         }).then(e => {
             expect(e.instance).toBe(ws);
-            expect(e.event.type).toBe(WebsocketEvents.error);
+            expect(e.event.type).toBe(WebsocketEvent.error);
             expect(e.instance.underlyingWebsocket?.readyState).toBe(WebSocket.CLOSED);
         });
     });
@@ -93,7 +93,7 @@ describe("Testsuite for Websocket", () => {
                 }).build();
         }).then(e => {
             expect(e.instance).toBe(ws);
-            expect(e.event.type).toBe(WebsocketEvents.message);
+            expect(e.event.type).toBe(WebsocketEvent.message);
             expect(e.event.data).toBe(testMessage);
             expect(e.instance.underlyingWebsocket?.readyState).toBe(WebSocket.OPEN);
         });
@@ -222,7 +222,7 @@ describe("Testsuite for Websocket", () => {
             .build();
         await wsOnOpenPromise; // wait for initial connection
         expect(count).toBe(1); // openEventListener should be called exactly once at this point
-        ws.removeEventListener(WebsocketEvents.open, openEventListener); // unregister the event-handler
+        ws.removeEventListener(WebsocketEvent.open, openEventListener); // unregister the event-handler
         if (wss !== undefined)  // shutdown the server
             await shutdownServerOrTimeout(wss, 100);
         await wsOnClosePromise; // wait for client to register the disconnect
@@ -324,7 +324,7 @@ function shutdownClientOrTimeout(ws: Websocket, timeout: number) {
 
 function shutdownClient(ws: Websocket): Promise<void> {
     return new Promise<void>(resolve => {
-        ws.addEventListener(WebsocketEvents.close, () => resolve());
+        ws.addEventListener(WebsocketEvent.close, () => resolve());
         ws.close();
     });
 }
