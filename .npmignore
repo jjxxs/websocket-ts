@@ -1,8 +1,7 @@
 .idea/
 node_modules/
-lib/
+dist/
 coverage/
 .gitignore
 .travis.yml
 README.md
-yarn-error.log
