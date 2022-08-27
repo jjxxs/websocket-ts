@@ -1,5 +1,4 @@
 node_modules
-lib
+dist
 coverage
-yarn-error.log
 
