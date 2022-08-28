@@ -32,25 +32,39 @@ export interface RetryEventDetails {
     readonly backoff: number;
 }
 
+/**
+ * Maps websocket events to their corresponding event-type.
+ */
 interface WebsocketEventMap {
+    open: Event;
     close: CloseEvent;
     error: Event;
     message: MessageEvent;
-    open: Event;
     retry: CustomEvent<RetryEventDetails>;
 }
 
-
+/**
+ * Listener/callback for websocket events.
+ * */
 type wsEventListener<K extends WebsocketEvent> = (instance: Websocket, ev: WebsocketEventMap[K]) => any;
 
+/**
+ * Possible event-options.
+ */
 type wsEventListenerOptions = boolean | EventListenerOptions;
 
+/**
+ * Listener with options for websocket events.
+ */
 type wsEventListenerWithOptions<K extends WebsocketEvent> = {
     readonly listener: wsEventListener<K>;
     readonly options?: wsEventListenerOptions;
 }
 
-type WebsocketEventListeners = {
+/**
+ * Used to store listeners for websocket events.
+ */
+export type WebsocketEventListeners = {
     open: wsEventListenerWithOptions<WebsocketEvent.open>[];
     close: wsEventListenerWithOptions<WebsocketEvent.close>[];
     error: wsEventListenerWithOptions<WebsocketEvent.error>[];
@@ -58,6 +72,9 @@ type WebsocketEventListeners = {
     retry: wsEventListenerWithOptions<WebsocketEvent.retry>[];
 }
 
+/**
+ * Buffers data to be sent by the websocket.
+ */
 type WebsocketBuffer = Buffer<string | ArrayBufferLike | Blob | ArrayBufferView>;
 
 export class Websocket {
@@ -66,8 +83,8 @@ export class Websocket {
     private readonly buffer?: WebsocketBuffer; // optional buffer for messages to send when the websocket is not yet connected
     private readonly backoff?: Backoff; // optional backoff to use when retrying a connection
     private readonly eventListeners: WebsocketEventListeners = {open: [], close: [], error: [], message: [], retry: []};
-    private closedByUser: boolean = false;
-    private websocket?: WebSocket;
+    private closedByUser: boolean = false; // whether the websocket was closed by the user
+    private websocket?: WebSocket; // underlying browser-native websocket
     private retries: number = 0;
 
     constructor(url: string, protocols?: string | string[], buffer?: WebsocketBuffer, backoff?: Backoff) {
@@ -86,7 +103,8 @@ export class Websocket {
     }
 
     /***
-     * Sends data over the websocket or queues it for sending if the websocket is not yet connected and a buffer is configured.
+     * Sends data over the websocket or queues it for sending if the websocket is not
+     * yet connected and a buffer is configured.
      * @param data to send.
      */
     public send(data: string | ArrayBufferLike | Blob | ArrayBufferView): void {
@@ -138,6 +156,12 @@ export class Websocket {
                 .filter(notListenerToBeRemoved); // only keep listeners that are not to be removed
     }
 
+    /**
+     * Dispatch an event to all listeners of the given event-type.
+     * @param type of the event to dispatch.
+     * @param event to dispatch.
+     * @private - should only be called by the websocket.
+     */
     private dispatchEvent<K extends WebsocketEvent>(type: K, event: WebsocketEventMap[K]) {
         const eventListeners = this.eventListeners[type] as wsEventListenerWithOptions<K>[];
         const newEventListeners: wsEventListenerWithOptions<K>[] = [];
@@ -151,62 +175,104 @@ export class Websocket {
             }
         });
 
-        (this.eventListeners[type] as wsEventListenerWithOptions<K>[]) = newEventListeners; // replace old listeners with new ones
+        (this.eventListeners[type] as wsEventListenerWithOptions<K>[]) = newEventListeners; // replace old listeners with new that don't include once-listeners
     }
 
+    /**
+     * Creates a new browser-native websocket and connects it to the given URL with the given protocols
+     * and adds all event listeners to the browser-native websocket.
+     * @private - should only be called by the websocket.
+     */
     private tryConnect(): void {
-        if (this.websocket !== undefined) { // remove all event-listeners from broken socket
+        if (this.websocket !== undefined) { // websocket was already created, this is a retry. remove all event listeners, close and start over.
             this.websocket.removeEventListener(WebsocketEvent.open, this.handleOpenEvent);
             this.websocket.removeEventListener(WebsocketEvent.close, this.handleCloseEvent);
             this.websocket.removeEventListener(WebsocketEvent.error, this.handleErrorEvent);
             this.websocket.removeEventListener(WebsocketEvent.message, this.handleMessageEvent);
             this.websocket.close();
         }
-        this.websocket = new WebSocket(this.url, this.protocols); // create new socket and attach handlers
+
+        this.websocket = new WebSocket(this.url, this.protocols); // create new browser-native websocket and add all event listeners
         this.websocket.addEventListener(WebsocketEvent.open, this.handleOpenEvent);
         this.websocket.addEventListener(WebsocketEvent.close, this.handleCloseEvent);
         this.websocket.addEventListener(WebsocketEvent.error, this.handleErrorEvent);
         this.websocket.addEventListener(WebsocketEvent.message, this.handleMessageEvent);
     }
 
-    private handleOpenEvent = (ev: Event) => this.handleEvent(WebsocketEvent.open, ev);
+    /**
+     * Handles the open event of the browser-native websocket.
+     * @param event to handle.
+     */
+    private handleOpenEvent = (event: Event) =>
+        this.handleEvent(WebsocketEvent.open, event);
 
-    private handleCloseEvent = (ev: CloseEvent) => this.handleEvent(WebsocketEvent.close, ev);
+    /**
+     * Handles the close event of the browser-native websocket.
+     * @param event to handle.
+     */
+    private handleErrorEvent = (event: Event) =>
+        this.handleEvent(WebsocketEvent.error, event);
 
-    private handleErrorEvent = (ev: Event) => this.handleEvent(WebsocketEvent.error, ev);
+    /**
+     * Handles the close event of the browser-native websocket.
+     * @param event to handle.
+     */
+    private handleCloseEvent = (event: CloseEvent) =>
+        this.handleEvent(WebsocketEvent.close, event);
 
-    private handleMessageEvent = (ev: MessageEvent) => this.handleEvent(WebsocketEvent.message, ev);
+    /**
+     * Handles the message event of the browser-native websocket.
+     * @param event to handle.
+     */
+    private handleMessageEvent = (event: MessageEvent) =>
+        this.handleEvent(WebsocketEvent.message, event);
 
+    /**
+     * Handles the given event by dispatching it to all listeners of the given event-type.
+     * @param type of the event to handle.
+     * @param ev to handle.
+     * @private - should only be called by the websocket.
+     */
     private handleEvent<K extends WebsocketEvent>(type: K, ev: WebsocketEventMap[K]) {
         switch (type) {
             case WebsocketEvent.close:
-                if (!this.closedByUser) // failed to connect or connection lost, try to reconnect
-                    this.reconnect();
+                if (!this.closedByUser) {
+                    this.reconnect(); // connection was closed due to server- or connection-issues, try to reconnect
+                }
                 break;
             case WebsocketEvent.open:
                 this.retries = 0;
-                this.backoff?.reset(); // reset backoff
-                this.buffer?.forEach(this.send.bind(this)); // send all buffered messages
-                this.buffer?.clear();
+                if (this.backoff !== undefined) {
+                    this.backoff.reset(); // reset backoff
+                }
+                if (this.buffer !== undefined) {
+                    this.buffer.forEach(this.send.bind(this)); // send all messages in buffer and clear buffer
+                    this.buffer.clear()
+                }
                 break;
         }
-        this.dispatchEvent<K>(type, ev); // forward to all listeners
+
+        this.dispatchEvent<K>(type, ev); // dispatch event to all listeners
     }
 
+    /**
+     * Reconnects the websocket.
+     * @private - should only be called by the websocket.
+     */
     private reconnect() {
-        if (this.backoff === undefined) // no backoff, we're done
-            return;
-        const backoff = this.backoff.next();
-        setTimeout(() => {   // retry connection after waiting out the backoff-interval
-            this.dispatchEvent(WebsocketEvent.retry, new CustomEvent<RetryEventDetails>(WebsocketEvent.retry,
-                {
-                    detail: {
-                        retries: ++this.retries,
-                        backoff: backoff
-                    }
-                })
-            );
+        if (this.backoff === undefined) {
+            return; // no backoff, no reconnect
+        }
+
+        const backoff = this.backoff.next(); // get next backoff
+
+        const dispatchRetryEventAndRetry = () => {
+            const retryEventDetails: RetryEventDetails = {backoff, retries: ++this.retries}
+            const retryEvent = new CustomEvent<RetryEventDetails>(WebsocketEvent.retry, {detail: retryEventDetails});
+            this.dispatchEvent(WebsocketEvent.retry, retryEvent); // dispatch retry event to all listeners and try to reconnect
             this.tryConnect();
-        }, backoff);
+        }
+
+        setTimeout(dispatchRetryEventAndRetry, backoff); // wait for backoff and try to reconnect
     }
 }
