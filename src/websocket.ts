@@ -46,17 +46,17 @@ interface WebsocketEventMap {
 /**
  * Listener/callback for websocket events.
  * */
-type wsEventListener<K extends WebsocketEvent> = (instance: Websocket, ev: WebsocketEventMap[K]) => any;
+export type wsEventListener<K extends WebsocketEvent> = (instance: Websocket, ev: WebsocketEventMap[K]) => any;
 
 /**
  * Possible event-options.
  */
-type wsEventListenerOptions = boolean | EventListenerOptions;
+export type wsEventListenerOptions = boolean | EventListenerOptions;
 
 /**
  * Listener with options for websocket events.
  */
-type wsEventListenerWithOptions<K extends WebsocketEvent> = {
+export type wsEventListenerWithOptions<K extends WebsocketEvent> = {
     readonly listener: wsEventListener<K>;
     readonly options?: wsEventListenerOptions;
 }
@@ -75,7 +75,7 @@ export type WebsocketEventListeners = {
 /**
  * Buffers data to be sent by the websocket.
  */
-type WebsocketBuffer = Buffer<string | ArrayBufferLike | Blob | ArrayBufferView>;
+export type WebsocketBuffer = Buffer<string | ArrayBufferLike | Blob | ArrayBufferView>;
 
 export class Websocket {
     private readonly url: string; // URL to connect to, e.g. "ws://localhost:8080/websocket", "wss://localhost:8080/websocket"
@@ -83,6 +83,7 @@ export class Websocket {
     private readonly buffer?: WebsocketBuffer; // optional buffer for messages to send when the websocket is not yet connected
     private readonly backoff?: Backoff; // optional backoff to use when retrying a connection
     private readonly eventListeners: WebsocketEventListeners = {open: [], close: [], error: [], message: [], retry: []};
+
     private closedByUser: boolean = false; // whether the websocket was closed by the user
     private websocket?: WebSocket; // underlying browser-native websocket
     private retries: number = 0;
