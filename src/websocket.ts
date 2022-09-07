@@ -46,7 +46,8 @@ interface WebsocketEventMap {
 /**
  * Listener/callback for websocket events.
  * */
-export type wsEventListener<K extends WebsocketEvent> = (instance: Websocket, ev: WebsocketEventMap[K]) => any;
+export type wsEventListener<K extends WebsocketEvent> =
+    (instance: Websocket, ev: WebsocketEventMap[K]) => any;
 
 /**
  * Possible event-options.
@@ -150,7 +151,8 @@ export class Websocket {
      * @param options that were used when the listener was added.
      */
     public removeEventListener<K extends WebsocketEvent>(type: K, listener: wsEventListener<K>, options?: wsEventListenerOptions): void {
-        const notListenerToBeRemoved = (l: wsEventListenerWithOptions<K>) => l.listener !== listener && (l.options === undefined || l.options !== options);
+        const notListenerToBeRemoved = (l: wsEventListenerWithOptions<K>) =>
+            l.listener !== listener && (l.options === undefined || l.options !== options);
 
         (this.eventListeners[type] as wsEventListenerWithOptions<K>[]) =
             (this.eventListeners[type] as wsEventListenerWithOptions<K>[])

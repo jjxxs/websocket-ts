@@ -1,338 +1,342 @@
-import {ConstantBackoff, LRUBuffer, Websocket, WebsocketBuilder, WebsocketEvent} from "../src";
-import {Server} from "ws";
+import {ConstantBackoff, LRUBuffer, Websocket, WebsocketBuilder, WebsocketEvent} from "../src"
+import {Server} from "ws"
 
 describe("Testsuite for Websocket", () => {
-    const port = 42421;
-    const url = `ws://localhost:${port}`;
+    const serverPort = 42421
+    const serverUrl = `ws://localhost:${serverPort}`
+    const serverTimeout = 100
+    const clientTimeout = 100
 
-    let ws: Websocket | undefined;
-    let wss: Server | undefined;
+    let client: Websocket  // the subject under test
+    let server: Server  // used to simulate a websocket server that our client connects to
 
-    type WsInstanceWithEvent<K extends Event> = { instance: Websocket, event: K };
+    type WsInstanceWithEvent<K extends Event> = { instance: Websocket, event: K }
 
-    beforeEach(async () => {
-        await startServer(port).then(server => {
-            wss = server;
-        });
-    });
+    /** Before each test a fresh websocket server is created. */
+    beforeEach(async () => await startWsServer(serverPort).then(srv => server = srv))
 
+    /** After each test the client is disconnected and the server is shut down.*/
     afterEach(async () => {
-        if (ws !== undefined)
-            await shutdownClientOrTimeout(ws, 100);
-        if (wss !== undefined)
-            await shutdownServerOrTimeout(wss, 100);
-    });
+        if (client !== undefined) await stopWsClientOrTimeout(client, clientTimeout)
+        if (server !== undefined) await stopWsServerOrTimeout(server, serverTimeout)
+    })
 
-    test("Websocket should fire onOpen-event when connection is established", async () => {
+    test("Should fire onOpen-event when the connection is established", async () => {
         await new Promise<WsInstanceWithEvent<Event>>(resolve => {
-            ws = new WebsocketBuilder(url).onOpen((instance, event) => {
-                resolve({instance, event});
-            }).build();
+            client = new WebsocketBuilder(serverUrl)
+                .onOpen((instance, event) => resolve({instance, event}))
+                .build()
         }).then(e => {
-            expect(e.instance).toBe(ws);
-            expect(e.event.type).toBe(WebsocketEvent.open);
-            expect(e.instance.underlyingWebsocket?.readyState).toBe(WebSocket.OPEN);
-        });
-    });
+            expect(e.instance).toBe(client)
+            expect(e.event.type).toBe(WebsocketEvent.open)
+            expect(e.instance.underlyingWebsocket?.readyState).toBe(WebSocket.OPEN)
+        })
+    })
 
-    test("Websocket should fire onClose-event when the server closes the connection", async () => {
+    test("Should fire onClose-event when the server closes the connection", async () => {
         await new Promise<WsInstanceWithEvent<CloseEvent>>(resolve => {
-            ws = new WebsocketBuilder(url)
-                .onClose((instance, event) => {
-                    resolve({instance, event});
-                }).build();
-            wss?.close(); // close server
-        }).then(e => {
-            expect(e.instance).toBe(ws);
-            expect(e.event.type).toBe(WebsocketEvent.close);
-            expect(e.instance.underlyingWebsocket?.readyState).toBe(WebSocket.CLOSED);
-        });
-    });
+            client = new WebsocketBuilder(serverUrl)
+                .onClose((instance, event) => resolve({instance, event})) // we expect the server to close the connection
+                .build()
 
-    test("Websocket should fire onClose-event when the client closes the connection", async () => {
-        const closeCode = 1000;
-        const closeReason = "client closed the connection";
+            server?.close() // close server, the client should fire a close-event
+        }).then(e => {
+            expect(e.instance).toBe(client)
+            expect(e.event.type).toBe(WebsocketEvent.close)
+            expect(e.instance.underlyingWebsocket?.readyState).toBe(WebSocket.CLOSED)
+        })
+    })
+
+    test("Should fire onClose-event when the client closes the connection", async () => {
+        const closeCode = 1000
+        const closeReason = "client closed the connection. just testing tho!"
 
         await new Promise<WsInstanceWithEvent<CloseEvent>>(resolve => {
-            ws = new WebsocketBuilder(url)
-                .onOpen((instance, _) => {
-                    instance.close(closeCode, closeReason); // close client
-                })
-                .onClose((instance, event) => {
-                    resolve({instance, event});
-                }).build();
+            client = new WebsocketBuilder(serverUrl)
+                .onOpen((instance, _) => instance.close(closeCode, closeReason)) // on open, immediately close the connection with a close-code and close-reason
+                .onClose((instance, event) => resolve({instance, event})) // the close-event should be fired
+                .build()
         }).then(e => {
-            expect(e.instance).toBe(ws);
-            expect(e.event.type).toBe(WebsocketEvent.close);
-            expect(e.event.code).toBe(closeCode);
-            expect(e.event.reason).toBe(closeReason);
-            expect(e.instance.underlyingWebsocket?.readyState).toBe(WebSocket.CLOSED);
-        });
-    });
+            expect(e.instance).toBe(client)
+            expect(e.event.type).toBe(WebsocketEvent.close)
+            expect(e.event.code).toBe(closeCode)
+            expect(e.event.reason).toBe(closeReason)
+            expect(e.instance.underlyingWebsocket?.readyState).toBe(WebSocket.CLOSED)
+        })
+    })
 
-    test("Websocket should fire onError-event when the server refuses the connection", async () => {
+    test("Should fire onError-event when the server refuses the connection", async () => {
         await new Promise<WsInstanceWithEvent<Event>>(resolve => {
-            wss?.close(); // close server
-            ws = new WebsocketBuilder(url)
-                .onError((instance, event) => {
-                    resolve({instance, event});
-                }).build();
-        }).then(e => {
-            expect(e.instance).toBe(ws);
-            expect(e.event.type).toBe(WebsocketEvent.error);
-            expect(e.instance.underlyingWebsocket?.readyState).toBe(WebSocket.CLOSED);
-        });
-    });
+            server?.close() // close the server before the client connects
 
-    test("Websocket should fire onMessage-event when a message is received", async () => {
-        const testMessage = "this is a test message.";
+            client = new WebsocketBuilder(serverUrl)
+                .onError((instance, event) => resolve({instance, event})) // trying to connect to a closed server should fire an error-event
+                .build()
+        }).then(e => {
+            expect(e.instance).toBe(client)
+            expect(e.event.type).toBe(WebsocketEvent.error)
+            expect(e.instance.underlyingWebsocket?.readyState).toBe(WebSocket.CLOSED)
+        })
+    })
+
+    test("Should fire onMessage-event when a message is received", async () => {
+        const testMessage = "this is a test message."
+
         const onMessagePromise = new Promise<WsInstanceWithEvent<MessageEvent>>(resolve => {
-            ws = new WebsocketBuilder(url)
-                .onMessage((instance, event) => {
-                    resolve({instance, event});
-                }).build();
+            client = new WebsocketBuilder(serverUrl)
+                .onMessage((instance, event) => resolve({instance, event}))
+                .build()
         }).then(e => {
-            expect(e.instance).toBe(ws);
-            expect(e.event.type).toBe(WebsocketEvent.message);
-            expect(e.event.data).toBe(testMessage);
-            expect(e.instance.underlyingWebsocket?.readyState).toBe(WebSocket.OPEN);
-        });
+            expect(e.instance).toBe(client)
+            expect(e.event.type).toBe(WebsocketEvent.message)
+            expect(e.event.data).toBe(testMessage)
+            expect(e.instance.underlyingWebsocket?.readyState).toBe(WebSocket.OPEN)
+        })
 
-        // wait for the client to connect to the server and then send a message to the client
-        if (wss !== undefined) {
-            await onClientConnected(wss).then(client => {
-                client.send(testMessage);
-            })
-        }
+        await onClientConnected(server).then(client => client.send(testMessage)) // wait for the client to connect and send a message
 
-        // wait for the client to receive the message, it should fire the 'onMessage'-event
-        await onMessagePromise;
-    });
+        await onMessagePromise // wait for the message to be received
+    })
 
     test("Websocket should send messages when connected", async () => {
-        const testMessage = "this is a test message.";
-        const onConnectAndSendPromise = new Promise<void>(resolve => {
-            ws = new WebsocketBuilder(url)
-                .onOpen((instance, _) => {
-                    instance.send(testMessage); // send message as soon as we are connected
-                    resolve();
-                }).build();
-        });
-        const onReceivePromise = new Promise<string>(resolve => {
-            wss?.on('connection', socket => {
-                socket.onmessage = me => {
-                    resolve(me.data.toString());
-                }
-            });
-        });
+        const testMessage = "this is a test message."
 
-        await onConnectAndSendPromise;  // wait for client to connect and send the message
-        await onReceivePromise.then(actual => { // wait for server to receive the message and compare
-            expect(actual).toBe(testMessage);
+        const onConnectAndSendPromise = new Promise<void>(resolve => {
+            client = new WebsocketBuilder(serverUrl)
+                .onOpen((instance, _) => {
+                    instance.send(testMessage) // send message as soon as we are connected
+                    resolve()
+                }).build()
         })
-    });
+
+        const onReceivePromise = new Promise<string>(resolve => {
+            server?.on('connection', socket => {
+                socket.onmessage = me => {
+                    resolve(me.data.toString())
+                }
+            })
+        })
+
+        await onConnectAndSendPromise  // wait for client to connect and send the message
+        await onReceivePromise.then(actual => { // wait for server to receive the message and compare
+            expect(actual).toBe(testMessage)
+        })
+    })
 
     test("Websocket should ignore send()-calls when the connection was closed by the user", async () => {
-        const testMessage = "this is a test message.";
+        const testMessage = "this is a test message."
         await new Promise<void>(resolve => { // connect to server
-            ws = new WebsocketBuilder(url)
+            client = new WebsocketBuilder(serverUrl)
                 .onOpen((instance, _) => {
-                    resolve();
-                }).build();
-        });
+                    resolve()
+                }).build()
+        })
 
         // monkey-patch the underlying websockets send()-method, to see if it is still called
-        let messagesSent = 0;
-        if (ws !== undefined && ws.underlyingWebsocket !== undefined) {
-            ws.underlyingWebsocket.send = (_: string | ArrayBufferLike | Blob | ArrayBufferView) => {
-                messagesSent++;
+        let messagesSent = 0
+        if (client !== undefined && client.underlyingWebsocket !== undefined) {
+            client.underlyingWebsocket.send = (_: string | ArrayBufferLike | Blob | ArrayBufferView) => {
+                messagesSent++
             }
         }
 
-        ws?.close(); // close connection from client-side
-        expect(ws!['closedByUser']).toBe(true);  // should indicate that the connection was closed by user
-        ws?.send(testMessage);
-        expect(messagesSent).toBe(0); // should still be 0 since send() was never really called
-    });
+        client?.close() // close connection from client-side
+        expect(client!['closedByUser']).toBe(true)  // should indicate that the connection was closed by user
+        client?.send(testMessage)
+        expect(messagesSent).toBe(0) // should still be 0 since send() was never really called
+    })
 
     test("Websocket should send buffered messages when the connection is (re-)established", async () => {
-        const testMessages = ["one", "two", "three"];
+        const testMessages = ["one", "two", "three"]
 
-        let onOpen: () => void;
-        let onClose: () => void;
-        let wsOnOpenPromise = new Promise<void>(resolve => onOpen = resolve);
-        const wsOnClosePromise = new Promise<void>(resolve => onClose = resolve);
-        ws = new WebsocketBuilder(url)
+        let onOpen: () => void
+        let onClose: () => void
+        let wsOnOpenPromise = new Promise<void>(resolve => onOpen = resolve)
+        const wsOnClosePromise = new Promise<void>(resolve => onClose = resolve)
+        client = new WebsocketBuilder(serverUrl)
             .withBuffer(new LRUBuffer<string>(10))
             .withBackoff(new ConstantBackoff(100))
             .onOpen(() => onOpen())
             .onClose(() => onClose())
-            .build();
+            .build()
 
-        await wsOnOpenPromise; // wait for client to be connected
-        if (wss !== undefined)  // shutdown the server
-            await shutdownServerOrTimeout(wss, 100);
-        await wsOnClosePromise; // wait for client to register the disconnect
+        await wsOnOpenPromise // wait for client to be connected
+        if (server !== undefined)  // shutdown the server
+            await stopWsServerOrTimeout(server, 100)
+        await wsOnClosePromise // wait for client to register the disconnect
 
         // sending messages while disconnected should be buffered
-        expect((ws!['buffer'] as LRUBuffer<string>).len()).toBe(0);
-        testMessages.forEach(msg => ws?.send(msg));
-        expect((ws!['buffer'] as LRUBuffer<string>).len()).toBe(testMessages.length);
+        expect((client!['buffer'] as LRUBuffer<string>).len()).toBe(0)
+        testMessages.forEach(msg => client?.send(msg))
+        expect((client!['buffer'] as LRUBuffer<string>).len()).toBe(testMessages.length)
 
         // re-start the server and create promise for when all messages are received
-        let onMessagesReceived: (msg: string[]) => void;
-        const onMessagesReceivedPromise = new Promise<string[]>(resolve => onMessagesReceived = resolve);
-        await startServer(port).then(server => {
-            wss = server;
-            wss.on('connection', socket => {
-                let buf = [] as string[];
+        let onMessagesReceived: (msg: string[]) => void
+        const onMessagesReceivedPromise = new Promise<string[]>(resolve => onMessagesReceived = resolve)
+        await startWsServer(serverPort).then(srv => {
+            server = srv
+            server.on('connection', socket => {
+                let buf = [] as string[]
                 socket.onmessage = me => {
-                    buf.push(me.data.toString());
+                    buf.push(me.data.toString())
                     if (buf.length === testMessages.length)
-                        onMessagesReceived(buf);
+                        onMessagesReceived(buf)
                 }
             })
-        });
+        })
 
         // wait for the client to re-connect, it should send out all pending messages...
-        wsOnOpenPromise = new Promise<void>(resolve => onOpen = resolve);
-        await wsOnOpenPromise;
+        wsOnOpenPromise = new Promise<void>(resolve => onOpen = resolve)
+        await wsOnOpenPromise
 
         // ...which are then received by the server in correct order...
         await onMessagesReceivedPromise.then(actual => {
-            expect(actual).toEqual(testMessages);
+            expect(actual).toEqual(testMessages)
         })
 
         // ...after which the clients message-buffer should be empty again
-        expect((ws!['buffer'] as LRUBuffer<string>).len()).toBe(0);
-    });
+        expect((client!['buffer'] as LRUBuffer<string>).len()).toBe(0)
+    })
 
     test("Websocket should remove event-listener correctly when removeEventListener() is called", async () => {
-        let count = 0;
-        const openEventListener = () => count++; // increment counter on every connect
-        let onOpen: () => void;
-        let onClose: () => void;
-        let wsOnOpenPromise = new Promise<void>(resolve => onOpen = resolve);
-        const wsOnClosePromise = new Promise<void>(resolve => onClose = resolve);
-        ws = new WebsocketBuilder(url)
+        let count = 0
+        const openEventListener = () => count++ // increment counter on every connect
+        let onOpen: () => void
+        let onClose: () => void
+        let wsOnOpenPromise = new Promise<void>(resolve => onOpen = resolve)
+        const wsOnClosePromise = new Promise<void>(resolve => onClose = resolve)
+        client = new WebsocketBuilder(serverUrl)
             .withBackoff(new ConstantBackoff(100))
             .onOpen(() => onOpen())
             .onOpen(openEventListener)
             .onClose(() => onClose())
-            .build();
-        await wsOnOpenPromise; // wait for initial connection
-        expect(count).toBe(1); // openEventListener should be called exactly once at this point
-        ws.removeEventListener(WebsocketEvent.open, openEventListener); // unregister the event-handler
-        if (wss !== undefined)  // shutdown the server
-            await shutdownServerOrTimeout(wss, 100);
-        await wsOnClosePromise; // wait for client to register the disconnect
+            .build()
+        await wsOnOpenPromise // wait for initial connection
+        expect(count).toBe(1) // openEventListener should be called exactly once at this point
+        client.removeEventListener(WebsocketEvent.open, openEventListener) // unregister the event-handler
+        if (server !== undefined)  // shutdown the server
+            await stopWsServerOrTimeout(server, 100)
+        await wsOnClosePromise // wait for client to register the disconnect
 
         // restart the server and wait for the client to connect
-        await startServer(port).then(server => wss = server);
-        wsOnOpenPromise = new Promise<void>(resolve => onOpen = resolve);
-        await wsOnOpenPromise;
-        expect(count).toBe(1); // count should still be 1, since the incrementing event-handler was unregistered
-    });
+        await startWsServer(serverPort).then(srv => server = srv)
+        wsOnOpenPromise = new Promise<void>(resolve => onOpen = resolve)
+        await wsOnOpenPromise
+        expect(count).toBe(1) // count should still be 1, since the incrementing event-handler was unregistered
+    })
 
     test("Websocket should remove event-listeners if they declare the 'once'-property as true", async () => {
-        let count = 0;
-        const openEventListener = () => count++; // increment counter on every connect
-        let onOpen: () => void;
-        let onClose: () => void;
-        let wsOnOpenPromise = new Promise<void>(resolve => onOpen = resolve);
-        const wsOnClosePromise = new Promise<void>(resolve => onClose = resolve);
-        ws = new WebsocketBuilder(url)
+        let count = 0
+        const openEventListener = () => count++ // increment counter on every connect
+        let onOpen: () => void
+        let onClose: () => void
+        let wsOnOpenPromise = new Promise<void>(resolve => onOpen = resolve)
+        const wsOnClosePromise = new Promise<void>(resolve => onClose = resolve)
+        client = new WebsocketBuilder(serverUrl)
             .withBackoff(new ConstantBackoff(100))
             .onOpen(() => onOpen())
             .onOpen(openEventListener, {once: true} as AddEventListenerOptions) // declare 'once'-property
             .onClose(() => onClose())
-            .build();
-        await wsOnOpenPromise; // wait for initial connection
-        expect(count).toBe(1); // openEventListener should be called exactly once at this point
-        if (wss !== undefined)  // shutdown the server
-            await shutdownServerOrTimeout(wss, 100);
-        await wsOnClosePromise; // wait for client to register the disconnect
+            .build()
+        await wsOnOpenPromise // wait for initial connection
+        expect(count).toBe(1) // openEventListener should be called exactly once at this point
+        if (server !== undefined)  // shutdown the server
+            await stopWsServerOrTimeout(server, 100)
+        await wsOnClosePromise // wait for client to register the disconnect
 
         // restart the server and wait for the client to connect
-        await startServer(port).then(server => wss = server);
-        wsOnOpenPromise = new Promise<void>(resolve => onOpen = resolve);
-        await wsOnOpenPromise;
-        expect(count).toBe(1); // count should still be 1, since the incrementing event-handler was unregistered
-    });
+        await startWsServer(serverPort).then(srv => server = srv)
+        wsOnOpenPromise = new Promise<void>(resolve => onOpen = resolve)
+        await wsOnOpenPromise
+        expect(count).toBe(1) // count should still be 1, since the incrementing event-handler was unregistered
+    })
 
     test("Websocket should try to reconnect when the connection is lost", async () => {
 
-    });
+    })
 
     test("Websocket should fire retryEvent when trying to reconnect", async () => {
-        let retryCount = 0;
-        let onOpen: () => void;
-        let onClose: () => void;
-        let onRetry: () => void;
-        let wsOnOpenPromise = new Promise<void>(resolve => onOpen = resolve);
-        const wsOnClosePromise = new Promise<void>(resolve => onClose = resolve);
-        let wsOnRetryPromise = new Promise<void>(resolve => onRetry = resolve);
-        ws = new WebsocketBuilder(url)
+        let retryCount = 0
+        let onOpen: () => void
+        let onClose: () => void
+        let onRetry: () => void
+        let wsOnOpenPromise = new Promise<void>(resolve => onOpen = resolve)
+        const wsOnClosePromise = new Promise<void>(resolve => onClose = resolve)
+        let wsOnRetryPromise = new Promise<void>(resolve => onRetry = resolve)
+        client = new WebsocketBuilder(serverUrl)
             .withBackoff(new ConstantBackoff(100)) // 100ms between retries
             .onOpen(() => onOpen())
             .onClose(() => onClose())
             .onRetry(() => retryCount++)
             .onRetry(() => onRetry())
-            .build();
-        await wsOnOpenPromise;
-        if (wss !== undefined)  // shutdown the server
-            await shutdownServerOrTimeout(wss, 100);
-        await wsOnClosePromise; // wait for client to register the disconnect
-        await wsOnRetryPromise; // it should retry after 100ms and this will trigger the event
-        await delay(450); // after 450 more ms, it should've triggered another 4 times
-        expect(retryCount >= 3 || retryCount <= 6).toBeTruthy();
-    });
-});
-
-function delay(ms: number): Promise<void> {
-    return new Promise<void>(resolve => {
-        setTimeout(resolve, ms);
+            .build()
+        await wsOnOpenPromise
+        if (server !== undefined)  // shutdown the server
+            await stopWsServerOrTimeout(server, 100)
+        await wsOnClosePromise // wait for client to register the disconnect
+        await wsOnRetryPromise // it should retry after 100ms and this will trigger the event
+        await delay(450) // after 450 more ms, it should've triggered another 4 times
+        expect(retryCount >= 3 || retryCount <= 6).toBeTruthy()
     })
-}
+})
 
-function startServer(port: number): Promise<Server> {
-    return new Promise(resolve => {
-        const wss = new Server({port});
-        wss.on('listening', () => resolve(wss));
-    });
-}
+/**
+ * Creates a promise that resolves after the given amount of milliseconds.
+ * @param ms the amount of milliseconds to wait.
+ */
+const delay = (ms: number): Promise<void> =>
+    new Promise<void>(resolve => setTimeout(resolve, ms))
 
-function shutdownServerOrTimeout(wss: Server, timeout: number) {
-    let timeoutPromise = delay(timeout);
-    let shutdownServerPromise = shutdownServer(wss);
-    return Promise.race([timeoutPromise, shutdownServerPromise]);
-}
+/**
+ * Creates a promise that returns a listening websocket-server when it resolves.
+ * @param port the port to listen on.
+ */
+const startWsServer = (port: number): Promise<Server> =>
+    new Promise(resolve => {
+        const wss = new Server({port})
+        wss.on('listening', () => resolve(wss))
+    })
 
-function shutdownServer(wss: Server): Promise<void> {
-    return new Promise<void>(resolve => {
-        wss.addListener("close", resolve);
+/**
+ * Creates a promise that resolves when the given server terminated all clients and closed itself.
+ * @param wss the websocket-server to close.
+ */
+const stopWsServer = (wss: Server): Promise<void> =>
+    new Promise<void>(resolve => {
+        wss.addListener('close', resolve)
         wss.clients.forEach(c => c.terminate())
-        wss.close();
-    });
-}
+        wss.close()
+    })
 
-function shutdownClientOrTimeout(ws: Websocket, timeout: number) {
-    let timeoutPromise = delay(timeout);
-    let shutdownClientPromise = shutdownClient(ws);
-    return Promise.race([timeoutPromise, shutdownClientPromise]);
-}
+/**
+ * Creates a promise that resolves when the given server was stopped or when the timeout was reached.
+ * @param wss the websocket-server to close.
+ * @param timeout the timeout in milliseconds.
+ */
+const stopWsServerOrTimeout = (wss: Server, timeout: number) =>
+    Promise.race([delay(timeout), stopWsServer(wss)])
 
-function shutdownClient(ws: Websocket): Promise<void> {
-    return new Promise<void>(resolve => {
-        ws.addEventListener(WebsocketEvent.close, () => resolve());
-        ws.close();
-    });
-}
+/**
+ * Creates a promise that resolves then the given websocket was closed or when the timeout was reached.
+ * @param ws the websocket to close.
+ * @param timeout the timeout in milliseconds.
+ */
+const stopWsClientOrTimeout = (ws: Websocket, timeout: number) =>
+    Promise.race([delay(timeout), shutdownWsClient(ws)])
 
-function onClientConnected(wss: Server): Promise<WebSocket> {
-    return new Promise(resolve => {
-        wss.on('connection', (client: WebSocket) => {
-            resolve(client);
-        });
-    });
-}
+/**
+ * Creates a promise that closes the given websocket and resolves when the websocket fires the close-event.
+ * @param ws the websocket to close.
+ */
+const shutdownWsClient = (ws: Websocket): Promise<void> =>
+    new Promise<void>(resolve => {
+        ws.addEventListener(WebsocketEvent.close, () => resolve())
+        ws.close()
+    })
+
+/**
+ * Creates a promise that returns the WebSocket when a connection is established to the given server.
+ * @param wss the websocket-server to wait for a connection on.
+ */
+const onClientConnected = (wss: Server): Promise<WebSocket> =>
+    new Promise(resolve => wss.on('connection', (client: WebSocket) => resolve(client)))
