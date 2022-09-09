@@ -49,7 +49,7 @@ describe("Testsuite for Websocket", () => {
 
     test("Should fire onClose-event when the client closes the connection", async () => {
         const closeCode = 1000
-        const closeReason = "client closed the connection. just testing tho!"
+        const closeReason = "Client closed the connection. Just testing tho!"
 
         await new Promise<WsInstanceWithEvent<CloseEvent>>(resolve => {
             client = new WebsocketBuilder(serverUrl)
@@ -80,7 +80,7 @@ describe("Testsuite for Websocket", () => {
     })
 
     test("Should fire onMessage-event when a message is received", async () => {
-        const testMessage = "this is a test message."
+        const testMessage = "This is a test message."
 
         const onMessagePromise = new Promise<WsInstanceWithEvent<MessageEvent>>(resolve => {
             client = new WebsocketBuilder(serverUrl)
@@ -98,55 +98,30 @@ describe("Testsuite for Websocket", () => {
         await onMessagePromise // wait for the message to be received
     })
 
-    test("Websocket should send messages when connected", async () => {
-        const testMessage = "this is a test message."
+    test("Should send message", async () => {
+        const testMessage = "This is a test message."
 
-        const onConnectAndSendPromise = new Promise<void>(resolve => {
-            client = new WebsocketBuilder(serverUrl)
-                .onOpen((instance, _) => {
-                    instance.send(testMessage) // send message as soon as we are connected
-                    resolve()
-                }).build()
-        })
+        client = new WebsocketBuilder(serverUrl).onOpen((instance, _) => instance.send(testMessage)).build() // send message as soon as we are connected
 
-        const onReceivePromise = new Promise<string>(resolve => {
-            server?.on('connection', socket => {
-                socket.onmessage = me => {
-                    resolve(me.data.toString())
-                }
-            })
-        })
-
-        await onConnectAndSendPromise  // wait for client to connect and send the message
-        await onReceivePromise.then(actual => { // wait for server to receive the message and compare
-            expect(actual).toBe(testMessage)
-        })
+        const onReceivePromise = new Promise<string>(resolve => server.on('connection', socket => socket.onmessage = me => resolve(me.data.toString())))
+        await onReceivePromise.then(actual => expect(actual).toBe(testMessage)) // wait for the message to be received
     })
 
-    test("Websocket should ignore send()-calls when the connection was closed by the user", async () => {
-        const testMessage = "this is a test message."
-        await new Promise<void>(resolve => { // connect to server
-            client = new WebsocketBuilder(serverUrl)
-                .onOpen((instance, _) => {
-                    resolve()
-                }).build()
-        })
+    test("Should not send messages when the user closed the connection.", async () => {
+        const testMessage = "This is a test message."
+        let callsToUnderlyingSend = 0
 
-        // monkey-patch the underlying websockets send()-method, to see if it is still called
-        let messagesSent = 0
-        if (client !== undefined && client.underlyingWebsocket !== undefined) {
-            client.underlyingWebsocket.send = (_: string | ArrayBufferLike | Blob | ArrayBufferView) => {
-                messagesSent++
-            }
-        }
+        await new Promise<void>(resolve => client = new WebsocketBuilder(serverUrl).onOpen((instance, _) => resolve()).build()) // wait for the client to connect
 
-        client?.close() // close connection from client-side
-        expect(client!['closedByUser']).toBe(true)  // should indicate that the connection was closed by user
-        client?.send(testMessage)
-        expect(messagesSent).toBe(0) // should still be 0 since send() was never really called
+        client.underlyingWebsocket!.send = (_: any) => callsToUnderlyingSend++ // monkey-patch the underlying websocket to count the number of calls to send
+
+        client.close() // close the connection
+        expect(client.closedByUser).toBe(true) // the connection should be closed by the user
+        client.send(testMessage) // send a message
+        expect(callsToUnderlyingSend).toBe(0) // the underlying websocket should not have been called
     })
 
-    test("Websocket should send buffered messages when the connection is (re-)established", async () => {
+    test("Should send buffered messages when the connection is (re-)established", async () => {
         const testMessages = ["one", "two", "three"]
 
         let onOpen: () => void
