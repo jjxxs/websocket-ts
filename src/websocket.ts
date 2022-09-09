@@ -85,7 +85,7 @@ export class Websocket {
     private readonly backoff?: Backoff; // optional backoff to use when retrying a connection
     private readonly eventListeners: WebsocketEventListeners = {open: [], close: [], error: [], message: [], retry: []};
 
-    private closedByUser: boolean = false; // whether the websocket was closed by the user
+    private _closedByUser: boolean = false; // whether the websocket was closed by the user
     private websocket?: WebSocket; // underlying browser-native websocket
     private retries: number = 0;
 
@@ -102,6 +102,13 @@ export class Websocket {
      */
     get underlyingWebsocket(): WebSocket | undefined {
         return this.websocket;
+    }
+
+    /**
+     * Whether the websocket was closed by the user.
+     */
+    get closedByUser(): boolean {
+        return this._closedByUser;
     }
 
     /***
@@ -125,7 +132,7 @@ export class Websocket {
      * @param reason to close with.
      */
     public close(code?: number, reason?: string): void {
-        this.closedByUser = true; // mark as closed by user
+        this._closedByUser = true; // mark as closed by user
 
         if (this.websocket !== undefined) {
             this.websocket.close(code, reason); // close websocket with given code and reason
