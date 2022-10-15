@@ -113,11 +113,3 @@ describe('async-send', () => {
     return client.eventListeners['message']
   }
 })
-
-function delay(ms: number): Promise<void> {
-  return new Promise<void>(resolve => {
-      setTimeout(() => {
-          resolve();
-      }, ms);
-  })
-}
