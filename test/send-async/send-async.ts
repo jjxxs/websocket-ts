@@ -6,7 +6,7 @@ type ClientServerPair = {
   client: Websocket
 }
 
-describe('async-send', () => {
+describe('send-async', () => {
   const url = `ws://localhost:1234`;
 
   const withClientServer = async (action: (pair: ClientServerPair) => Promise<unknown>) => {
