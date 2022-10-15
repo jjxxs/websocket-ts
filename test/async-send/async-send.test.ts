@@ -90,6 +90,22 @@ describe('async-send', () => {
         expect(promise).rejects.toStrictEqual(error)
       })
     })
+
+    test('when promise rejected, listeners should be cleared', async () => {
+      const error = new Error("Some error")
+
+      await withClientServer(async ({client, server}) => {
+        expect(getMessageListeners(client).length).toStrictEqual(0)
+
+        const promise = client.sendAsync("hello", () => {
+          throw error
+        })
+        server.send("world")
+        expect(promise).rejects.toStrictEqual(error)
+        
+        expect(getMessageListeners(client).length).toStrictEqual(0)
+      })
+    })
   })
 
   const getMessageListeners = (client: Websocket) => {
