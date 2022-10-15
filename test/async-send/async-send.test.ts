@@ -31,19 +31,19 @@ describe('async-send', () => {
       return false
     }
 
-    test('promise will be released when server send "pong"', async () => {
+    test('promise should be released when server send "pong"', async () => {
       await withClientServer(async ({ client, server }) => {
-        const promise = client.asyncSend("ping", waitForPong)
+        const promise = client.sendAsync("ping", waitForPong)
         server.send("pong")
         const event = await promise
         expect(event.data).toStrictEqual('pong')
       })
     })
 
-    test('promise will be released only after server send "pong"', async () => {
+    test('promise should be released only after server send "pong"', async () => {
       await withClientServer(async ({ client, server }) => {
         const seenEvents: MessageEvent[] = []
-        const promise = client.asyncSend("ping", (event) => {
+        const promise = client.sendAsync("ping", (event) => {
           seenEvents.push(event)
 
           return waitForPong(event)
@@ -61,9 +61,9 @@ describe('async-send', () => {
       })      
     })
 
-    test('callback will be cleared after success event', async () => {
+    test('callback should be cleared after success event', async () => {
       await withClientServer(async ({client, server}) => {
-        const promise = client.asyncSend("ping", waitForPong)
+        const promise = client.sendAsync("ping", waitForPong)
         expect(getMessageListeners(client).length).toBe(1) // because we in waiting for "pong" response
 
         server.send('incorrect response')
@@ -74,6 +74,20 @@ describe('async-send', () => {
 
         // no more listeners
         expect(getMessageListeners(client).length).toBe(0)
+      })
+    })
+
+    test('promise should be rejected, when checking on answer is failed with error', async () => {
+      const error = new Error("Some error")
+
+      await withClientServer(async ({client, server}) => {
+        const promise = client.sendAsync("hello", () => {
+          throw error
+        })
+
+        server.send("world")
+
+        expect(promise).rejects.toStrictEqual(error)
       })
     })
   })

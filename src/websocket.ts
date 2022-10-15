@@ -68,7 +68,7 @@ export class Websocket {
             this.websocket.send(data);
     }
 
-    public asyncSend(
+    public sendAsync(
         data: string | ArrayBufferLike | Blob | ArrayBufferView,
         isAnswer: (event: MessageEvent) => boolean
     ): Promise<MessageEvent> {
