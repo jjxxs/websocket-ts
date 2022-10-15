@@ -68,6 +68,47 @@ export class Websocket {
             this.websocket.send(data);
     }
 
+    public asyncSend(
+        data: string | ArrayBufferLike | Blob | ArrayBufferView,
+        isAnswer: (event: MessageEvent) => boolean
+    ): Promise<MessageEvent> {
+        return new Promise((resolve, reject) => {
+            try {
+                if (this.closedByUser) {
+                    // TODO: need throw error instance
+                    return reject("Closed by user")
+                }
+
+                const listener = (_: Websocket, event: MessageEvent) => {
+                    try {
+                        if (isAnswer(event)) {
+                            this.removeEventListener(WebsocketEvents.message, listener)
+                            resolve(event)
+                        }
+                    } catch(e) {
+                        this.removeEventListener(WebsocketEvents.message, listener)
+                        reject(e)
+                    }
+                }
+    
+                if (this.websocket === undefined || this.websocket.readyState !== this.websocket.OPEN) {
+                    if (this.buffer) {
+                        this.addEventListener(WebsocketEvents.message, listener)
+                        this.buffer.write([data]);
+                    }
+
+                    // TODO: need throw error instance
+                    return reject(`WebSocket is in state ${this.websocket?.readyState}, and unable send message to buffer`)
+                } else {
+                    this.addEventListener(WebsocketEvents.message, listener)
+                    this.websocket.send(data);
+                }
+            } catch(e) {
+                return reject(e)
+            }
+        })
+    }
+
     public close(code?: number, reason?: string): void {
         this.closedByUser = true;
         this.websocket?.close(code, reason);
