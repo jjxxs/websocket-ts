@@ -1,32 +1,83 @@
 import {LinearBackoff} from "../../src";
 
 describe("Testsuite for LinearBackoff", () => {
-    test("LinearBackoff should produce a linearly increasing series starting with 0", () => {
-        const sut = new LinearBackoff(0, 2000, 8000);
-        const expected = [0, 2000, 4000, 6000, 8000, 8000, 8000, 8000, 8000, 8000];
-        for (let i = 0; i < 10; i++)
-            expect(sut.next()).toBe(expected[i]);
-        sut.reset();
-        for (let i = 0; i < 10; i++)
-            expect(sut.next()).toBe(expected[i]);
-    });
 
-    test("LinearBackoff should produce a linearly increasing series starting with 1000", () => {
-        const sut = new LinearBackoff(1000, 3000, 10000);
-        const expected = [1000, 4000, 7000, 10000, 10000, 10000, 10000, 10000, 10000, 10000];
-        for (let i = 0; i < 10; i++)
-            expect(sut.next()).toBe(expected[i]);
-        sut.reset();
-        for (let i = 0; i < 10; i++)
-            expect(sut.next()).toBe(expected[i]);
-    });
+    test("Initialization should throw on negative initial-backoff", () => {
+        expect(() => new LinearBackoff(-1001, 1000)).toThrow()
+        expect(() => new LinearBackoff(-42, 1000)).toThrow()
+        expect(() => new LinearBackoff(-1, 1000)).toThrow()
+    })
 
-    test("LinearBackoff with undefined maximum should increase without bounds", () => {
-        const sut = new LinearBackoff(1000, 1000);
-        for (let i = 0; i < 100; i++)
-            expect(sut.next()).toBe(1000 + 1000 * i);
-        sut.reset();
-        for (let i = 0; i < 100; i++)
-            expect(sut.next()).toBe(1000 + 1000 * i);
+    test("Initialization should not throw on zero initial-backoff", () => {
+        expect(() => new LinearBackoff(0, 1000)).not.toThrow()
+    })
+
+    test("Initialization should not throw on positive initial-backoff", () => {
+        expect(() => new LinearBackoff(1, 1000)).not.toThrow()
+        expect(() => new LinearBackoff(42, 1000)).not.toThrow()
+        expect(() => new LinearBackoff(1001, 1000)).not.toThrow()
+    })
+
+    test("Initialization should throw on negative increment", () => {
+        expect(() => new LinearBackoff(1000, -1001)).toThrow()
+        expect(() => new LinearBackoff(1000, -42)).toThrow()
+        expect(() => new LinearBackoff(1000, -1)).toThrow()
+    })
+
+    test("Initialization should not throw on zero increment", () => {
+        expect(() => new LinearBackoff(1000, 0)).not.toThrow()
+    })
+
+    test("Initialization should not throw on positive increment", () => {
+        expect(() => new LinearBackoff(1000, 1)).not.toThrow()
+        expect(() => new LinearBackoff(1000, 42)).not.toThrow()
+        expect(() => new LinearBackoff(1000, 1001)).not.toThrow()
+    })
+
+    test("Initialization should throw on negative max-backoff", () => {
+        expect(() => new LinearBackoff(1000, 1000, -1001)).toThrow()
+        expect(() => new LinearBackoff(1000, 1000, -42)).toThrow()
+        expect(() => new LinearBackoff(1000, 1000, -1)).toThrow()
+    })
+
+    test("Initialization should not throw on zero max-backoff", () => {
+        expect(() => new LinearBackoff(1000, 1000, 0)).not.toThrow()
+    })
+
+    test("Initialization should not throw on positive max-backoff", () => {
+        expect(() => new LinearBackoff(1000, 1000, 1)).not.toThrow()
+        expect(() => new LinearBackoff(1000, 1000, 42)).not.toThrow()
+        expect(() => new LinearBackoff(1000, 1000, 1001)).not.toThrow()
+    })
+
+    test("Backoff should be equal to the given initial-backoff", () => {
+        expect(new LinearBackoff(1, 1000).current()).toBe(1)
+        expect(new LinearBackoff(42, 1000).current()).toBe(42)
+        expect(new LinearBackoff(1001, 1000).current()).toBe(1001)
+    })
+
+    test("Backoff should increment by the given increment with each next", () => {
+        const backoff = new LinearBackoff(1000, 1000)
+        for (let i = 0; i < 10; i++) {
+            expect(backoff.current()).toBe(1000 + i * 1000)
+            expect(backoff.next()).toBe(1000 + (i + 1) * 1000)
+            expect(backoff.current()).toBe(1000 + (i + 1) * 1000)
+        }
+    })
+
+    test("Backoff should increment with the given increment but not exceed the given max-backoff", () => {
+        const backoff = new LinearBackoff(1000, 1000, 5000)
+        for (let i = 0; i < 10; i++) {
+            expect(backoff.current()).toBe(Math.min(1000 + i * 1000, 5000))
+            expect(backoff.next()).toBe(Math.min(1000 + (i + 1) * 1000, 5000))
+            expect(backoff.current()).toBe(Math.min(1000 + (i + 1) * 1000, 5000))
+        }
+    })
+
+    test("Backoff should be equal to the given initial-backoff after reset", () => {
+        const backoff = new LinearBackoff(42, 1000)
+        backoff.next()
+        backoff.reset()
+        expect(backoff.current()).toBe(42)
     })
 })

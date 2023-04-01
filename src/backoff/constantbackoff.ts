@@ -1,20 +1,33 @@
-import {Backoff} from "./backoff";
+import {Backoff} from "./backoff"
+
 
 /**
- * ConstantBackoff always returns the same value.
+ * ConstantBackoff always returns the same backoff-time.
  */
 export class ConstantBackoff implements Backoff {
-    private readonly backoff: number;
+    private readonly backoff: number
 
+    /**
+     * Creates a new ConstantBackoff.
+     * @param backoff the backoff-time to return
+     */
     constructor(backoff: number) {
-        this.backoff = backoff;
+        if (backoff < 0) {
+            throw new Error("backoff must be >= 0")
+        }
+
+        this.backoff = backoff
+    }
+
+    current(): number {
+        return this.backoff
     }
 
     next(): number {
-        return this.backoff;
+        return this.backoff
     }
 
     reset = () => {
-        // no-op
+        // nothing to do
     }
 }

@@ -1,18 +1,23 @@
 /**
- * Backoff provides a series of numbers. This series follows
- * a concrete pattern, e.g. be constant, linearly increasing,
- * exponentially increasing etc.
+ * Backoff is a series of numbers that are used to determine
+ * the delay between connection-retries. Values are expected
+ * to be in milliseconds.
  */
 export interface Backoff {
     /**
-     * Provides the callee with the next number in the
-     * series.
+     * Current number in the series.
+     * @return the current number
+     */
+    current(): number
+
+    /**
+     * Advances the series to the next number and returns it.
      * @return the next number
      */
     next(): number
 
     /**
-     *  Resets the series to its starting-value.
+     * Resets the series to its initial state.
      */
     reset(): void
 }
