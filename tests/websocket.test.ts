@@ -5,8 +5,8 @@ import {WebsocketEvent, WebsocketEventListenerParams} from "../src/websocket_eve
 describe("Testsuite for Websocket", () => {
     const port: number = process.env.PORT ? parseInt(process.env.PORT) : 41337
     const url: string = process.env.URL ?? `ws://localhost:${port}`
-    const serverTimeout: number = process.env.SERVER_TIMEOUT ? parseInt(process.env.SERVER_TIMEOUT) : 1_000
-    const clientTimeout: number = process.env.CLIENT_TIMEOUT ? parseInt(process.env.CLIENT_TIMEOUT) : 1_000
+    const serverTimeout: number = process.env.SERVER_TIMEOUT ? parseInt(process.env.SERVER_TIMEOUT) : 5_000
+    const clientTimeout: number = process.env.CLIENT_TIMEOUT ? parseInt(process.env.CLIENT_TIMEOUT) : 5_000
     const testTimeout: number = process.env.TEST_TIMEOUT ? parseInt(process.env.TEST_TIMEOUT) : 10_000
 
     let client: Websocket | undefined // subject under test
@@ -18,15 +18,15 @@ describe("Testsuite for Websocket", () => {
     /** Before each test, start a websocket server on the given port. */
     beforeEach(async () => {
         await startServer(port, serverTimeout).then(s => server = s)
-    })
+    }, testTimeout)
 
     /** After each test, stop the websocket server. */
     afterEach(async () => {
         await stopClient(client, clientTimeout).then(() => client = undefined)
         await stopServer(server, serverTimeout).then(() => server = undefined)
-    })
+    }, testTimeout)
 
-    test("Websocket should fire 'open' event when connecting to a server and the underlying websocket should have readyState 'OPEN'", async () => {
+    test("Websocket should fire 'open' event when connecting to a server and the underlying websocket should be in readyState 'OPEN'", async () => {
         await new Promise<WebsocketEventListenerParams<WebsocketEvent.open>>(resolve => {
             client = new WebsocketBuilder(url)
                 .onOpen((instance, ev) => resolve([instance, ev]))
@@ -39,7 +39,7 @@ describe("Testsuite for Websocket", () => {
         })
     }, testTimeout)
 
-    test("Websocket should fire 'close' event when the server closes the connection", async () => {
+    test("Websocket should fire 'close' event when the server closes the connection and the underlying websocket should be in readyState 'CLOSED'", async () => {
         await new Promise<WebsocketEventListenerParams<WebsocketEvent.close>>(resolve => {
             client = new WebsocketBuilder(url)
                 .onClose((instance, ev) => resolve([instance, ev]))
@@ -55,18 +55,14 @@ describe("Testsuite for Websocket", () => {
     }, testTimeout)
 })
 
-/**
- * Error thrown when a timeout occurs.
- */
-const TimeoutError: Error = new Error("Timeout")
-
 
 /**
  * Creates a promise that will be rejected after the given amount of milliseconds. The error will be a TimeoutError.
  * @param ms the amount of milliseconds to wait before rejecting
+ * @param msg an optional message to include in the error
  */
-const rejectAfter = (ms: number): Promise<void> =>
-    new Promise((_, reject) => setTimeout(() => reject(TimeoutError), ms))
+const rejectAfter = (ms: number, msg?: string): Promise<void> =>
+    new Promise((_, reject) => setTimeout(() => reject(msg ? new Error(`Timeout: ${msg}`) : new Error(`Timeout`)), ms))
 
 
 /**
@@ -77,7 +73,8 @@ const rejectAfter = (ms: number): Promise<void> =>
 const stopClient = (client: Websocket | undefined, timeout: number): Promise<void> =>
     new Promise<void>((resolve, reject) => {
         if (client === undefined) return resolve()
-        rejectAfter(timeout).catch(err => reject(err))
+        if (client.underlyingWebsocket?.readyState === WebSocket.CLOSED) return resolve()
+        rejectAfter(timeout, 'failed to stop client').catch(err => reject(err))
         client.addEventListener(WebsocketEvent.close, () => resolve(), {once: true})
         client.close()
     })
@@ -90,7 +87,7 @@ const stopClient = (client: Websocket | undefined, timeout: number): Promise<voi
  */
 const startServer = (port: number, timeout: number): Promise<Server> =>
     new Promise((resolve, reject) => {
-        rejectAfter(timeout).catch(err => reject(err))
+        rejectAfter(timeout, 'failed to start server').catch(err => reject(err))
         const wss = new Server({port})
         wss.on('listening', () => resolve(wss))
         wss.on('error', err => reject(err))
@@ -105,8 +102,8 @@ const startServer = (port: number, timeout: number): Promise<Server> =>
 const stopServer = (wss: Server | undefined, timeout: number): Promise<void> =>
     new Promise<void>((resolve, reject) => {
         if (wss === undefined) return resolve()
-        rejectAfter(timeout).catch(err => reject(err))
-        wss.addListener('close', resolve)
+        rejectAfter(timeout, 'failed to stop server').catch(err => reject(err))
         wss.clients.forEach(c => c.terminate())
+        wss.addListener('close', resolve)
         wss.close()
     })
