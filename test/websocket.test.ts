@@ -169,7 +169,7 @@ describe("Testsuite for Websocket", () => {
             expect(actual).toEqual(testMessages)
         })
 
-        // ...after which the clients message-buffer should be empty again
+        // ...after which the clients message-queue should be empty again
         expect((client!['buffer'] as LRUBuffer<string>).len()).toBe(0)
     })
 

@@ -19,7 +19,7 @@ describe("Testsuite for WebsocketBuilder", () => {
         expect(actual).toBe(expected);
     });
 
-    test("WebsocketBuilder should set buffer", () => {
+    test("WebsocketBuilder should set queue", () => {
         const sut = new WebsocketBuilder(url);
         const expected = new LRUBuffer<string>(10);
         sut.withBuffer(expected);
