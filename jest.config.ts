@@ -1,4 +1,6 @@
-module.exports = {
+import type { Config } from 'jest';
+
+const config: Config = {
     roots: ["<rootDir>/tests"],
     moduleDirectories: ["node_modules", "src"],
     moduleFileExtensions: ['js', 'ts', 'json'],
@@ -9,4 +11,11 @@ module.exports = {
         "^.+\\.tsx?$": "ts-jest",
     },
     collectCoverage: true,
+    collectCoverageFrom: [
+        '**/*.{js,jsx}',
+        '!**/node_modules/**'
+    ],
+    coverageReporters: ['json', 'lcov', 'text', 'clover'],
 };
+
+export default config;
