@@ -60,6 +60,9 @@ export type WebsocketEventMap = {
 export type WebsocketEventListener<K extends WebsocketEvent> =
     (instance: Websocket, ev: WebsocketEventMap[K]) => any;
 
+export type WebsocketEventListenerParams<K extends WebsocketEvent> =
+    Parameters<WebsocketEventListener<K>>
+
 /**
  * Options for websocket events.
  */

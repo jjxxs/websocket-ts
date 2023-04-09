@@ -7,9 +7,13 @@ import {
     WebsocketEventListener,
     WebsocketEventListenerOptions,
     WebsocketEventListeners,
-    WebsocketEventListenerWithOptions, WebsocketEventMap
+    WebsocketEventListenerWithOptions,
+    WebsocketEventMap
 } from "./websocket_event";
 
+/**
+ * A websocket wrapper that can be configured to reconnect automatically and buffer messages when the websocket is not connected.
+ */
 export class Websocket {
     private readonly url: string;
     private readonly protocols?: string | string[];
@@ -205,8 +209,6 @@ export class Websocket {
 
 
     /**
-     * Handles the given event. Dispatches the event to all listeners of the given event-type after handling the event for internal purposes,
-     * e.g. scheduling a connection-retry if the websocket was closed.
      *
      * @param type of the event to handle.
      * @param event to handle.
@@ -214,30 +216,32 @@ export class Websocket {
     private handleEvent<K extends WebsocketEvent>(type: K, event: WebsocketEventMap[K]) {
         switch (type) {
 
-            // if the websocket was closed, schedule a connection-retry if the websocket was not closed by the user
             case WebsocketEvent.close:
-                this.scheduleConnectionRetryIfNeeded();
+                this.dispatchEvent(type, event);
+                this.scheduleConnectionRetryIfNeeded(); // schedule a new connection retry if the websocket was closed by the server
                 break;
 
-            // if the websocket was opened, update the last connection timestamp and send buffered data, also dispatch a reconnect event if the websocket was already opened before
             case WebsocketEvent.open:
-                if (this.backoff !== undefined && this.lastConnection !== undefined) {
+                if (this.backoff !== undefined && this.lastConnection !== undefined) { // websocket was reconnected, dispatch reconnect event and reset backoff
                     const detail: ReconnectEventDetail = {retries: this.backoff.retries, lastConnection: new Date(this.lastConnection)}
                     const event: CustomEvent<ReconnectEventDetail> = new CustomEvent<ReconnectEventDetail>(WebsocketEvent.reconnect, {detail})
                     this.dispatchEvent(WebsocketEvent.reconnect, event)
                     this.backoff.reset();
                 }
-
-                // connection was opened, update last connection timestamp and send buffered data
                 this.lastConnection = new Date();
+                this.dispatchEvent(type, event); // dispatch open event and send buffered data
                 this.sendBufferedData();
                 break;
 
             case WebsocketEvent.retry:
+                this.dispatchEvent(type, event); // dispatch retry event and try to connect
                 this.tryConnect();
-        }
+                break;
 
-        this.dispatchEvent(type, event); // dispatch event to all listeners of the given event-type
+            default:
+                this.dispatchEvent(type, event); // dispatch event to all listeners of the given event-type
+                break;
+        }
     }
 
 
