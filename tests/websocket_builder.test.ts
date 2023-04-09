@@ -1,9 +1,9 @@
 import {WebsocketBuilder, LRUBuffer, ConstantBackoff} from "../src";
 
-describe("Testsuite for WebsocketBuilder", () => {
+describe("Testsuite for Websocket_builder", () => {
     const url = "ws://localhost:42421";
 
-    test("WebsocketBuilder should set protocols", () => {
+    test("Websocket_builder should set protocols", () => {
         const sut = new WebsocketBuilder(url);
         const expected = ["p1", "p2", "p3"];
         sut.withProtocols(expected);
@@ -11,7 +11,7 @@ describe("Testsuite for WebsocketBuilder", () => {
         expect(actual).toEqual(expected);
     });
 
-    test("WebsocketBuilder should set backoff", () => {
+    test("Websocket_builder should set backoff", () => {
         const sut = new WebsocketBuilder(url);
         const expected = new ConstantBackoff(100);
         sut.withBackoff(expected);
@@ -19,7 +19,7 @@ describe("Testsuite for WebsocketBuilder", () => {
         expect(actual).toBe(expected);
     });
 
-    test("WebsocketBuilder should set queue", () => {
+    test("Websocket_builder should set queue", () => {
         const sut = new WebsocketBuilder(url);
         const expected = new LRUBuffer<string>(10);
         sut.withBuffer(expected);
@@ -27,7 +27,7 @@ describe("Testsuite for WebsocketBuilder", () => {
         expect(actual).toBe(expected);
     });
 
-    test("WebsocketBuilder should return the same instance on every build()-call", () => {
+    test("Websocket_builder should return the same instance on every build()-call", () => {
         const sut = new WebsocketBuilder(url);
         const ws = sut.build();
         const ws2 = sut.build();
