@@ -125,12 +125,12 @@ The websocket will use the buffer to temporarily keep your messages and send the
 (re-)connects. There are currently two `Buffer`-implementations. You can also implement your own
  by inheriting from the `Buffer`-interface.
 
-##### LRUBuffer
-The `LRUBuffer` keeps the last `n` messages. When the buffer is full, the oldest message in the buffer will be replaced.
-It uses an array as a circular-buffer for linear space- and time-requirements. To use the `LRUBuffer` with a capacity of `1000`:
+##### Lruqueue
+The `Lruqueue` keeps the last `n` messages. When the buffer is full, the oldest message in the buffer will be replaced.
+It uses an array as a circular-buffer for linear space- and time-requirements. To use the `Lruqueue` with a capacity of `1000`:
 ```typescript
 const ws = new WebsocketBuilder('ws://localhost:42421')
-    .withBuffer(new LRUBuffer(1000))
+    .withBuffer(new Lruqueue(1000))
     .build();
 ```
 

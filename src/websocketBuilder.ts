@@ -1,16 +1,17 @@
 import {Backoff} from "./backoff/backoff";
-import {Buffer} from "./buffer/buffer";
+import {Buffer} from "./queue/queue";
 import {
     Websocket,
     WebsocketBuffer,
     WebsocketEvent,
     WebsocketEventListeners,
-    wsEventListener,
-    wsEventListenerOptions
+    WebsocketEventListener,
+    WebsocketEventListenerOptions
 } from "./websocket";
 
+
 /**
- * Builder for the Websocket.
+ * WebsocketBuilder is used to build a websocket.
  */
 export class WebsocketBuilder {
     private readonly url: string;
@@ -25,9 +26,10 @@ export class WebsocketBuilder {
         this.url = url;
     }
 
+
     /**
-     * Adds protocols to the websocket.
-     * @param protocols the protocols to add
+     * Adds protocols to the websocket. Subsequent calls to this method will override the previous protocols.
+     * @param protocols
      */
     public withProtocols(protocols: string | string[]): WebsocketBuilder {
         this.protocols = protocols;
@@ -44,8 +46,8 @@ export class WebsocketBuilder {
     }
 
     /**
-     * Adds a buffer to the websocket.
-     * @param buffer the buffer to add
+     * Adds a queue to the websocket.
+     * @param buffer the queue to add
      */
     public withBuffer(buffer: WebsocketBuffer): WebsocketBuilder {
         this.buffer = buffer;
@@ -57,7 +59,7 @@ export class WebsocketBuilder {
      * @param listener the listener to add
      * @param options the options for the listener
      */
-    public onOpen(listener: wsEventListener<WebsocketEvent.open>, options?: wsEventListenerOptions): WebsocketBuilder {
+    public onOpen(listener: WebsocketEventListener<WebsocketEvent.open>, options?: WebsocketEventListenerOptions): WebsocketBuilder {
         this.eventListeners.open.push({listener, options});
         return this;
     }
@@ -67,7 +69,7 @@ export class WebsocketBuilder {
      * @param listener the listener to add
      * @param options the options for the listener
      */
-    public onClose(listener: wsEventListener<WebsocketEvent.close>, options?: wsEventListenerOptions): WebsocketBuilder {
+    public onClose(listener: WebsocketEventListener<WebsocketEvent.close>, options?: WebsocketEventListenerOptions): WebsocketBuilder {
         this.eventListeners.close.push({listener, options});
         return this;
     }
@@ -77,7 +79,7 @@ export class WebsocketBuilder {
      * @param listener the listener to add
      * @param options the options for the listener
      */
-    public onError(listener: wsEventListener<WebsocketEvent.error>, options?: wsEventListenerOptions): WebsocketBuilder {
+    public onError(listener: WebsocketEventListener<WebsocketEvent.error>, options?: WebsocketEventListenerOptions): WebsocketBuilder {
         this.eventListeners.error.push({listener, options});
         return this;
     }
@@ -87,7 +89,7 @@ export class WebsocketBuilder {
      * @param listener the listener to add
      * @param options the options for the listener
      */
-    public onMessage(listener: wsEventListener<WebsocketEvent.message>, options?: wsEventListenerOptions): WebsocketBuilder {
+    public onMessage(listener: WebsocketEventListener<WebsocketEvent.message>, options?: WebsocketEventListenerOptions): WebsocketBuilder {
         this.eventListeners.message.push({listener, options});
         return this;
     }
@@ -97,7 +99,7 @@ export class WebsocketBuilder {
      * @param listener the listener to add
      * @param options the options for the listener
      */
-    public onRetry(listener: wsEventListener<WebsocketEvent.retry>, options?: wsEventListenerOptions): WebsocketBuilder {
+    public onRetry(listener: WebsocketEventListener<WebsocketEvent.retry>, options?: WebsocketEventListenerOptions): WebsocketBuilder {
         this.eventListeners.retry.push({listener, options});
         return this;
     }
