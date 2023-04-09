@@ -1,4 +1,4 @@
-import {ConstantBackoff} from "../../src";
+import {ConstantBackoff} from "../../src/backoff/constantbackoff";
 
 describe("Testsuite for ConstantBackoff", () => {
 
@@ -19,21 +19,42 @@ describe("Testsuite for ConstantBackoff", () => {
     })
 
     test("Backoff should be equal to the given backoff", () => {
-        expect(new ConstantBackoff(1).current()).toBe(1)
-        expect(new ConstantBackoff(42).current()).toBe(42)
-        expect(new ConstantBackoff(1001).current()).toBe(1001)
+        expect(new ConstantBackoff(1).current).toBe(1)
+        expect(new ConstantBackoff(42).current).toBe(42)
+        expect(new ConstantBackoff(1001).current).toBe(1001)
     })
 
     test("Backoff should be equal to the given backoff after next", () => {
         const backoff = new ConstantBackoff(42)
-        backoff.next()
-        expect(backoff.current()).toBe(42)
+        expect(backoff.next).toBe(42)
+        expect(backoff.current).toBe(42)
     })
 
     test("Backoff should be equal to the given backoff after reset", () => {
         const backoff = new ConstantBackoff(42)
-        backoff.next()
+        expect(backoff.next).toBe(42)
         backoff.reset()
-        expect(backoff.current()).toBe(42)
+        expect(backoff.current).toBe(42)
+    })
+
+    test("Retries should be zero after initialization", () => {
+        expect(new ConstantBackoff(42).retries).toBe(0)
+    })
+
+    test("Retries should increment with each next", () => {
+        const backoff = new ConstantBackoff(42)
+        for (let i = 0; i < 100; i++) {
+            expect(backoff.retries).toBe(i)
+            backoff.next
+        }
+    })
+
+    test("Retries should be zero after reset", () => {
+        const backoff = new ConstantBackoff(42)
+        for (let i = 0; i < 100; i++) {
+            backoff.next
+        }
+        backoff.reset()
+        expect(backoff.retries).toBe(0)
     })
 })

@@ -6,6 +6,7 @@ import {Backoff} from "./backoff"
  */
 export class ConstantBackoff implements Backoff {
     private readonly backoff: number
+    private _retries: number = 0
 
     /**
      * Creates a new ConstantBackoff.
@@ -19,15 +20,20 @@ export class ConstantBackoff implements Backoff {
         this.backoff = backoff
     }
 
-    current(): number {
+    get retries(): number {
+        return this._retries
+    }
+
+    get current(): number {
         return this.backoff
     }
 
-    next(): number {
+    get next(): number {
+        this._retries++
         return this.backoff
     }
 
     reset = () => {
-        // nothing to do
+        this._retries = 0
     }
 }

@@ -35,6 +35,7 @@ export class ExponentialBackoff implements Backoff {
     private readonly base: number
     private readonly expMax?: number
     private i: number
+    private _retries: number = 0
 
     /**
      * Creates a new ExponentialBackoff.
@@ -54,16 +55,22 @@ export class ExponentialBackoff implements Backoff {
         this.i = 0
     }
 
-    current(): number {
+    get retries() {
+        return this._retries
+    }
+
+    get current(): number {
         return this.base * Math.pow(2, this.i)
     }
 
-    next(): number {
+    get next(): number {
+        this._retries++
         this.i = this.expMax === undefined ? this.i + 1 : Math.min(this.i + 1, this.expMax)
-        return this.current()
+        return this.current
     }
 
     reset() {
+        this._retries = 0
         this.i = 0
     }
 }

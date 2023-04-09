@@ -35,7 +35,8 @@ export class LinearBackoff implements Backoff {
     private readonly initial: number
     private readonly increment: number
     private readonly max?: number
-    private i: number
+    private i: number = 0
+    private _retries: number = 0
 
     /**
      * Creates a new LinearBackoff.
@@ -53,25 +54,33 @@ export class LinearBackoff implements Backoff {
         if (max !== undefined && max < 0) {
             throw new Error("max must undefined or >= 0")
         }
+        if (max !== undefined && max < initial) {
+            throw new Error("max must be >= initial")
+        }
 
         this.initial = initial
         this.increment = increment
         this.max = max
-        this.i = 0
     }
 
-    current(): number {
+    get retries() {
+        return this._retries
+    }
+
+    get current(): number {
         return this.max === undefined ?
             this.initial + this.increment * this.i :
             Math.min(this.initial + this.increment * this.i, this.max)
     }
 
-    next() {
+    get next() {
+        this._retries++
         this.i++
-        return this.current()
+        return this.current
     }
 
     reset() {
+        this._retries = 0
         this.i = 0
     }
 }
