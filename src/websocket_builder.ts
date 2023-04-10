@@ -8,57 +8,101 @@ import {WebsocketBuffer} from "./websocket_buffer";
  * Builder for websockets.
  */
 export class WebsocketBuilder {
-    private readonly url: string;
+    private readonly _url: string;
     private readonly listeners: WebsocketEventListeners = {open: [], close: [], error: [], message: [], retry: [], reconnect: []};
 
-    private ws: Websocket | null = null;
-    private protocols?: string | string[];
-    private backoff?: Backoff;
-    private buffer?: WebsocketBuffer;
+    private _protocols?: string | string[];
+    private _backoff?: Backoff;
+    private _buffer?: WebsocketBuffer;
 
 
     /**
      * Creates a new WebsocketBuilder.
+     *
      * @param url the url to connect to
      */
     constructor(url: string) {
-        this.url = url;
+        this._url = url;
+    }
+
+
+    /**
+     * Getter for the url.
+     *
+     * @returns the url
+     */
+    get url(): string {
+        return this._url;
     }
 
 
     /**
      * Adds protocols to the websocket. Subsequent calls to this method will override the previously set protocols.
+     *
      * @param protocols the protocols to add
      */
     public withProtocols(protocols: string | string[] | undefined): WebsocketBuilder {
-        this.protocols = protocols;
+        this._protocols = protocols;
         return this;
+    }
+
+
+    /**
+     * Getter for the protocols.
+     *
+     * @returns the protocols, undefined if no protocols have been set
+     */
+    get protocols(): string | string[] | undefined {
+        return this._protocols;
     }
 
 
     /**
      * Adds a backoff to the websocket. Subsequent calls to this method will override the previously set backoff.
+     *
      * @param backoff the backoff to add
      */
     public withBackoff(backoff: Backoff | undefined): WebsocketBuilder {
-        this.backoff = backoff;
+        this._backoff = backoff;
         return this;
     }
 
 
     /**
+     * Getter for the backoff.
+     *
+     * @returns the backoff, undefined if no backoff has been set
+     */
+    get backoff(): Backoff | undefined {
+        return this._backoff;
+    }
+
+
+    /**
      * Adds a buffer to the websocket. Subsequent calls to this method will override the previously set buffer.
+     *
      * @param buffer the buffer to add
      */
     public withBuffer(buffer: WebsocketBuffer | undefined): WebsocketBuilder {
-        this.buffer = buffer;
+        this._buffer = buffer;
         return this;
+    }
+
+
+    /**
+     * Getter for the buffer.
+     *
+     * @returns the buffer, undefined if no buffer has been set
+     */
+    get buffer(): WebsocketBuffer | undefined {
+        return this._buffer;
     }
 
 
     /**
      * Adds an 'open' event listener to the websocket. Subsequent calls to this method will add additional listeners that will be
      * called in the order they were added.
+     *
      * @param listener the listener to add
      * @param options the listener options
      */
@@ -71,6 +115,7 @@ export class WebsocketBuilder {
     /**
      * Adds an 'close' event listener to the websocket. Subsequent calls to this method will add additional listeners that will be
      * called in the order they were added.
+     *
      * @param listener the listener to add
      * @param options the listener options
      */
@@ -83,6 +128,7 @@ export class WebsocketBuilder {
     /**
      * Adds an 'error' event listener to the websocket. Subsequent calls to this method will add additional listeners that will be
      * called in the order they were added.
+     *
      * @param listener the listener to add
      * @param options the listener options
      */
@@ -95,6 +141,7 @@ export class WebsocketBuilder {
     /**
      * Adds an 'message' event listener to the websocket. Subsequent calls to this method will add additional listeners that will be
      * called in the order they were added.
+     *
      * @param listener the listener to add
      * @param options the listener options
      */
@@ -107,6 +154,7 @@ export class WebsocketBuilder {
     /**
      * Adds an 'retry' event listener to the websocket. Subsequent calls to this method will add additional listeners that will be
      * called in the order they were added.
+     *
      * @param listener the listener to add
      * @param options the listener options
      */
@@ -119,6 +167,7 @@ export class WebsocketBuilder {
     /**
      * Adds an 'reconnect' event listener to the websocket. Subsequent calls to this method will add additional listeners that will be
      * called in the order they were added.
+     *
      * @param listener the listener to add
      * @param options the listener options
      */
@@ -129,15 +178,11 @@ export class WebsocketBuilder {
 
 
     /**
-     * Builds the websocket. Subsequent calls to this method will return the same instance.
-     * @return the websocket instance
+     * Builds the websocket.
+     *
+     * @return a new websocket, with the set options
      */
     public build(): Websocket {
-        if (this.ws !== null) {
-            return this.ws; // already built, return instance
-        }
-
-        this.ws = new Websocket(this.url, this.protocols, this.buffer, this.backoff, this.listeners); // instantiate the websocket
-        return this.ws;
+        return new Websocket(this._url, this._protocols, this._buffer, this._backoff, this.listeners); // instantiate the websocket
     }
 }
