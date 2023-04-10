@@ -15,15 +15,15 @@ import {
  * A websocket wrapper that can be configured to reconnect automatically and buffer messages when the websocket is not connected.
  */
 export class Websocket {
-    private readonly url: string;
-    private readonly protocols?: string | string[];
-    private readonly buffer?: WebsocketBuffer;
-    private readonly backoff?: Backoff;
+    private readonly _url: string;
+    private readonly _protocols?: string | string[];
+    private readonly _buffer?: WebsocketBuffer;
+    private readonly _backoff?: Backoff;
     private readonly listeners: WebsocketEventListeners = {open: [], close: [], error: [], message: [], retry: [], reconnect: []};
 
     private _closedByUser: boolean = false; // whether the websocket was closed by the user
-    private websocket?: WebSocket; // the underlying websocket
-    private lastConnection?: Date; // timestamp of the last connection
+    private _lastConnection?: Date; // timestamp of the last connection
+    private _underlyingWebsocket?: WebSocket; // the underlying websocket, e.g. native browser websocket
     private retryTimeout?: number; // timeout for the next retry, if any
 
 
@@ -37,23 +37,52 @@ export class Websocket {
      * @param listeners optional listeners to use at creation.
      */
     constructor(url: string, protocols?: string | string[], buffer?: WebsocketBuffer, backoff?: Backoff, listeners?: WebsocketEventListeners) {
-        this.url = url;
-        this.protocols = protocols;
-        this.buffer = buffer;
-        this.backoff = backoff;
+        this._url = url;
+        this._protocols = protocols;
+        this._buffer = buffer;
+        this._backoff = backoff;
         this.listeners = listeners || this.listeners;
         this.tryConnect();
     }
 
 
     /**
-     * Getter for the underlying websocket. This can be used to access the lower-level websocket directly.
+     * Getter for the url.
      *
-     * @see https://developer.mozilla.org/en-US/docs/Web/API/WebSocket
-     * @return the underlying websocket or undefined if it is not yet connected.
+     * @return the url.
      */
-    get underlyingWebsocket(): WebSocket | undefined {
-        return this.websocket;
+    get url(): string {
+        return this._url;
+    }
+
+
+    /**
+     * Getter for the protocols.
+     *
+     * @return the protocols, or undefined if none were provided.
+     */
+    get protocols(): string | string[] | undefined {
+        return this._protocols
+    }
+
+
+    /**
+     * Getter for the buffer.
+     *
+     * @return the buffer, or undefined if none was provided.
+     */
+    get buffer(): WebsocketBuffer | undefined {
+        return this._buffer
+    }
+
+
+    /**
+     * Getter for the backoff.
+     *
+     * @return the backoff, or undefined if none was provided.
+     */
+    get backoff(): Backoff | undefined {
+        return this._backoff
     }
 
 
@@ -64,6 +93,27 @@ export class Websocket {
      */
     get closedByUser(): boolean {
         return this._closedByUser;
+    }
+
+
+    /**
+     * Getter for the last 'open' event, e.g. the last time the websocket was connected.
+     *
+     * @return the last 'open' event, or undefined if the websocket was never connected.
+     */
+    get lastConnection(): Date | undefined {
+        return this._lastConnection
+    }
+
+
+    /**
+     * Getter for the underlying websocket. This can be used to access the browser's native websocket directly.
+     *
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/WebSocket
+     * @return the underlying websocket or undefined if it was not created yet.
+     */
+    get underlyingWebsocket(): WebSocket | undefined {
+        return this._underlyingWebsocket;
     }
 
 
@@ -79,8 +129,8 @@ export class Websocket {
     public send(data: string | ArrayBufferLike | Blob | ArrayBufferView): void {
         if (this.closedByUser) return // no-op if closed by user
 
-        if (this.websocket !== undefined && this.websocket.readyState === this.websocket.OPEN) {
-            this.websocket.send(data) // websocket is connected, send data
+        if (this._underlyingWebsocket !== undefined && this._underlyingWebsocket.readyState === this._underlyingWebsocket.OPEN) {
+            this._underlyingWebsocket.send(data) // websocket is connected, send data
         } else if (this.buffer !== undefined) {
             this.buffer.add(data) // websocket is not connected, add data to buffer
         }
@@ -98,8 +148,8 @@ export class Websocket {
         this.cancelScheduledConnectionRetry(); // cancel any scheduled retries
         this._closedByUser = true; // mark websocket as closed by user
 
-        if (this.websocket !== undefined) {
-            this.websocket.close(code, reason); // close underlying websocket with provided code and reason
+        if (this._underlyingWebsocket !== undefined) {
+            this._underlyingWebsocket.close(code, reason); // close underlying websocket with provided code and reason
         }
     }
 
@@ -138,19 +188,19 @@ export class Websocket {
      * and adds all event listeners to the browser-native websocket.
      */
     private tryConnect(): void {
-        if (this.websocket !== undefined) { // websocket was already created, this is a retry. remove all event listeners, close and start over.
-            this.websocket.removeEventListener(WebsocketEvent.open, this.handleOpenEvent);
-            this.websocket.removeEventListener(WebsocketEvent.close, this.handleCloseEvent);
-            this.websocket.removeEventListener(WebsocketEvent.error, this.handleErrorEvent);
-            this.websocket.removeEventListener(WebsocketEvent.message, this.handleMessageEvent);
-            this.websocket.close();
+        if (this._underlyingWebsocket !== undefined) { // websocket was already created, this is a retry. remove all event listeners, close and start over.
+            this._underlyingWebsocket.removeEventListener(WebsocketEvent.open, this.handleOpenEvent);
+            this._underlyingWebsocket.removeEventListener(WebsocketEvent.close, this.handleCloseEvent);
+            this._underlyingWebsocket.removeEventListener(WebsocketEvent.error, this.handleErrorEvent);
+            this._underlyingWebsocket.removeEventListener(WebsocketEvent.message, this.handleMessageEvent);
+            this._underlyingWebsocket.close();
         }
 
-        this.websocket = new WebSocket(this.url, this.protocols); // create new browser-native websocket and add all event listeners
-        this.websocket.addEventListener(WebsocketEvent.open, this.handleOpenEvent);
-        this.websocket.addEventListener(WebsocketEvent.close, this.handleCloseEvent);
-        this.websocket.addEventListener(WebsocketEvent.error, this.handleErrorEvent);
-        this.websocket.addEventListener(WebsocketEvent.message, this.handleMessageEvent);
+        this._underlyingWebsocket = new WebSocket(this.url, this.protocols); // create new browser-native websocket and add all event listeners
+        this._underlyingWebsocket.addEventListener(WebsocketEvent.open, this.handleOpenEvent);
+        this._underlyingWebsocket.addEventListener(WebsocketEvent.close, this.handleCloseEvent);
+        this._underlyingWebsocket.addEventListener(WebsocketEvent.error, this.handleErrorEvent);
+        this._underlyingWebsocket.addEventListener(WebsocketEvent.message, this.handleMessageEvent);
     }
 
 
@@ -222,13 +272,13 @@ export class Websocket {
                 break;
 
             case WebsocketEvent.open:
-                if (this.backoff !== undefined && this.lastConnection !== undefined) { // websocket was reconnected, dispatch reconnect event and reset backoff
-                    const detail: ReconnectEventDetail = {retries: this.backoff.retries, lastConnection: new Date(this.lastConnection)}
+                if (this.backoff !== undefined && this._lastConnection !== undefined) { // websocket was reconnected, dispatch reconnect event and reset backoff
+                    const detail: ReconnectEventDetail = {retries: this.backoff.retries, lastConnection: new Date(this._lastConnection)}
                     const event: CustomEvent<ReconnectEventDetail> = new CustomEvent<ReconnectEventDetail>(WebsocketEvent.reconnect, {detail})
                     this.dispatchEvent(WebsocketEvent.reconnect, event)
                     this.backoff.reset();
                 }
-                this.lastConnection = new Date();
+                this._lastConnection = new Date();
                 this.dispatchEvent(type, event); // dispatch open event and send buffered data
                 this.sendBufferedData();
                 break;
@@ -275,7 +325,7 @@ export class Websocket {
             this.handleEvent(WebsocketEvent.retry, event);
         }
 
-        const detail: RetryEventDetail = {backoff: this.backoff.next, retries: this.backoff.retries, lastConnection: this.lastConnection}
+        const detail: RetryEventDetail = {backoff: this.backoff.next, retries: this.backoff.retries, lastConnection: this._lastConnection}
         this.retryTimeout = window.setTimeout(() => handleRetryEvent(detail), detail.backoff);
     }
 

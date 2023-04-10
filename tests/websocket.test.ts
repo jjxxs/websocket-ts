@@ -42,17 +42,82 @@ describe("Testsuite for Websocket", () => {
     test("Websocket should fire 'close' event when the server closes the connection and the underlying websocket should be in readyState 'CLOSED'", async () => {
         await new Promise<WebsocketEventListenerParams<WebsocketEvent.close>>(resolve => {
             client = new WebsocketBuilder(url)
+                .onOpen(_ => server!.close())
                 .onClose((instance, ev) => resolve([instance, ev]))
                 .build()
-
-            server!.close()
         }).then(([instance, ev]) => {
             expect(instance).toBe(client)
             expect(ev.type).toBe(WebsocketEvent.close)
+            expect(instance.closedByUser).toBe(false)
             expect(instance.underlyingWebsocket).not.toBeUndefined()
             expect(instance.underlyingWebsocket!.readyState).toBe(WebSocket.CLOSED)
         })
     }, testTimeout)
+
+    test("Websocket should fire 'close' when the client closes the connection and the underlying websocket should be in readyState 'CLOSED'", async () => {
+        await new Promise<WebsocketEventListenerParams<WebsocketEvent.close>>(resolve => {
+            client = new WebsocketBuilder(url)
+                .onOpen((instance, ev) => instance.close())
+                .onClose((instance, ev) => resolve([instance, ev]))
+                .build()
+        }).then(([instance, ev]) => {
+            expect(instance).toBe(client)
+            expect(ev.type).toBe(WebsocketEvent.close)
+            expect(instance.closedByUser).toBe(true)
+            expect(instance.underlyingWebsocket).not.toBeUndefined()
+            expect(instance.underlyingWebsocket!.readyState).toBe(WebSocket.CLOSED)
+        })
+    })
+
+    test("Websocket should fire 'close' when the server closes the connection with a status code other than 1000 and the underlying websocket should be in readyState 'CLOSED'", async () => {
+        await new Promise<WebsocketEventListenerParams<WebsocketEvent.close>>(resolve => {
+            client = new WebsocketBuilder(url)
+                .onOpen(_ => server?.clients.forEach(client => client.close(1001, 'CLOSE_GOING_AWAY')))
+                .onClose((instance, ev) => resolve([instance, ev]))
+                .build()
+        }).then(([instance, ev]) => {
+            expect(instance).toBe(client)
+            expect(ev.type).toBe(WebsocketEvent.close)
+            expect(ev.code).toBe(1001)
+            expect(ev.reason).toBe('CLOSE_GOING_AWAY')
+            expect(ev.wasClean).toBe(true)
+            expect(instance.closedByUser).toBe(false)
+            expect(instance.underlyingWebsocket).not.toBeUndefined()
+            expect(instance.underlyingWebsocket!.readyState).toBe(WebSocket.CLOSED)
+        })
+    })
+
+    test("Websocket should fire 'close' when the client closes the connection with a status code other than 1000 and the underlying websocket should be in readyState 'CLOSED'", async () => {
+        await new Promise<WebsocketEventListenerParams<WebsocketEvent.close>>(resolve => {
+            client = new WebsocketBuilder(url)
+                .onOpen((instance, ev) => instance.close(4000, 'APPLICATION_IS_SHUTTING_DOWN'))
+                .onClose((instance, ev) => resolve([instance, ev]))
+                .build()
+        }).then(([instance, ev]) => {
+            expect(instance).toBe(client)
+            expect(ev.type).toBe(WebsocketEvent.close)
+            expect(ev.code).toBe(4000)
+            expect(ev.reason).toBe('APPLICATION_IS_SHUTTING_DOWN')
+            expect(ev.wasClean).toBe(true)
+            expect(instance.closedByUser).toBe(true)
+            expect(instance.underlyingWebsocket).not.toBeUndefined()
+            expect(instance.underlyingWebsocket!.readyState).toBe(WebSocket.CLOSED)
+        })
+    })
+
+    test("Websocket should fire 'error' when the server rejects the connection and the underlying websocket should be in readyState 'CLOSED", async () => {
+        await stopServer(server, serverTimeout).then(() => server = undefined)
+        await new Promise<WebsocketEventListenerParams<WebsocketEvent.error>>(resolve => {
+            client = new WebsocketBuilder(url)
+                .onError((instance, ev) => resolve([instance, ev]))
+                .build()
+        }).then(([instance, ev]) => {
+            expect(instance).toBe(client)
+            expect(ev.type).toBe(WebsocketEvent.error)
+            expect(instance.underlyingWebsocket).not.toBeUndefined()
+            expect(instance.underlyingWebsocket!.readyState).toBe(WebSocket.CLOSED)
+        })
+    })
 })
 
 
