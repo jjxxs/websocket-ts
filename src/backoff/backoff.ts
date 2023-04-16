@@ -1,7 +1,6 @@
 /**
- * Backoff is a series of numbers that are used to determine
- * the delay between connection-retries. Values are expected
- * to be in milliseconds.
+ * A Backoff produces a series of numbers that are used to determine
+ * the delay between connection-retries. Values are expected to be in milliseconds.
  */
 export interface Backoff {
     /**
