@@ -1,10 +1,23 @@
+<div align="center">
+  <img src="websocket-ts-logo2-plain.svg" alt="websocket-ts" width="300" />
+</div>
+<p align="center">
+<a href="https://travis-ci.org/jjxxs/websocket-ts">
+<img src="https://travis-ci.org/jjxxs/websocket-ts.svg?branch=master" alt="Build Status" />
+</a>
+<a href="https://coveralls.io/github/jjxxs/websocket-ts?branch=master">
+<img src="https://coveralls.io/repos/github/jjxxs/websocket-ts/badge.svg?branch=master&service=github" alt="Coverage Status" />
+</a>
+<a href="https://github.com/jjxxs/websocket-ts/releases/latest">
+<img src="https://img.shields.io/github/v/release/jjxxs/websocket-ts" alt="Release" />
+</a>
+<a href="/LICENSE">
+<img src="https://img.shields.io/github/license/jjxxs/websocket-ts" alt="License" />
+</a>
+</p>
+
 # websocket-ts
 A client-websocket written in TypeScript for browser-applications. Focus is on simplicity, reliability and extensibility. It provides convenient features to automatically reconnect and buffer pending messages.
-
-[![Build Status](https://travis-ci.org/jjxxs/websocket-ts.svg?branch=master)](https://travis-ci.org/jjxxs/websocket-ts)
-[![Coverage Status](https://coveralls.io/repos/github/jjxxs/websocket-ts/badge.svg?branch=master&service=github)](https://coveralls.io/github/jjxxs/websocket-ts?branch=master)
-[![Release](https://img.shields.io/github/v/release/jjxxs/websocket-ts)](https://github.com/jjxxs/websocket-ts/releases/latest)
-[![License](https://img.shields.io/github/license/jjxxs/websocket-ts)](/LICENSE)
 
 ## Features
 - Dependency-free and small in size

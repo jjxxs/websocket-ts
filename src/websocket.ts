@@ -11,6 +11,7 @@ import {
     WebsocketEventMap
 } from "./websocket_event";
 
+
 /**
  * A websocket wrapper that can be configured to reconnect automatically and buffer messages when the websocket is not connected.
  */
@@ -114,6 +115,50 @@ export class Websocket {
      */
     get underlyingWebsocket(): WebSocket | undefined {
         return this._underlyingWebsocket;
+    }
+
+
+    /**
+     * Getter for the readyState of the underlying websocket.
+     *
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/WebSocket/readyState
+     * @return the readyState of the underlying websocket or undefined if the websocket was not created yet.
+     */
+    get readyState(): number | undefined {
+        return this._underlyingWebsocket?.readyState;
+    }
+
+
+    /**
+     * Getter for the bufferedAmount of the underlying websocket.
+     *
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/WebSocket/bufferedAmount
+     * @return the bufferedAmount of the underlying websocket or undefined if the websocket was not created yet.
+     */
+    get bufferedAmount(): number | undefined {
+        return this._underlyingWebsocket?.bufferedAmount;
+    }
+
+
+    /**
+     * Getter for the extensions of the underlying websocket.
+     *
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/WebSocket/extensions
+     * @return the extensions of the underlying websocket or undefined if the websocket was not created yet.
+     */
+    get extensions(): string | undefined {
+        return this._underlyingWebsocket?.extensions;
+    }
+
+
+    /**
+     * Getter for the binaryType of the underlying websocket.
+     *
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/WebSocket/binaryType
+     * @return the binaryType of the underlying websocket or undefined if the websocket was not created yet.
+     */
+    get binaryType(): BinaryType | undefined {
+        return this._underlyingWebsocket?.binaryType;
     }
 
 

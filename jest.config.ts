@@ -2,20 +2,13 @@ import type { Config } from 'jest';
 
 const config: Config = {
     roots: ["<rootDir>/tests"],
-    moduleDirectories: ["node_modules", "src"],
-    moduleFileExtensions: ['js', 'ts', 'json'],
+    moduleFileExtensions: ["ts", "js", "json"],
     testEnvironment: "jsdom",
-    testRegex: "^.+\\.test\\.ts$",
-    testPathIgnorePatterns: ["/node_modules/", "/dist/"],
+    testRegex: "(/tests/.*|(\\.|/)(test|spec))\\.(jsx?|tsx?)$",
     transform: {
         "^.+\\.tsx?$": "ts-jest",
     },
-    collectCoverage: true,
-    collectCoverageFrom: [
-        '**/*.{js,jsx}',
-        '!**/node_modules/**'
-    ],
-    coverageReporters: ['json', 'lcov', 'text', 'clover'],
+    collectCoverage: true
 };
 
 export default config;
