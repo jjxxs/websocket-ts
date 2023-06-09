@@ -10,39 +10,52 @@ import {
     WebsocketEventListenerWithOptions,
     WebsocketEventMap
 } from "./websocket_event";
+import {WebsocketOptions} from "./websocket_retry";
 
 
 /**
  * A websocket wrapper that can be configured to reconnect automatically and buffer messages when the websocket is not connected.
  */
 export class Websocket {
-    private readonly _url: string;
-    private readonly _protocols?: string | string[];
-    private readonly _buffer?: WebsocketBuffer;
-    private readonly _backoff?: Backoff;
-    private readonly listeners: WebsocketEventListeners = {open: [], close: [], error: [], message: [], retry: [], reconnect: []};
+    private readonly _url: string;                   // the url to connect to
+    private readonly _protocols?: string | string[]; // the protocols to use
 
-    private _closedByUser: boolean = false; // whether the websocket was closed by the user
-    private _lastConnection?: Date; // timestamp of the last connection
+    private _closedByUser: boolean = false;   // whether the websocket was closed by the user
+    private _lastConnection?: Date;           // timestamp of the last connection
     private _underlyingWebsocket?: WebSocket; // the underlying websocket, e.g. native browser websocket
-    private retryTimeout?: number; // timeout for the next retry, if any
+    private retryTimeout?: number;            // timeout for the next retry, if any
 
+    private _options: WebsocketOptions & Required<Pick<WebsocketOptions, 'listeners'>>; // options/config for the websocket
 
     /**
      * Creates a new websocket.
      *
      * @param url to connect to.
      * @param protocols optional protocols to use.
-     * @param buffer optional buffer to use, if not provided, messages will be dropped when the websocket is not connected.
-     * @param backoff optional backoff to use for reconnecting, if not provided, no scheduleConnectionRetryIfNeeded will be attempted.
-     * @param listeners optional listeners to use at creation.
+     * @param options optional options to use.
      */
-    constructor(url: string, protocols?: string | string[], buffer?: WebsocketBuffer, backoff?: Backoff, listeners?: WebsocketEventListeners) {
+    constructor(url: string, protocols?: string | string[], options?: WebsocketOptions) {
         this._url = url;
         this._protocols = protocols;
-        this._buffer = buffer;
-        this._backoff = backoff;
-        this.listeners = listeners || this.listeners;
+
+        // make a copy of the options to prevent the user from changing them
+        this._options = {
+            buffer: options?.buffer,
+            retry: {
+                maxRetries: options?.retry?.maxRetries,
+                instantReconnect: options?.retry?.instantReconnect,
+                backoff: options?.retry?.backoff
+            },
+            listeners: {
+                open: [...options?.listeners?.open ?? []],
+                close: [...options?.listeners?.close ?? []],
+                error: [...options?.listeners?.error ?? []],
+                message: [...options?.listeners?.message ?? []],
+                retry: [...options?.listeners?.retry ?? []],
+                reconnect: [...options?.listeners?.reconnect ?? []]
+            }
+        };
+
         this.tryConnect();
     }
 
@@ -63,7 +76,7 @@ export class Websocket {
      * @return the protocols, or undefined if none were provided.
      */
     get protocols(): string | string[] | undefined {
-        return this._protocols
+        return this._protocols;
     }
 
 
@@ -73,7 +86,27 @@ export class Websocket {
      * @return the buffer, or undefined if none was provided.
      */
     get buffer(): WebsocketBuffer | undefined {
-        return this._buffer
+        return this._options?.buffer;
+    }
+
+
+    /**
+     * Getter for the maxRetries.
+     *
+     * @return the maxRetries, or undefined if none was provided (no limit).
+     */
+    get maxRetries(): number | undefined {
+        return this._options?.retry?.maxRetries;
+    }
+
+
+    /**
+     * Getter for the instantReconnect.
+     *
+     * @return the instantReconnect, or undefined if none was provided.
+     */
+    get instantReconnect(): boolean | undefined {
+        return this._options?.retry?.instantReconnect;
     }
 
 
@@ -83,7 +116,7 @@ export class Websocket {
      * @return the backoff, or undefined if none was provided.
      */
     get backoff(): Backoff | undefined {
-        return this._backoff
+        return this._options?.retry?.backoff
     }
 
 
@@ -208,7 +241,7 @@ export class Websocket {
      * @param options to use when adding the listener.
      */
     public addEventListener<K extends WebsocketEvent>(type: K, listener: WebsocketEventListener<K>, options?: WebsocketEventListenerOptions): void {
-        this.listeners[type].push({listener, options}); // add listener to list of listeners
+        this._options.listeners[type].push({listener, options}); // add listener to list of listeners
     }
 
 
@@ -223,8 +256,8 @@ export class Websocket {
         const isListenerNotToBeRemoved = (l: WebsocketEventListenerWithOptions<K>) =>
             l.listener !== listener || l.options !== options;
 
-        (this.listeners[type] as WebsocketEventListenerWithOptions<K>[]) =
-            this.listeners[type].filter(isListenerNotToBeRemoved); // only keep listeners that are not to be removed
+        (this._options.listeners[type] as WebsocketEventListenerWithOptions<K>[]) =
+            this._options.listeners[type].filter(isListenerNotToBeRemoved); // only keep listeners that are not to be removed
     }
 
 
@@ -288,7 +321,7 @@ export class Websocket {
      * @param event to dispatch.
      */
     private dispatchEvent<K extends WebsocketEvent>(type: K, event: WebsocketEventMap[K]) {
-        const eventListeners: WebsocketEventListeners[K] = this.listeners[type];
+        const eventListeners: WebsocketEventListeners[K] = this._options.listeners[type];
         const newEventListeners: WebsocketEventListeners[K] = [];
 
         eventListeners.forEach(({listener, options}) => {
@@ -299,7 +332,7 @@ export class Websocket {
             }
         });
 
-        this.listeners[type] = newEventListeners; // replace old listeners with new listeners that don't include once-listeners
+        this._options.listeners[type] = newEventListeners; // replace old listeners with new listeners that don't include once-listeners
     }
 
 

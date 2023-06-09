@@ -1,7 +1,8 @@
 import {Backoff} from "./backoff/backoff";
-import {WebsocketEvent, WebsocketEventListener, WebsocketEventListenerOptions, WebsocketEventListeners} from "./websocket_event";
+import {WebsocketEvent, WebsocketEventListener, WebsocketEventListenerOptions} from "./websocket_event";
 import {Websocket} from "./websocket";
 import {WebsocketBuffer} from "./websocket_buffer";
+import {WebsocketOptions} from "./websocket_retry";
 
 
 /**
@@ -9,11 +10,9 @@ import {WebsocketBuffer} from "./websocket_buffer";
  */
 export class WebsocketBuilder {
     private readonly _url: string;
-    private readonly listeners: WebsocketEventListeners = {open: [], close: [], error: [], message: [], retry: [], reconnect: []};
 
     private _protocols?: string | string[];
-    private _backoff?: Backoff;
-    private _buffer?: WebsocketBuffer;
+    private _options?: WebsocketOptions;
 
 
     /**
@@ -58,12 +57,54 @@ export class WebsocketBuilder {
 
 
     /**
+     * Sets the maximum number of retries before giving up. No limit if undefined.
+     *
+     * @param maxRetries the maximum number of retries before giving up
+     */
+    public withMaxRetries(maxRetries: number | undefined): WebsocketBuilder {
+        this._options = {...this._options, retry: {...this._options?.retry, maxRetries}};
+        return this;
+    }
+
+
+    /**
+     * Getter for the maximum number of retries before giving up.
+     *
+     * @returns the maximum number of retries before giving up, undefined if no maximum has been set
+     */
+    get maxRetries(): number | undefined {
+        return this._options?.retry?.maxRetries;
+    }
+
+
+    /**
+     * Sets wether to reconnect immediately after a connection has been lost, ignoring the backoff strategy for the first retry.
+     *
+     * @param instantReconnect wether to reconnect immediately after a connection has been lost
+     */
+    public withInstantReconnect(instantReconnect: boolean | undefined): WebsocketBuilder {
+        this._options = {...this._options, retry: {...this._options?.retry, instantReconnect}};
+        return this;
+    }
+
+
+    /**
+     * Getter for wether to reconnect immediately after a connection has been lost, ignoring the backoff strategy for the first retry.
+     *
+     * @returns wether to reconnect immediately after a connection has been lost, undefined if no value has been set
+     */
+    get instantReconnect(): boolean | undefined {
+        return this._options?.retry?.instantReconnect;
+    }
+
+
+    /**
      * Adds a backoff to the websocket. Subsequent calls to this method will override the previously set backoff.
      *
      * @param backoff the backoff to add
      */
     public withBackoff(backoff: Backoff | undefined): WebsocketBuilder {
-        this._backoff = backoff;
+        this._options = {...this._options, retry: {...this._options?.retry, backoff}};
         return this;
     }
 
@@ -74,7 +115,7 @@ export class WebsocketBuilder {
      * @returns the backoff, undefined if no backoff has been set
      */
     get backoff(): Backoff | undefined {
-        return this._backoff;
+        return this._options?.retry?.backoff;
     }
 
 
@@ -84,7 +125,7 @@ export class WebsocketBuilder {
      * @param buffer the buffer to add
      */
     public withBuffer(buffer: WebsocketBuffer | undefined): WebsocketBuilder {
-        this._buffer = buffer;
+        this._options = {...this._options, buffer};
         return this;
     }
 
@@ -95,7 +136,7 @@ export class WebsocketBuilder {
      * @returns the buffer, undefined if no buffer has been set
      */
     get buffer(): WebsocketBuffer | undefined {
-        return this._buffer;
+        return this._options?.buffer;
     }
 
 
@@ -107,7 +148,7 @@ export class WebsocketBuilder {
      * @param options the listener options
      */
     public onOpen(listener: WebsocketEventListener<WebsocketEvent.open>, options?: WebsocketEventListenerOptions): WebsocketBuilder {
-        this.listeners.open.push({listener, options});
+        this.addListener(WebsocketEvent.open, listener, options);
         return this;
     }
 
@@ -120,7 +161,7 @@ export class WebsocketBuilder {
      * @param options the listener options
      */
     public onClose(listener: WebsocketEventListener<WebsocketEvent.close>, options?: WebsocketEventListenerOptions): WebsocketBuilder {
-        this.listeners.close.push({listener, options});
+        this.addListener(WebsocketEvent.close, listener, options);
         return this;
     }
 
@@ -133,7 +174,7 @@ export class WebsocketBuilder {
      * @param options the listener options
      */
     public onError(listener: WebsocketEventListener<WebsocketEvent.error>, options?: WebsocketEventListenerOptions): WebsocketBuilder {
-        this.listeners.error.push({listener, options});
+        this.addListener(WebsocketEvent.error, listener, options);
         return this;
     }
 
@@ -146,7 +187,7 @@ export class WebsocketBuilder {
      * @param options the listener options
      */
     public onMessage(listener: WebsocketEventListener<WebsocketEvent.message>, options?: WebsocketEventListenerOptions): WebsocketBuilder {
-        this.listeners.message.push({listener, options});
+        this.addListener(WebsocketEvent.message, listener, options);
         return this;
     }
 
@@ -159,7 +200,7 @@ export class WebsocketBuilder {
      * @param options the listener options
      */
     public onRetry(listener: WebsocketEventListener<WebsocketEvent.retry>, options?: WebsocketEventListenerOptions): WebsocketBuilder {
-        this.listeners.retry.push({listener, options});
+        this.addListener(WebsocketEvent.retry, listener, options);
         return this;
     }
 
@@ -172,7 +213,7 @@ export class WebsocketBuilder {
      * @param options the listener options
      */
     public onReconnect(listener: WebsocketEventListener<WebsocketEvent.reconnect>, options?: WebsocketEventListenerOptions): WebsocketBuilder {
-        this.listeners.reconnect.push({listener, options});
+        this.addListener(WebsocketEvent.reconnect, listener, options);
         return this;
     }
 
@@ -183,6 +224,30 @@ export class WebsocketBuilder {
      * @return a new websocket, with the set options
      */
     public build(): Websocket {
-        return new Websocket(this._url, this._protocols, this._buffer, this._backoff, this.listeners); // instantiate the websocket
+        return new Websocket(this._url, this._protocols, this._options); // instantiate the websocket with the set options
+    }
+
+
+    /**
+     * Adds an event listener to the options.
+     *
+     * @param event the event to add the listener to
+     * @param listener the listener to add
+     * @param options the listener options
+     */
+    private addListener(event: WebsocketEvent, listener: WebsocketEventListener<any>, options?: WebsocketEventListenerOptions): WebsocketBuilder {
+        this._options = {
+            ...this._options,
+            listeners: {
+                open: this._options?.listeners?.open ?? [],
+                close: this._options?.listeners?.close ?? [],
+                error: this._options?.listeners?.error ?? [],
+                message: this._options?.listeners?.message ?? [],
+                retry: this._options?.listeners?.retry ?? [],
+                reconnect: this._options?.listeners?.reconnect ?? [],
+                [event]: [...this._options?.listeners?.[event] ?? [], {listener, options}]
+            }
+        };
+        return this;
     }
 }
