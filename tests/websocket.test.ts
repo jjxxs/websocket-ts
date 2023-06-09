@@ -62,7 +62,7 @@ describe("Testsuite for Websocket", () => {
 
             test("Websocket should return the correct buffer when buffer is set", () => {
                 const buffer: WebsocketBuffer = new ArrayQueue()
-                const client = new Websocket(url, undefined, buffer)
+                const client = new Websocket(url, undefined, {buffer})
                 expect(client.buffer).toBe(buffer)
             })
         })
@@ -75,7 +75,7 @@ describe("Testsuite for Websocket", () => {
 
             test("Websocket should return the correct backoff when backoff is set", () => {
                 const backoff: Backoff = new ConstantBackoff(1000)
-                const client = new Websocket(url, undefined, undefined, backoff)
+                const client = new Websocket(url, undefined, {retry: {backoff}})
                 expect(client.backoff).toBe(backoff)
             })
         })
