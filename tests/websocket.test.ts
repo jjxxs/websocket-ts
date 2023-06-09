@@ -27,7 +27,7 @@ describe("Testsuite for Websocket", () => {
         await stopServer(server, serverTimeout).then(() => server = undefined)
     }, testTimeout)
 
-    describe("Getter tests", () => {
+    describe("Getter/setter tests", () => {
         describe("Url", () => {
             test("Websocket should return the correct url", () => {
                 const client = new Websocket(url)
@@ -64,6 +64,32 @@ describe("Testsuite for Websocket", () => {
                 const buffer: WebsocketBuffer = new ArrayQueue()
                 const client = new Websocket(url, undefined, {buffer})
                 expect(client.buffer).toBe(buffer)
+            })
+        })
+
+        describe("MaxRetries", () => {
+            test("Websocket should return the correct maxRetries when maxRetries is undefined", () => {
+                const client = new Websocket(url)
+                expect(client.maxRetries).toBeUndefined()
+            })
+
+            test("Websocket should return the correct maxRetries when maxRetries is set", () => {
+                const maxRetries = 5
+                const client = new Websocket(url, undefined, {retry: {maxRetries}})
+                expect(client.maxRetries).toBe(maxRetries)
+            })
+        })
+
+        describe("InstantReconnect", () => {
+            test("Websocket should return the correct instantReconnect when instantReconnect is undefined", () => {
+                const client = new Websocket(url)
+                expect(client.instantReconnect).toBeUndefined()
+            })
+
+            test("Websocket should return the correct instantReconnect when instantReconnect is set", () => {
+                const instantReconnect = true
+                const client = new Websocket(url, undefined, {retry: {instantReconnect}})
+                expect(client.instantReconnect).toBe(instantReconnect)
             })
         })
 
@@ -182,13 +208,198 @@ describe("Testsuite for Websocket", () => {
                 })
             })
         })
+
+        describe("ReadyState", () => {
+            test("Websocket should return the correct readyState after initialization", () => {
+                const client = new Websocket(url)
+                expect(client.readyState).toBe(WebSocket.CONNECTING)
+            })
+
+            test("Websocket should return the correct readyState after the client connects to the server", async () => {
+                await new Promise<WebsocketEventListenerParams<WebsocketEvent.open>>(resolve => {
+                    client = new WebsocketBuilder(url)
+                        .onOpen((instance, ev) => resolve([instance, ev]))
+                        .build()
+                }).then(([instance, ev]) => {
+                    expect(instance).toBe(client)
+                    expect(ev.type).toBe(WebsocketEvent.open)
+                    expect(instance.readyState).toBe(WebSocket.OPEN)
+                })
+            })
+
+            test("Websocket should return the correct readyState after the client closes the connection", async () => {
+                await new Promise<WebsocketEventListenerParams<WebsocketEvent.close>>(resolve => {
+                    client = new WebsocketBuilder(url)
+                        .onOpen((instance, ev) => instance.close())
+                        .onClose((instance, ev) => resolve([instance, ev]))
+                        .build()
+                }).then(([instance, ev]) => {
+                    expect(instance).toBe(client)
+                    expect(ev.type).toBe(WebsocketEvent.close)
+                    expect(instance.readyState).toBe(WebSocket.CLOSED)
+                })
+            })
+        })
+
+        describe("BufferedAmount", () => {
+            test("Websocket should return the correct bufferedAmount after initialization", () => {
+                const client = new Websocket(url)
+                expect(client.bufferedAmount).toBe(0)
+            })
+        })
+
+        describe("Extensions", () => {
+            test("Websocket should return the correct extensions after initialization", () => {
+                const client = new Websocket(url)
+                expect(client.extensions).toBe("")
+            })
+        })
+
+        describe("BinaryType", () => {
+            test("Websocket should return the correct binaryType after initialization", () => {
+                const client = new Websocket(url)
+                expect(client.binaryType).toBe("blob")
+            })
+
+            test("Websocket should return the correct binaryType after setting it", () => {
+                const client = new Websocket(url)
+                client.binaryType = "arraybuffer"
+                expect(client.binaryType).toBe("arraybuffer")
+            })
+        })
     })
 
     describe("Event tests", () => {
-        test("Websocket should fire 'open' when connecting to a server and the underlying websocket should be in readyState 'OPEN'", async () => {
+        describe("Open", () => {
+            test("Websocket should fire 'open' when connecting to a server and the underlying websocket should be in readyState 'OPEN'", async () => {
+                await new Promise<WebsocketEventListenerParams<WebsocketEvent.open>>(resolve => {
+                    client = new WebsocketBuilder(url)
+                        .onOpen((instance, ev) => resolve([instance, ev]))
+                        .build()
+                }).then(([instance, ev]) => {
+                    expect(instance).toBe(client)
+                    expect(ev.type).toBe(WebsocketEvent.open)
+                    expect(instance.underlyingWebsocket).not.toBeUndefined()
+                    expect(instance.underlyingWebsocket!.readyState).toBe(WebSocket.OPEN)
+                })
+            }, testTimeout)
+
+            test("Websocket should fire 'open' when reconnecting to a server and the underlying websocket should be in readyState 'OPEN'", async () => {
+                await new Promise<WebsocketEventListenerParams<WebsocketEvent.open>>(resolve => {
+                    client = new WebsocketBuilder(url)
+                        .withBackoff(new ConstantBackoff(0))
+                        .onOpen((instance, ev) => resolve([instance, ev]))
+                        .build()
+                }).then(([instance, ev]) => {
+                    expect(instance).toBe(client)
+                    expect(ev.type).toBe(WebsocketEvent.open)
+                    expect(instance.underlyingWebsocket).not.toBeUndefined()
+                    expect(instance.underlyingWebsocket!.readyState).toBe(WebSocket.OPEN)
+                })
+            })
+        })
+
+        describe("Close", () => {
+            test("Websocket should fire 'close' when the server closes the connection and the underlying websocket should be in readyState 'CLOSED'", async () => {
+                await new Promise<WebsocketEventListenerParams<WebsocketEvent.close>>(resolve => {
+                    client = new WebsocketBuilder(url)
+                        .onOpen(_ => server!.close())
+                        .onClose((instance, ev) => resolve([instance, ev]))
+                        .build()
+                }).then(([instance, ev]) => {
+                    expect(instance).toBe(client)
+                    expect(ev.type).toBe(WebsocketEvent.close)
+                    expect(instance.closedByUser).toBe(false)
+                    expect(instance.underlyingWebsocket).not.toBeUndefined()
+                    expect(instance.underlyingWebsocket!.readyState).toBe(WebSocket.CLOSED)
+                })
+            }, testTimeout)
+
+            test("Websocket should fire 'close' when the client closes the connection and the underlying websocket should be in readyState 'CLOSED'", async () => {
+                await new Promise<WebsocketEventListenerParams<WebsocketEvent.close>>(resolve => {
+                    client = new WebsocketBuilder(url)
+                        .onOpen((instance, ev) => instance.close())
+                        .onClose((instance, ev) => resolve([instance, ev]))
+                        .build()
+                }).then(([instance, ev]) => {
+                    expect(instance).toBe(client)
+                    expect(ev.type).toBe(WebsocketEvent.close)
+                    expect(instance.closedByUser).toBe(true)
+                    expect(instance.underlyingWebsocket).not.toBeUndefined()
+                    expect(instance.underlyingWebsocket!.readyState).toBe(WebSocket.CLOSED)
+                })
+            })
+
+            test("Websocket should fire 'close' when the server closes the connection with a status code other than 1000 and the underlying websocket should be in readyState 'CLOSED'", async () => {
+                await new Promise<WebsocketEventListenerParams<WebsocketEvent.close>>(resolve => {
+                    client = new WebsocketBuilder(url)
+                        .onOpen(_ => server?.clients.forEach(client => client.close(1001, 'CLOSE_GOING_AWAY')))
+                        .onClose((instance, ev) => resolve([instance, ev]))
+                        .build()
+                }).then(([instance, ev]) => {
+                    expect(instance).toBe(client)
+                    expect(ev.type).toBe(WebsocketEvent.close)
+                    expect(ev.code).toBe(1001)
+                    expect(ev.reason).toBe('CLOSE_GOING_AWAY')
+                    expect(ev.wasClean).toBe(true)
+                    expect(instance.closedByUser).toBe(false)
+                    expect(instance.underlyingWebsocket).not.toBeUndefined()
+                    expect(instance.underlyingWebsocket!.readyState).toBe(WebSocket.CLOSED)
+                })
+            })
+
+            test("Websocket should fire 'close' when the client closes the connection with a status code other than 1000 and the underlying websocket should be in readyState 'CLOSED'", async () => {
+                await new Promise<WebsocketEventListenerParams<WebsocketEvent.close>>(resolve => {
+                    client = new WebsocketBuilder(url)
+                        .onOpen((instance, ev) => instance.close(4000, 'APPLICATION_IS_SHUTTING_DOWN'))
+                        .onClose((instance, ev) => resolve([instance, ev]))
+                        .build()
+                }).then(([instance, ev]) => {
+                    expect(instance).toBe(client)
+                    expect(ev.type).toBe(WebsocketEvent.close)
+                    expect(ev.code).toBe(4000)
+                    expect(ev.reason).toBe('APPLICATION_IS_SHUTTING_DOWN')
+                    expect(ev.wasClean).toBe(true)
+                    expect(instance.closedByUser).toBe(true)
+                    expect(instance.underlyingWebsocket).not.toBeUndefined()
+                    expect(instance.underlyingWebsocket!.readyState).toBe(WebSocket.CLOSED)
+                })
+            })
+        })
+
+        describe("Error", () =>
+            test("Websocket should fire 'error' when the server rejects the connection and the underlying websocket should be in readyState 'CLOSED", async () => {
+                await stopServer(server, serverTimeout).then(() => server = undefined)
+                await new Promise<WebsocketEventListenerParams<WebsocketEvent.error>>(resolve => {
+                    client = new WebsocketBuilder(url)
+                        .onError((instance, ev) => resolve([instance, ev]))
+                        .build()
+                }).then(([instance, ev]) => {
+                    expect(instance).toBe(client)
+                    expect(ev.type).toBe(WebsocketEvent.error)
+                    expect(instance.underlyingWebsocket).not.toBeUndefined()
+                    expect(instance.underlyingWebsocket!.readyState).toBe(WebSocket.CLOSED)
+                })
+            })
+        )
+    })
+
+    describe("Send", () => {
+        test("Websocket should send a message to the server and the server should receive it", async () => {
+            const serverReceivedMessage = new Promise<string>(resolve => {
+                server?.on("connection", client => {
+                    client?.on("message", (message: string) => {
+                        resolve(message)
+                    })
+                })
+            })
+
             await new Promise<WebsocketEventListenerParams<WebsocketEvent.open>>(resolve => {
                 client = new WebsocketBuilder(url)
-                    .onOpen((instance, ev) => resolve([instance, ev]))
+                    .onOpen((instance, ev) => {
+                        instance.send('Hello')
+                        resolve([instance, ev])
+                    })
                     .build()
             }).then(([instance, ev]) => {
                 expect(instance).toBe(client)
@@ -196,13 +407,25 @@ describe("Testsuite for Websocket", () => {
                 expect(instance.underlyingWebsocket).not.toBeUndefined()
                 expect(instance.underlyingWebsocket!.readyState).toBe(WebSocket.OPEN)
             })
-        }, testTimeout)
 
-        test("Websocket should fire 'open' when reconnecting to a server and the underlying websocket should be in readyState 'OPEN'", async () => {
+            await serverReceivedMessage.then(message => expect(message).toBe('Hello'))
+        })
+
+        test("Websocket should send a message to the server and the server should receive it as a Uint8Array", async () => {
+            const serverReceivedMessage = new Promise<Uint8Array>(resolve => {
+                server?.on("connection", client => {
+                    client?.on("message", (message: Uint8Array) => {
+                        resolve(message)
+                    })
+                })
+            })
+
             await new Promise<WebsocketEventListenerParams<WebsocketEvent.open>>(resolve => {
                 client = new WebsocketBuilder(url)
-                    .withBackoff(new ConstantBackoff(0))
-                    .onOpen((instance, ev) => resolve([instance, ev]))
+                    .onOpen((instance, ev) => {
+                        instance.send(new Uint8Array([1, 2, 3]))
+                        resolve([instance, ev])
+                    })
                     .build()
             }).then(([instance, ev]) => {
                 expect(instance).toBe(client)
@@ -210,86 +433,46 @@ describe("Testsuite for Websocket", () => {
                 expect(instance.underlyingWebsocket).not.toBeUndefined()
                 expect(instance.underlyingWebsocket!.readyState).toBe(WebSocket.OPEN)
             })
-        })
 
-        test("Websocket should fire 'close' when the server closes the connection and the underlying websocket should be in readyState 'CLOSED'", async () => {
-            await new Promise<WebsocketEventListenerParams<WebsocketEvent.close>>(resolve => {
-                client = new WebsocketBuilder(url)
-                    .onOpen(_ => server!.close())
-                    .onClose((instance, ev) => resolve([instance, ev]))
-                    .build()
-            }).then(([instance, ev]) => {
-                expect(instance).toBe(client)
-                expect(ev.type).toBe(WebsocketEvent.close)
-                expect(instance.closedByUser).toBe(false)
-                expect(instance.underlyingWebsocket).not.toBeUndefined()
-                expect(instance.underlyingWebsocket!.readyState).toBe(WebSocket.CLOSED)
-            })
-        }, testTimeout)
-
-        test("Websocket should fire 'close' when the client closes the connection and the underlying websocket should be in readyState 'CLOSED'", async () => {
-            await new Promise<WebsocketEventListenerParams<WebsocketEvent.close>>(resolve => {
-                client = new WebsocketBuilder(url)
-                    .onOpen((instance, ev) => instance.close())
-                    .onClose((instance, ev) => resolve([instance, ev]))
-                    .build()
-            }).then(([instance, ev]) => {
-                expect(instance).toBe(client)
-                expect(ev.type).toBe(WebsocketEvent.close)
-                expect(instance.closedByUser).toBe(true)
-                expect(instance.underlyingWebsocket).not.toBeUndefined()
-                expect(instance.underlyingWebsocket!.readyState).toBe(WebSocket.CLOSED)
+            await serverReceivedMessage.then(message => {
+                expect(Buffer.from(message).equals(Buffer.from([1, 2, 3]))).toBe(true)
             })
         })
 
-        test("Websocket should fire 'close' when the server closes the connection with a status code other than 1000 and the underlying websocket should be in readyState 'CLOSED'", async () => {
-            await new Promise<WebsocketEventListenerParams<WebsocketEvent.close>>(resolve => {
-                client = new WebsocketBuilder(url)
-                    .onOpen(_ => server?.clients.forEach(client => client.close(1001, 'CLOSE_GOING_AWAY')))
-                    .onClose((instance, ev) => resolve([instance, ev]))
-                    .build()
-            }).then(([instance, ev]) => {
-                expect(instance).toBe(client)
-                expect(ev.type).toBe(WebsocketEvent.close)
-                expect(ev.code).toBe(1001)
-                expect(ev.reason).toBe('CLOSE_GOING_AWAY')
-                expect(ev.wasClean).toBe(true)
-                expect(instance.closedByUser).toBe(false)
-                expect(instance.underlyingWebsocket).not.toBeUndefined()
-                expect(instance.underlyingWebsocket!.readyState).toBe(WebSocket.CLOSED)
+        test("Websocket should buffer messages sent before the connection is open and send them when the connection is open", async () => {
+            let messagesReceived: string[] = []
+            const serverReceivedMessages = new Promise<string[]>(resolve => {
+                server?.on("connection", client => {
+                    client?.on("message", (message: string) => {
+                        messagesReceived.push(message)
+                        if (messagesReceived.length === 2) {
+                            resolve(messagesReceived)
+                        }
+                    })
+                })
             })
-        })
 
-        test("Websocket should fire 'close' when the client closes the connection with a status code other than 1000 and the underlying websocket should be in readyState 'CLOSED'", async () => {
-            await new Promise<WebsocketEventListenerParams<WebsocketEvent.close>>(resolve => {
+            await new Promise<WebsocketEventListenerParams<WebsocketEvent.open>>(resolve => {
                 client = new WebsocketBuilder(url)
-                    .onOpen((instance, ev) => instance.close(4000, 'APPLICATION_IS_SHUTTING_DOWN'))
-                    .onClose((instance, ev) => resolve([instance, ev]))
+                    .withBuffer(new ArrayQueue())
+                    .onOpen((instance, ev) => {
+                        setTimeout(() => {
+                            instance.send('Hello2')
+                            resolve([instance, ev])
+                        }, 100)
+                    })
                     .build()
+                client.send('Hello1') // This message should be buffered
             }).then(([instance, ev]) => {
                 expect(instance).toBe(client)
-                expect(ev.type).toBe(WebsocketEvent.close)
-                expect(ev.code).toBe(4000)
-                expect(ev.reason).toBe('APPLICATION_IS_SHUTTING_DOWN')
-                expect(ev.wasClean).toBe(true)
-                expect(instance.closedByUser).toBe(true)
+                expect(ev.type).toBe(WebsocketEvent.open)
                 expect(instance.underlyingWebsocket).not.toBeUndefined()
-                expect(instance.underlyingWebsocket!.readyState).toBe(WebSocket.CLOSED)
+                expect(instance.underlyingWebsocket!.readyState).toBe(WebSocket.OPEN)
             })
-        })
 
-        test("Websocket should fire 'error' when the server rejects the connection and the underlying websocket should be in readyState 'CLOSED", async () => {
-            await stopServer(server, serverTimeout).then(() => server = undefined)
-            await new Promise<WebsocketEventListenerParams<WebsocketEvent.error>>(resolve => {
-                client = new WebsocketBuilder(url)
-                    .onError((instance, ev) => resolve([instance, ev]))
-                    .build()
-            }).then(([instance, ev]) => {
-                expect(instance).toBe(client)
-                expect(ev.type).toBe(WebsocketEvent.error)
-                expect(instance.underlyingWebsocket).not.toBeUndefined()
-                expect(instance.underlyingWebsocket!.readyState).toBe(WebSocket.CLOSED)
-            })
+            await serverReceivedMessages.then(messages => {
+                expect(messages).toEqual(['Hello1', 'Hello2']);
+            });
         })
     })
 })

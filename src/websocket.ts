@@ -196,6 +196,18 @@ export class Websocket {
 
 
     /**
+     * Setter for the binaryType of the underlying websocket.
+     *
+     * @param value to set, 'blob' or 'arraybuffer'.
+     */
+    set binaryType(value: BinaryType | undefined) {
+        if (this._underlyingWebsocket === undefined) return
+        if (value === undefined) return
+        this._underlyingWebsocket.binaryType = value;
+    }
+
+
+    /**
      * Sends data over the websocket.
      *
      * If the websocket is not connected and a buffer was provided on creation, the data will be added to the buffer.
