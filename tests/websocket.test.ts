@@ -1,6 +1,12 @@
-import {Server} from "ws"
+import WebSocket, {Server} from "ws"
 import {ArrayQueue, Backoff, ConstantBackoff, Websocket, WebsocketBuilder} from "../src"
-import {WebsocketEvent, WebsocketEventListenerParams} from "../src/websocket_event";
+import {
+    WebsocketEvent,
+    WebsocketEventListener,
+    WebsocketEventListenerParams,
+    WebsocketEventListenerWithOptions,
+    WebsocketEventMap
+} from "../src/websocket_event";
 import {WebsocketBuffer} from "../src/websocket_buffer";
 
 describe("Testsuite for Websocket", () => {
@@ -297,6 +303,47 @@ describe("Testsuite for Websocket", () => {
                     expect(instance.underlyingWebsocket!.readyState).toBe(WebSocket.OPEN)
                 })
             })
+
+            test("Websocket shouldn't fire 'open' when it was removed from the event listeners", async () => {
+                let timesOpenFired = 0
+                const onOpenEvent = () => timesOpenFired++
+
+                const clientConnectionPromise = waitForClientToConnect(server, clientTimeout)
+
+                await new Promise<WebsocketEventListenerParams<WebsocketEvent.open>>(resolve => {
+                    client = new WebsocketBuilder(url)
+                        .withBackoff(new ConstantBackoff(100)) // try to reconnect after 100ms, 'open' should only fire once
+                        .onOpen((i, ev) => {
+                            timesOpenFired++
+                            resolve([i, ev])
+                        }, {once: true}) // initial 'open' event, should only fire once
+                        .build()
+                })
+
+                // this resolves after the client has connected to the server, disconnect it right after
+                await clientConnectionPromise
+                expect(timesOpenFired).toBe(1)
+                expect(getListenersWithOptions(client, WebsocketEvent.open)).toHaveLength(0) // since the initial listener was a 'once'-listener, this should be empty
+                client!.addEventListener(WebsocketEvent.open, onOpenEvent) // add a new listener
+                expect(getListenersWithOptions(client, WebsocketEvent.open)).toHaveLength(1) // since the initial listener was a 'once'-listener, this should be empty
+                server?.clients.forEach(c => c.close())
+
+                // wait for the client to reconnect after 100ms
+                await waitForClientToConnect(server, clientTimeout)
+                await new Promise(resolve => setTimeout(resolve, 100)) // wait some extra time for client-side event to be fired
+                expect(timesOpenFired).toBe(2)
+                expect(getListenersWithOptions(client, WebsocketEvent.open)).toHaveLength(1) // since the initial listener was a 'once'-listener, this should be empty
+
+                // remove the event-listener, disconnect again
+                client!.removeEventListener(WebsocketEvent.open, onOpenEvent)
+                expect(getListenersWithOptions(client, WebsocketEvent.open)).toHaveLength(0)
+                server?.clients.forEach(c => c.close())
+
+                // wait for the client to reconnect after 100ms, 'open' should not fire again and timesOpenFired will still be 2
+                await waitForClientToConnect(server, clientTimeout)
+                await new Promise(resolve => setTimeout(resolve, 100))
+                expect(timesOpenFired).toBe(2)
+            })
         })
 
         describe("Close", () => {
@@ -382,6 +429,24 @@ describe("Testsuite for Websocket", () => {
                 })
             })
         )
+
+        describe("Message", () => {
+            test("Websocket should fire 'message' when the server sends a message", async () => {
+                await new Promise<WebsocketEventListenerParams<WebsocketEvent.message>>(resolve => {
+                    client = new WebsocketBuilder(url)
+                        .onOpen(_ => server?.clients.forEach(client => client.send('Hello')))
+                        .onMessage((instance, ev) => {
+                            expect(ev.data).toBe('Hello')
+                            resolve([instance, ev])
+                        })
+                        .build()
+                }).then(([instance, ev]) => {
+                    expect(instance).toBe(client)
+                    expect(ev.type).toBe(WebsocketEvent.message)
+                    expect(ev.data).toBe('Hello')
+                })
+            })
+        })
     })
 
     describe("Send", () => {
@@ -528,3 +593,27 @@ const stopServer = (wss: Server | undefined, timeout: number): Promise<void> =>
         wss.addListener('close', resolve)
         wss.close()
     })
+
+/**
+ * Waits for a client to connect to the given websocket server.
+ *
+ * @param wss the websocket server to wait for a client to connect to
+ * @param timeout the amount of milliseconds to wait before rejecting
+ */
+const waitForClientToConnect = (wss: Server | undefined, timeout: number): Promise<WebSocket.WebSocket> =>
+    new Promise<WebSocket.WebSocket>((resolve, reject) => {
+        if (wss === undefined) return reject(new Error('wss is undefined'))
+        rejectAfter(timeout, 'failed to wait for client to connect').catch(err => reject(err))
+        wss.on('connection', client => resolve(client))
+    })
+
+/**
+ * Returns the listeners for the given event type on the given websocket client.
+ *
+ * @param client the websocket client to get the listeners from
+ * @param type the event type to get the listeners for
+ */
+const getListenersWithOptions = <K extends WebsocketEvent>(client: Websocket | undefined, type: K): WebsocketEventListenerWithOptions<K>[] => {
+    if (client === undefined) return []
+    return client['_options']['listeners'][type] ?? []
+}
