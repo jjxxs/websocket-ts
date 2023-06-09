@@ -349,6 +349,7 @@ export class Websocket {
 
 
     /**
+     * Handles the given event by dispatching it to all listeners of the given event-type.
      *
      * @param type of the event to handle.
      * @param event to handle.
