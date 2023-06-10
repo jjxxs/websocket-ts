@@ -26,13 +26,13 @@ describe("Testsuite for ConstantBackoff", () => {
 
     test("Backoff should be equal to the given backoff after next", () => {
         const backoff = new ConstantBackoff(42)
-        expect(backoff.next).toBe(42)
+        expect(backoff.next()).toBe(42)
         expect(backoff.current).toBe(42)
     })
 
     test("Backoff should be equal to the given backoff after reset", () => {
         const backoff = new ConstantBackoff(42)
-        expect(backoff.next).toBe(42)
+        expect(backoff.next()).toBe(42)
         backoff.reset()
         expect(backoff.current).toBe(42)
     })
@@ -45,14 +45,14 @@ describe("Testsuite for ConstantBackoff", () => {
         const backoff = new ConstantBackoff(42)
         for (let i = 0; i < 100; i++) {
             expect(backoff.retries).toBe(i)
-            backoff.next
+            backoff.next()
         }
     })
 
     test("Retries should be zero after reset", () => {
         const backoff = new ConstantBackoff(42)
         for (let i = 0; i < 100; i++) {
-            backoff.next
+            backoff.next()
         }
         backoff.reset()
         expect(backoff.retries).toBe(0)

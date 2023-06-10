@@ -4,22 +4,20 @@
  */
 export interface Backoff {
     /**
-     * Number of retries. Starts at 0, increases by 1 for each call to next(). Resets to 0 when reset() is called.
-     * @return the number of retries
+     * The number of retries. Starts at 0, increases by 1 for each call to next(). Resets to 0 when reset() is called.
      */
-    get retries(): number
+    readonly retries: number
 
     /**
      * Current number in the series.
-     * @return the current number
      */
-    get current(): number
+    readonly current: number
 
     /**
      * Advances the series to the next number and returns it.
-     * @return the next number
+     * @return the next number in the series
      */
-    get next(): number
+    next(): number
 
     /**
      * Resets the series to its initial state.

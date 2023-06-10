@@ -48,7 +48,7 @@ describe("Testsuite for ExponentialBackoff", () => {
         const backoff = new ExponentialBackoff(2)
         for (let i = 0; i < 10; i++) {
             expect(backoff.current).toBe(2 * Math.pow(2, i))
-            expect(backoff.next).toBe(2 * Math.pow(2, i + 1))
+            expect(backoff.next()).toBe(2 * Math.pow(2, i + 1))
             expect(backoff.current).toBe(2 * Math.pow(2, i + 1))
         }
     })
@@ -57,14 +57,14 @@ describe("Testsuite for ExponentialBackoff", () => {
         const backoff = new ExponentialBackoff(2, 3)
         for (let i = 0; i < 10; i++) {
             expect(backoff.current).toBe(2 * Math.pow(2, Math.min(3, i)))
-            expect(backoff.next).toBe(2 * Math.pow(2, Math.min(3, i + 1)))
+            expect(backoff.next()).toBe(2 * Math.pow(2, Math.min(3, i + 1)))
             expect(backoff.current).toBe(2 * Math.pow(2, Math.min(3, i + 1)))
         }
     })
 
     test("Backoff should be equal to the given base after reset", () => {
         const backoff = new ExponentialBackoff(42)
-        backoff.next
+        backoff.next()
         backoff.reset()
         expect(backoff.current).toBe(42)
     })
@@ -77,14 +77,14 @@ describe("Testsuite for ExponentialBackoff", () => {
         const backoff = new ExponentialBackoff(42)
         for (let i = 0; i < 10; i++) {
             expect(backoff.retries).toBe(i)
-            backoff.next
+            backoff.next()
         }
     })
 
     test("Retries should be zero after reset", () => {
         const backoff = new ExponentialBackoff(42)
         for (let i = 0; i < 100; i++) {
-            backoff.next
+            backoff.next()
         }
         backoff.reset()
         expect(backoff.retries).toBe(0)

@@ -46,16 +46,16 @@ export class LinearBackoff implements Backoff {
      */
     constructor(initial: number, increment: number, max?: number) {
         if (initial < 0) {
-            throw new Error("initial must be >= 0")
+            throw new Error("Initial must be a positive number or zero")
         }
         if (increment < 0) {
-            throw new Error("increment must be >= 0")
+            throw new Error("Increment must be a positive number or zero")
         }
         if (max !== undefined && max < 0) {
-            throw new Error("max must undefined or >= 0")
+            throw new Error("Max must be undefined, a positive number or zero")
         }
         if (max !== undefined && max < initial) {
-            throw new Error("max must be >= initial")
+            throw new Error("Max must be undefined or greater than or equal to initial")
         }
 
         this.initial = initial
@@ -73,13 +73,13 @@ export class LinearBackoff implements Backoff {
             Math.min(this.initial + this.increment * this.i, this.max)
     }
 
-    get next() {
+    next(): number {
         this._retries++
         this.i++
         return this.current
     }
 
-    reset() {
+    reset(): void {
         this._retries = 0
         this.i = 0
     }

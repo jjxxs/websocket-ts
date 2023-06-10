@@ -418,7 +418,7 @@ export class Websocket {
 
         // create retry event detail, depending on the 'instantReconnect' option
         const retryEventDetail: RetryEventDetail = {
-            backoff: this._options.retry?.instantReconnect === true ? 0 : this.backoff.next,
+            backoff: this._options.retry?.instantReconnect === true ? 0 : this.backoff.next(),
             retries: this._options.retry?.instantReconnect === true ? 0 : this.backoff.retries,
             lastConnection: this._lastConnection
         }
