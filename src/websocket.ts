@@ -416,8 +416,17 @@ export class Websocket {
             this.handleEvent(WebsocketEvent.retry, event);
         }
 
-        const detail: RetryEventDetail = {backoff: this.backoff.next, retries: this.backoff.retries, lastConnection: this._lastConnection}
-        this.retryTimeout = window.setTimeout(() => handleRetryEvent(detail), detail.backoff);
+        // create retry event detail, depending on the 'instantReconnect' option
+        const retryEventDetail: RetryEventDetail = {
+            backoff: this._options.retry?.instantReconnect === true ? 0 : this.backoff.next,
+            retries: this._options.retry?.instantReconnect === true ? 0 : this.backoff.retries,
+            lastConnection: this._lastConnection
+        }
+
+        // schedule a new connection-retry if the maximum number of retries is not reached yet
+        if (this._options.retry?.maxRetries === undefined || retryEventDetail.retries <= this._options.retry.maxRetries) {
+            this.retryTimeout = window.setTimeout(() => handleRetryEvent(retryEventDetail), retryEventDetail.backoff);
+        }
     }
 
 
