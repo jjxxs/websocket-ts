@@ -13,8 +13,8 @@ export class ConstantBackoff implements Backoff {
      * @param backoff the backoff-time to return
      */
     constructor(backoff: number) {
-        if (backoff < 0) {
-            throw new Error("backoff must be >= 0")
+        if (!Number.isInteger(backoff) || backoff < 0) {
+            throw new Error("Backoff must be a positive integer")
         }
 
         this.backoff = backoff
@@ -28,12 +28,12 @@ export class ConstantBackoff implements Backoff {
         return this.backoff
     }
 
-    get next(): number {
+    next(): number {
         this._retries++
         return this.backoff
     }
 
-    reset = () => {
+    reset(): void {
         this._retries = 0
     }
 }

@@ -11,8 +11,8 @@ export class RingQueue<E> implements Queue<E> {
     private tail: number
 
     constructor(capacity: number) {
-        if (capacity < 1) {
-            throw new Error("capacity must be >= 1")
+        if (!Number.isInteger(capacity) || capacity <= 0) {
+            throw new Error("Capacity must be a positive integer")
         }
 
         this.elements = new Array<E>(capacity + 1) // +1 to distinguish between full and empty

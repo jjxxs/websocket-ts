@@ -43,11 +43,11 @@ export class ExponentialBackoff implements Backoff {
      * @param expMax the maximum exponent, no bound if undefined
      */
     constructor(base: number, expMax?: number) {
-        if (base < 0) {
-            throw new Error("base must be >= 0")
+        if (!Number.isInteger(base) || base < 0) {
+            throw new Error("Base must be a positive integer or zero")
         }
-        if (expMax !== undefined && expMax < 0) {
-            throw new Error("expMax must be >= 0")
+        if (expMax !== undefined && (!Number.isInteger(expMax) || expMax < 0)) {
+            throw new Error("ExpMax must be a undefined, a positive integer or zero")
         }
 
         this.base = base
@@ -63,13 +63,13 @@ export class ExponentialBackoff implements Backoff {
         return this.base * Math.pow(2, this.i)
     }
 
-    get next(): number {
+    next(): number {
         this._retries++
         this.i = this.expMax === undefined ? this.i + 1 : Math.min(this.i + 1, this.expMax)
         return this.current
     }
 
-    reset() {
+    reset(): void {
         this._retries = 0
         this.i = 0
     }

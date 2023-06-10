@@ -60,7 +60,7 @@ describe("Testsuite for LinearBackoff", () => {
         const backoff = new LinearBackoff(1000, 1000)
         for (let i = 0; i < 10; i++) {
             expect(backoff.current).toBe(1000 + i * 1000)
-            expect(backoff.next).toBe(1000 + (i + 1) * 1000)
+            expect(backoff.next()).toBe(1000 + (i + 1) * 1000)
             expect(backoff.current).toBe(1000 + (i + 1) * 1000)
         }
     })
@@ -69,14 +69,14 @@ describe("Testsuite for LinearBackoff", () => {
         const backoff = new LinearBackoff(1000, 1000, 5000)
         for (let i = 0; i < 10; i++) {
             expect(backoff.current).toBe(Math.min(1000 + i * 1000, 5000))
-            expect(backoff.next).toBe(Math.min(1000 + (i + 1) * 1000, 5000))
+            expect(backoff.next()).toBe(Math.min(1000 + (i + 1) * 1000, 5000))
             expect(backoff.current).toBe(Math.min(1000 + (i + 1) * 1000, 5000))
         }
     })
 
     test("Backoff should be equal to the given initial-backoff after reset", () => {
         const backoff = new LinearBackoff(42, 1000)
-        backoff.next
+        backoff.next()
         backoff.reset()
         expect(backoff.current).toBe(42)
     })
@@ -89,14 +89,14 @@ describe("Testsuite for LinearBackoff", () => {
         const backoff = new LinearBackoff(1000, 1000)
         for (let i = 0; i < 10; i++) {
             expect(backoff.retries).toBe(i)
-            backoff.next
+            backoff.next()
         }
     })
 
     test("Retries should be reset to zero after reset", () => {
         const backoff = new LinearBackoff(1000, 1000)
         for (let i = 0; i < 100; i++) {
-            backoff.next
+            backoff.next()
         }
         backoff.reset()
         expect(backoff.retries).toBe(0)
