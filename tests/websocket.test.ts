@@ -2,10 +2,8 @@ import WebSocket, {Server} from "ws"
 import {ArrayQueue, Backoff, ConstantBackoff, Websocket, WebsocketBuilder} from "../src"
 import {
     WebsocketEvent,
-    WebsocketEventListener,
     WebsocketEventListenerParams,
-    WebsocketEventListenerWithOptions,
-    WebsocketEventMap
+    WebsocketEventListenerWithOptions
 } from "../src/websocket_event";
 import {WebsocketBuffer} from "../src/websocket_buffer";
 
@@ -121,7 +119,7 @@ describe("Testsuite for Websocket", () => {
             test("Websocket should return true after the client closes the connection", async () => {
                 await new Promise<WebsocketEventListenerParams<WebsocketEvent.close>>(resolve => {
                     client = new WebsocketBuilder(url)
-                        .onOpen((instance, ev) => instance.close())
+                        .onOpen((instance, _) => instance.close())
                         .onClose((instance, ev) => resolve([instance, ev]))
                         .build()
                 }).then(([instance, ev]) => {
@@ -187,7 +185,7 @@ describe("Testsuite for Websocket", () => {
             test("Websocket should return the underlying websocket after the client closes the connection", async () => {
                 await new Promise<WebsocketEventListenerParams<WebsocketEvent.close>>(resolve => {
                     client = new WebsocketBuilder(url)
-                        .onOpen((instance, ev) => instance.close())
+                        .onOpen((instance, _) => instance.close())
                         .onClose((instance, ev) => resolve([instance, ev]))
                         .build()
                 }).then(([instance, ev]) => {
@@ -236,7 +234,7 @@ describe("Testsuite for Websocket", () => {
             test("Websocket should return the correct readyState after the client closes the connection", async () => {
                 await new Promise<WebsocketEventListenerParams<WebsocketEvent.close>>(resolve => {
                     client = new WebsocketBuilder(url)
-                        .onOpen((instance, ev) => instance.close())
+                        .onOpen((instance, _) => instance.close())
                         .onClose((instance, ev) => resolve([instance, ev]))
                         .build()
                 }).then(([instance, ev]) => {
@@ -306,9 +304,9 @@ describe("Testsuite for Websocket", () => {
 
             test("Websocket shouldn't fire 'open' when it was removed from the event listeners", async () => {
                 let timesOpenFired = 0
-                const onOpenEvent = () => timesOpenFired++
+                const onOpen = () => timesOpenFired++
 
-                const clientConnectionPromise = waitForClientToConnect(server, clientTimeout)
+                const clientConnectionPromise = waitForClientToConnectToServer(server, clientTimeout)
 
                 await new Promise<WebsocketEventListenerParams<WebsocketEvent.open>>(resolve => {
                     client = new WebsocketBuilder(url)
@@ -324,23 +322,23 @@ describe("Testsuite for Websocket", () => {
                 await clientConnectionPromise
                 expect(timesOpenFired).toBe(1)
                 expect(getListenersWithOptions(client, WebsocketEvent.open)).toHaveLength(0) // since the initial listener was a 'once'-listener, this should be empty
-                client!.addEventListener(WebsocketEvent.open, onOpenEvent) // add a new listener
+                client!.addEventListener(WebsocketEvent.open, onOpen) // add a new listener
                 expect(getListenersWithOptions(client, WebsocketEvent.open)).toHaveLength(1) // since the initial listener was a 'once'-listener, this should be empty
                 server?.clients.forEach(c => c.close())
 
                 // wait for the client to reconnect after 100ms
-                await waitForClientToConnect(server, clientTimeout)
+                await waitForClientToConnectToServer(server, clientTimeout)
                 await new Promise(resolve => setTimeout(resolve, 100)) // wait some extra time for client-side event to be fired
                 expect(timesOpenFired).toBe(2)
                 expect(getListenersWithOptions(client, WebsocketEvent.open)).toHaveLength(1) // since the initial listener was a 'once'-listener, this should be empty
 
                 // remove the event-listener, disconnect again
-                client!.removeEventListener(WebsocketEvent.open, onOpenEvent)
+                client!.removeEventListener(WebsocketEvent.open, onOpen)
                 expect(getListenersWithOptions(client, WebsocketEvent.open)).toHaveLength(0)
                 server?.clients.forEach(c => c.close())
 
                 // wait for the client to reconnect after 100ms, 'open' should not fire again and timesOpenFired will still be 2
-                await waitForClientToConnect(server, clientTimeout)
+                await waitForClientToConnectToServer(server, clientTimeout)
                 await new Promise(resolve => setTimeout(resolve, 100))
                 expect(timesOpenFired).toBe(2)
             })
@@ -365,7 +363,7 @@ describe("Testsuite for Websocket", () => {
             test("Websocket should fire 'close' when the client closes the connection and the underlying websocket should be in readyState 'CLOSED'", async () => {
                 await new Promise<WebsocketEventListenerParams<WebsocketEvent.close>>(resolve => {
                     client = new WebsocketBuilder(url)
-                        .onOpen((instance, ev) => instance.close())
+                        .onOpen((instance, _) => instance.close())
                         .onClose((instance, ev) => resolve([instance, ev]))
                         .build()
                 }).then(([instance, ev]) => {
@@ -398,7 +396,7 @@ describe("Testsuite for Websocket", () => {
             test("Websocket should fire 'close' when the client closes the connection with a status code other than 1000 and the underlying websocket should be in readyState 'CLOSED'", async () => {
                 await new Promise<WebsocketEventListenerParams<WebsocketEvent.close>>(resolve => {
                     client = new WebsocketBuilder(url)
-                        .onOpen((instance, ev) => instance.close(4000, 'APPLICATION_IS_SHUTTING_DOWN'))
+                        .onOpen((instance, _) => instance.close(4000, 'APPLICATION_IS_SHUTTING_DOWN'))
                         .onClose((instance, ev) => resolve([instance, ev]))
                         .build()
                 }).then(([instance, ev]) => {
@@ -414,7 +412,7 @@ describe("Testsuite for Websocket", () => {
             })
         })
 
-        describe("Error", () =>
+        describe("Error", () => {
             test("Websocket should fire 'error' when the server rejects the connection and the underlying websocket should be in readyState 'CLOSED", async () => {
                 await stopServer(server, serverTimeout).then(() => server = undefined)
                 await new Promise<WebsocketEventListenerParams<WebsocketEvent.error>>(resolve => {
@@ -428,7 +426,7 @@ describe("Testsuite for Websocket", () => {
                     expect(instance.underlyingWebsocket!.readyState).toBe(WebSocket.CLOSED)
                 })
             })
-        )
+        })
 
         describe("Message", () => {
             test("Websocket should fire 'message' when the server sends a message", async () => {
@@ -445,6 +443,163 @@ describe("Testsuite for Websocket", () => {
                     expect(ev.type).toBe(WebsocketEvent.message)
                     expect(ev.data).toBe('Hello')
                 })
+            })
+        })
+
+        describe("Retry & Reconnect", () => {
+            test("Websocket should not emit 'retry' on the first connection attempt, emit it when retrying and emit 'reconnect' when it reconnects", async () => {
+                let [openCount, retryCount, reconnectCount] = [0, 0, 0]
+                const onOpen = () => openCount++
+                const onRetry = () => retryCount++
+                const onReconnect = () => reconnectCount++
+
+                await new Promise<WebsocketEventListenerParams<WebsocketEvent.open>>(resolve => {
+                    client = new WebsocketBuilder(url)
+                        .withBackoff(new ConstantBackoff(0)) // immediately retry
+                        .onOpen((instance, ev) => resolve([instance, ev]))
+                        .onOpen(onOpen)
+                        .onRetry(onRetry)
+                        .onReconnect(onReconnect)
+                        .build()
+                }).then(([instance, ev]) => {
+                    expect(instance).toBe(client)
+                    expect(ev.type).toBe(WebsocketEvent.open)
+                })
+
+                // give some time for all handlers to be called
+                await new Promise(resolve => setTimeout(resolve, 100))
+                expect(openCount).toBe(1)
+                expect(retryCount).toBe(0)
+                expect(reconnectCount).toBe(0)
+
+                // disconnect all clients and give some time for the retry to happen
+                server?.clients.forEach(client => client.close())
+                await new Promise(resolve => setTimeout(resolve, 100))
+
+                // ws should have retried & reconnect
+                expect(openCount).toBe(2)
+                expect(retryCount).toBe(1)
+                expect(reconnectCount).toBe(1)
+            })
+        })
+    })
+
+    describe("Reconnect behaviour", () => {
+        describe("InstantReconnect", () => {
+            test("Websocket should try to reconnect immediately when instantReconnect is true", async () => {
+                let [openCount, retryCount, reconnectCount] = [0, 0, 0]
+                const onOpen = () => openCount++
+                const onRetry = () => retryCount++
+                const onReconnect = () => reconnectCount++
+
+                await new Promise<WebsocketEventListenerParams<WebsocketEvent.open>>(resolve => {
+                    client = new WebsocketBuilder(url)
+                        .withBackoff(new ConstantBackoff(1000)) // retry after 1 second
+                        .withInstantReconnect(true) // reconnect immediately, don't wait for the backoff for the first retry
+                        .onOpen((instance, ev) => resolve([instance, ev]))
+                        .onOpen(onOpen)
+                        .onRetry(onRetry)
+                        .onReconnect(onReconnect)
+                        .build()
+                }).then(([instance, ev]) => {
+                    expect(instance).toBe(client)
+                    expect(ev.type).toBe(WebsocketEvent.open)
+                })
+
+                // give some time for all handlers to be called
+                await new Promise(resolve => setTimeout(resolve, 100))
+                expect(openCount).toBe(1)
+                expect(retryCount).toBe(0)
+                expect(reconnectCount).toBe(0)
+
+                // disconnect all clients and give some time for the retry to happen
+                server?.clients.forEach(client => client.close())
+                await new Promise(resolve => setTimeout(resolve, 100))
+
+                // ws should have retried & reconnect
+                expect(openCount).toBe(2)
+                expect(retryCount).toBe(1)
+                expect(reconnectCount).toBe(1)
+            })
+
+            test("Websocket should not try to reconnect immediately when instantReconnect is false", async () => {
+                let [openCount, retryCount, reconnectCount] = [0, 0, 0]
+                const onOpen = () => openCount++
+                const onRetry = () => retryCount++
+                const onReconnect = () => reconnectCount++
+
+                await new Promise<WebsocketEventListenerParams<WebsocketEvent.open>>(resolve => {
+                    client = new WebsocketBuilder(url)
+                        .withBackoff(new ConstantBackoff(1000)) // retry after 1 second
+                        .withInstantReconnect(false) // reconnect immediately, don't wait for the backoff for the first retry
+                        .onOpen((instance, ev) => resolve([instance, ev]))
+                        .onOpen(onOpen)
+                        .onRetry(onRetry)
+                        .onReconnect(onReconnect)
+                        .build()
+                }).then(([instance, ev]) => {
+                    expect(instance).toBe(client)
+                    expect(ev.type).toBe(WebsocketEvent.open)
+                })
+
+                // give some time for all handlers to be called
+                await new Promise(resolve => setTimeout(resolve, 100))
+                expect(openCount).toBe(1)
+                expect(retryCount).toBe(0)
+                expect(reconnectCount).toBe(0)
+
+                // disconnect all clients and give some time for the retry to happen
+                server?.clients.forEach(client => client.close())
+                await new Promise(resolve => setTimeout(resolve, 100))
+
+                // ws shouldn't have retried & reconnect
+                expect(openCount).toBe(1)
+                expect(retryCount).toBe(0)
+                expect(reconnectCount).toBe(0)
+
+                // give some time for the retry to happen
+                await new Promise(resolve => setTimeout(resolve, 1000))
+                expect(openCount).toBe(2)
+                expect(retryCount).toBe(1)
+                expect(reconnectCount).toBe(1)
+            })
+        })
+
+        describe("MaxRetries", () => {
+            test("Websocket should stop trying to reconnect when maxRetries is reached", async () => {
+                let [openCount, retryCount, reconnectCount] = [0, 0, 0]
+                const onOpen = () => openCount++
+                const onRetry = () => retryCount++
+                const onReconnect = () => reconnectCount++
+
+                await new Promise<WebsocketEventListenerParams<WebsocketEvent.open>>(resolve => {
+                    client = new WebsocketBuilder(url)
+                        .withBackoff(new ConstantBackoff(0)) // retry after 1 second
+                        .withMaxRetries(5) // retry 5 times
+                        .onOpen((instance, ev) => resolve([instance, ev]))
+                        .onOpen(onOpen)
+                        .onRetry(onRetry)
+                        .onReconnect(onReconnect)
+                        .build()
+                }).then(([instance, ev]) => {
+                    expect(instance).toBe(client)
+                    expect(ev.type).toBe(WebsocketEvent.open)
+                })
+
+                // give some time for all handlers to be called
+                await new Promise(resolve => setTimeout(resolve, 100))
+                expect(openCount).toBe(1)
+                expect(retryCount).toBe(0)
+                expect(reconnectCount).toBe(0)
+
+                // stop server so that the client can't reconnect
+                await stopServer(server, serverTimeout)
+                await new Promise(resolve => setTimeout(resolve, 100))
+
+                // ws should have retried but not reconnect
+                expect(openCount).toBe(1)
+                expect(retryCount).toBe(5)
+                expect(reconnectCount).toBe(0)
             })
         })
     })
@@ -600,7 +755,7 @@ const stopServer = (wss: Server | undefined, timeout: number): Promise<void> =>
  * @param wss the websocket server to wait for a client to connect to
  * @param timeout the amount of milliseconds to wait before rejecting
  */
-const waitForClientToConnect = (wss: Server | undefined, timeout: number): Promise<WebSocket.WebSocket> =>
+const waitForClientToConnectToServer = (wss: Server | undefined, timeout: number): Promise<WebSocket.WebSocket> =>
     new Promise<WebSocket.WebSocket>((resolve, reject) => {
         if (wss === undefined) return reject(new Error('wss is undefined'))
         rejectAfter(timeout, 'failed to wait for client to connect').catch(err => reject(err))
@@ -613,7 +768,5 @@ const waitForClientToConnect = (wss: Server | undefined, timeout: number): Promi
  * @param client the websocket client to get the listeners from
  * @param type the event type to get the listeners for
  */
-const getListenersWithOptions = <K extends WebsocketEvent>(client: Websocket | undefined, type: K): WebsocketEventListenerWithOptions<K>[] => {
-    if (client === undefined) return []
-    return client['_options']['listeners'][type] ?? []
-}
+const getListenersWithOptions = <K extends WebsocketEvent>(client: Websocket | undefined, type: K): WebsocketEventListenerWithOptions<K>[] =>
+    client === undefined ? [] : client['_options']['listeners'][type] ?? []
