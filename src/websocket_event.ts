@@ -13,7 +13,7 @@ export enum WebsocketEvent {
   /** Fired when the connection has been closed because of an error, such as when some data couldn't be sent. */
   error = "error",
 
-  /** Fired when data is received. */
+  /** Fired when a message is received. */
   message = "message",
 
   /** Fired when the websocket tries to reconnect after a connection loss. */
