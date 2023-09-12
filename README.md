@@ -1,6 +1,6 @@
 <div>
   <div align="center">
-    <img src="websocket-ts-logo2-plain.svg" alt="websocket-ts" width="300" height="50" />
+    <img src="websocket-ts-logo2-plain.svg" alt="websocket-ts" width="300" height="70" />
   </div>
   <p align="center">
     <img src="https://github.com/jjxxs/websocket-ts/actions/workflows/build.yml/badge.svg" alt="Build Status" />
