@@ -1,0 +1,16 @@
+name: Build
+
+on: [ push, pull_request ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v3.8.1
+        with:
+          node-version: '18.15.0'
+      - name: Install dev-dependencies
+        run: npm install --only=dev
+      - name: Run build
+        run: npm run build
