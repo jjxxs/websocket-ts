@@ -1,40 +1,35 @@
-<div align="center">
-  <img src="websocket-ts-logo2-plain.svg" alt="websocket-ts" width="300" />
+<div>
+  <div align="center">
+    <img src="websocket-ts-logo2-plain.svg" alt="websocket-ts" width="300" height="50" />
+  </div>
+  <p align="center">
+    <img src="https://github.com/jjxxs/websocket-ts/actions/workflows/build.yml/badge.svg" alt="Build Status" />
+    <img src="https://github.com/jjxxs/websocket-ts/actions/workflows/test.yml/badge.svg" alt="Build Status" />
+    <a href="https://coveralls.io/github/jjxxs/websocket-ts?branch=master">
+      <img src="https://coveralls.io/repos/github/jjxxs/websocket-ts/badge.svg?branch=master&service=github" alt="Coverage Status" />
+    </a>
+    <a href="https://github.com/jjxxs/websocket-ts/releases/latest">
+      <img src="https://img.shields.io/github/v/release/jjxxs/websocket-ts" alt="Release" />
+    </a>
+    <a href="/LICENSE">
+      <img src="https://img.shields.io/github/license/jjxxs/websocket-ts" alt="License" />
+    </a>
+  </p>
 </div>
-<p align="center">
-<a href="https://travis-ci.org/jjxxs/websocket-ts">
-<img src="https://travis-ci.org/jjxxs/websocket-ts.svg?branch=master" alt="Build Status" />
-</a>
-<a href="https://coveralls.io/github/jjxxs/websocket-ts?branch=master">
-<img src="https://coveralls.io/repos/github/jjxxs/websocket-ts/badge.svg?branch=master&service=github" alt="Coverage Status" />
-</a>
-<a href="https://github.com/jjxxs/websocket-ts/releases/latest">
-<img src="https://img.shields.io/github/v/release/jjxxs/websocket-ts" alt="Release" />
-</a>
-<a href="/LICENSE">
-<img src="https://img.shields.io/github/license/jjxxs/websocket-ts" alt="License" />
-</a>
-</p>
 
-A simple, reliable and extensible WebSocket-client for browser-applications written in TypeScript that provides convenient features to automatically reconnect and buffer pending messages.
+<div align="center">
+A WebSocket for browsers with auto-reconnect and message buffering written in TypeScript.
+</div>
 
 ## Features
-- Lean and self-sufficient: 
-   - Dependency-free and compact in size.
-- Browser-native WebSocket utilization:
-   - Leverages the event-based WebSocket API
-   - Provides access to the underlying WebSocket
-- Intelligent handling of connection losses: 
-   - Optional smart auto-reconnect functionality 
-   - Buffer messages that are sent upon connection re-establishment
-- User-friendly Initialization and Configuration: 
-   - Includes a Builder class for simplified initialization and configuration
-- Quality Assurance: 
-   - Extensive test coverage, detailed in-code documentation
-   - Facilitating effortless modification and extension of the code.
+- **Lightweight & Standalone**: No dependencies.
+- **Browser-native**: Utilizes WebSocket API, offers direct access.
+- **Smart Reconnect**: Optional auto-reconnect and message buffering.
+- **Easy Setup**: Optional builder class for quick initialization.
+- **Well-Tested**: High test coverage, well-documented for extensibility.
 
 ## Installation
-To include ```websocket-ts``` in your project, install the package from your project root:
+Install ```websocket-ts``` with npm:
 ```bash
 $ npm install websocket-ts 
 ```
