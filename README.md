@@ -16,31 +16,30 @@
 </a>
 </p>
 
-# websocket-ts
-A client-websocket written in TypeScript for browser-applications. Focus is on simplicity, reliability and extensibility. It provides convenient features to automatically reconnect and buffer pending messages.
+A simple, reliable and extensible WebSocket-client for browser-applications written in TypeScript that provides convenient features to automatically reconnect and buffer pending messages.
 
 ## Features
-- Dependency-free and small in size
-- Uses the browser-native WebSocket-functionality
-   - Copies the event-based WebSocket-API
+- Lean and self-sufficient: 
+   - Dependency-free and compact in size.
+- Browser-native WebSocket utilization:
+   - Leverages the event-based WebSocket API
    - Provides access to the underlying WebSocket
-- When the connection is lost, it can optionally be configured to
-   - Automatically try to reconnect in a smart way
-   - Buffer messages that are sent when the connection is re-established
-- Builder-class for easy initialization and configuration
-- High test-coverage and in-code documentation
-    - Enables you to easily modify and extend the code
+- Intelligent handling of connection losses: 
+   - Optional smart auto-reconnect functionality 
+   - Buffer messages that are sent upon connection re-establishment
+- User-friendly Initialization and Configuration: 
+   - Includes a Builder class for simplified initialization and configuration
+- Quality Assurance: 
+   - Extensive test coverage, detailed in-code documentation
+   - Facilitating effortless modification and extension of the code.
 
 ## Installation
-In your project-root:
-```
+To include ```websocket-ts``` in your project, install the package from your project root:
+```bash
 $ npm install websocket-ts 
 ```
 
-In your project-code:
-```typescript
-import {WebsocketBuilder} from 'websocket-ts';
-```
+// TODO: continue here
 
 ## Usage
 

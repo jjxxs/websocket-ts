@@ -1,4 +1,4 @@
-import {Queue} from "./queue";
+import { Queue } from "./queue";
 
 /**
  * A ring queue is a queue that has a fixed capacity. When the queue is full, the oldest element is
@@ -6,58 +6,64 @@ import {Queue} from "./queue";
  * element and effectively remove it from the queue.
  */
 export class RingQueue<E> implements Queue<E> {
-    private readonly elements: E[]
-    private head: number
-    private tail: number
+  private readonly elements: E[];
+  private head: number;
+  private tail: number;
 
-    constructor(capacity: number) {
-        if (!Number.isInteger(capacity) || capacity <= 0) {
-            throw new Error("Capacity must be a positive integer")
-        }
-
-        this.elements = new Array<E>(capacity + 1) // +1 to distinguish between full and empty
-        this.head = 0
-        this.tail = 0
+  constructor(capacity: number) {
+    if (!Number.isInteger(capacity) || capacity <= 0) {
+      throw new Error("Capacity must be a positive integer");
     }
 
-    add(element: E): void {
-        this.elements[this.head] = element
-        this.head = (this.head + 1) % this.elements.length
-        if (this.head === this.tail) {
-            this.tail = (this.tail + 1) % this.elements.length
-        }
-    }
+    this.elements = new Array<E>(capacity + 1); // +1 to distinguish between full and empty
+    this.head = 0;
+    this.tail = 0;
+  }
 
-    clear() {
-        this.head = 0
-        this.tail = 0
+  add(element: E): void {
+    this.elements[this.head] = element;
+    this.head = (this.head + 1) % this.elements.length;
+    if (this.head === this.tail) {
+      this.tail = (this.tail + 1) % this.elements.length;
     }
+  }
 
-    forEach(fn: (element: E) => any) {
-        for (let i = this.tail; i !== this.head; i = (i + 1) % this.elements.length) {
-            fn(this.elements[i])
-        }
-    }
+  clear() {
+    this.head = 0;
+    this.tail = 0;
+  }
 
-    length(): number {
-        return this.tail === this.head ? 0 :
-            this.tail < this.head ? this.head - this.tail :
-                this.elements.length - this.tail + this.head
+  forEach(fn: (element: E) => unknown) {
+    for (
+      let i = this.tail;
+      i !== this.head;
+      i = (i + 1) % this.elements.length
+    ) {
+      fn(this.elements[i]);
     }
+  }
 
-    isEmpty(): boolean {
-        return this.head === this.tail
-    }
+  length(): number {
+    return this.tail === this.head
+      ? 0
+      : this.tail < this.head
+      ? this.head - this.tail
+      : this.elements.length - this.tail + this.head;
+  }
 
-    peek(): E | undefined {
-        return this.isEmpty() ? undefined : this.elements[this.tail]
-    }
+  isEmpty(): boolean {
+    return this.head === this.tail;
+  }
 
-    read(): E | undefined {
-        const e = this.peek()
-        if (e !== undefined) {
-            this.tail = (this.tail + 1) % this.elements.length
-        }
-        return e
+  peek(): E | undefined {
+    return this.isEmpty() ? undefined : this.elements[this.tail];
+  }
+
+  read(): E | undefined {
+    const e = this.peek();
+    if (e !== undefined) {
+      this.tail = (this.tail + 1) % this.elements.length;
     }
+    return e;
+  }
 }

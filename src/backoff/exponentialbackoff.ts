@@ -1,4 +1,4 @@
-import {Backoff} from "./backoff"
+import { Backoff } from "./backoff";
 
 /**
  * ExponentialBackoff increases the backoff-time exponentially.
@@ -32,45 +32,48 @@ import {Backoff} from "./backoff"
  *
  */
 export class ExponentialBackoff implements Backoff {
-    private readonly base: number
-    private readonly expMax?: number
-    private i: number
-    private _retries: number = 0
+  private readonly base: number;
+  private readonly expMax?: number;
+  private i: number;
+  private _retries: number = 0;
 
-    /**
-     * Creates a new ExponentialBackoff.
-     * @param base the base of the exponentiation
-     * @param expMax the maximum exponent, no bound if undefined
-     */
-    constructor(base: number, expMax?: number) {
-        if (!Number.isInteger(base) || base < 0) {
-            throw new Error("Base must be a positive integer or zero")
-        }
-        if (expMax !== undefined && (!Number.isInteger(expMax) || expMax < 0)) {
-            throw new Error("ExpMax must be a undefined, a positive integer or zero")
-        }
-
-        this.base = base
-        this.expMax = expMax
-        this.i = 0
+  /**
+   * Creates a new ExponentialBackoff.
+   * @param base the base of the exponentiation
+   * @param expMax the maximum exponent, no bound if undefined
+   */
+  constructor(base: number, expMax?: number) {
+    if (!Number.isInteger(base) || base < 0) {
+      throw new Error("Base must be a positive integer or zero");
+    }
+    if (expMax !== undefined && (!Number.isInteger(expMax) || expMax < 0)) {
+      throw new Error("ExpMax must be a undefined, a positive integer or zero");
     }
 
-    get retries() {
-        return this._retries
-    }
+    this.base = base;
+    this.expMax = expMax;
+    this.i = 0;
+  }
 
-    get current(): number {
-        return this.base * Math.pow(2, this.i)
-    }
+  get retries() {
+    return this._retries;
+  }
 
-    next(): number {
-        this._retries++
-        this.i = this.expMax === undefined ? this.i + 1 : Math.min(this.i + 1, this.expMax)
-        return this.current
-    }
+  get current(): number {
+    return this.base * Math.pow(2, this.i);
+  }
 
-    reset(): void {
-        this._retries = 0
-        this.i = 0
-    }
+  next(): number {
+    this._retries++;
+    this.i =
+      this.expMax === undefined
+        ? this.i + 1
+        : Math.min(this.i + 1, this.expMax);
+    return this.current;
+  }
+
+  reset(): void {
+    this._retries = 0;
+    this.i = 0;
+  }
 }

@@ -1,4 +1,4 @@
-import {Backoff} from "./backoff";
+import { Backoff } from "./backoff";
 
 /**
  * LinearBackoff returns a backoff-time that is incremented by a fixed amount
@@ -32,55 +32,57 @@ import {Backoff} from "./backoff";
  *  ... // and so on
  */
 export class LinearBackoff implements Backoff {
-    private readonly initial: number
-    private readonly increment: number
-    private readonly max?: number
-    private i: number = 0
-    private _retries: number = 0
+  private readonly initial: number;
+  private readonly increment: number;
+  private readonly max?: number;
+  private i: number = 0;
+  private _retries: number = 0;
 
-    /**
-     * Creates a new LinearBackoff.
-     * @param initial the initial backoff-time in milliseconds
-     * @param increment the amount to increment the backoff-time with every step (in milliseconds)
-     * @param max the maximum backoff-time (in milliseconds), no bound if undefined
-     */
-    constructor(initial: number, increment: number, max?: number) {
-        if (initial < 0) {
-            throw new Error("Initial must be a positive number or zero")
-        }
-        if (increment < 0) {
-            throw new Error("Increment must be a positive number or zero")
-        }
-        if (max !== undefined && max < 0) {
-            throw new Error("Max must be undefined, a positive number or zero")
-        }
-        if (max !== undefined && max < initial) {
-            throw new Error("Max must be undefined or greater than or equal to initial")
-        }
-
-        this.initial = initial
-        this.increment = increment
-        this.max = max
+  /**
+   * Creates a new LinearBackoff.
+   * @param initial the initial backoff-time in milliseconds
+   * @param increment the amount to increment the backoff-time with every step (in milliseconds)
+   * @param max the maximum backoff-time (in milliseconds), no bound if undefined
+   */
+  constructor(initial: number, increment: number, max?: number) {
+    if (initial < 0) {
+      throw new Error("Initial must be a positive number or zero");
+    }
+    if (increment < 0) {
+      throw new Error("Increment must be a positive number or zero");
+    }
+    if (max !== undefined && max < 0) {
+      throw new Error("Max must be undefined, a positive number or zero");
+    }
+    if (max !== undefined && max < initial) {
+      throw new Error(
+        "Max must be undefined or greater than or equal to initial",
+      );
     }
 
-    get retries() {
-        return this._retries
-    }
+    this.initial = initial;
+    this.increment = increment;
+    this.max = max;
+  }
 
-    get current(): number {
-        return this.max === undefined ?
-            this.initial + this.increment * this.i :
-            Math.min(this.initial + this.increment * this.i, this.max)
-    }
+  get retries() {
+    return this._retries;
+  }
 
-    next(): number {
-        this._retries++
-        this.i++
-        return this.current
-    }
+  get current(): number {
+    return this.max === undefined
+      ? this.initial + this.increment * this.i
+      : Math.min(this.initial + this.increment * this.i, this.max);
+  }
 
-    reset(): void {
-        this._retries = 0
-        this.i = 0
-    }
+  next(): number {
+    this._retries++;
+    this.i++;
+    return this.current;
+  }
+
+  reset(): void {
+    this._retries = 0;
+    this.i = 0;
+  }
 }
