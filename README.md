@@ -44,6 +44,7 @@ $ npm install websocket-ts
 ```
 
 ## Usage
+This will demonstrate how to use `websocket-ts` in your project. For a more detailed description of the API, please refer to the [API Documentation](https://jjxxs.github.io/websocket-ts/).
 
 #### Initialization
 

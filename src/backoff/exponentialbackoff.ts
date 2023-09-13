@@ -29,7 +29,6 @@ import { Backoff } from "./backoff";
  *  backoff = 1000 * 2^3 = 8000
  *  backoff = 1000 * 2^3 = 8000
  *  ... // and so on
- *
  */
 export class ExponentialBackoff implements Backoff {
   private readonly base: number;

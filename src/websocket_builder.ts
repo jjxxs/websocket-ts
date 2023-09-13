@@ -6,7 +6,7 @@ import {
 } from "./websocket_event";
 import { Websocket } from "./websocket";
 import { WebsocketBuffer } from "./websocket_buffer";
-import { WebsocketOptions } from "./websocket_retry";
+import { WebsocketOptions } from "./websocket_options";
 
 /**
  * Builder for websockets.

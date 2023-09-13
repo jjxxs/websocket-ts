@@ -10,7 +10,7 @@ import {
   WebsocketEventListenerWithOptions,
   WebsocketEventMap,
 } from "./websocket_event";
-import { WebsocketOptions } from "./websocket_retry";
+import { WebsocketOptions } from "./websocket_options";
 
 /**
  * A websocket wrapper that can be configured to reconnect automatically and buffer messages when the websocket is not connected.
