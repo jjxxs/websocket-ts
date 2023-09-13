@@ -4,11 +4,8 @@ import {
   Websocket,
   WebsocketBuilder,
 } from "../src";
-import { WebsocketBuffer } from "../src/websocket_buffer";
-import {
-  WebsocketEvent,
-  WebsocketEventListenerWithOptions,
-} from "../src/websocket_event";
+import { WebsocketBuffer } from "../src";
+import { WebsocketEvent, WebsocketEventListenerWithOptions } from "../src";
 
 describe("Testsuite for WebSocketBuilder", () => {
   const url = "ws://localhost:8080";
