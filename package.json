@@ -20,7 +20,7 @@
     "test": "jest",
     "coveralls": "jest --coverage && cat ./coverage/lcov.info | coveralls",
     "lint": "cross-env-shell eslint './src/{**/*,*}.{js,ts}' './tests/{**/*,*}.{js,ts}'",
-    "generate-docs": "typedoc --entryPoints ./src --entryPointStrategy expand --out ./docs --plugin typedoc-theme-hierarchy --theme hierarchy"
+    "generate-docs": "typedoc --entryPoints ./src --entryPointStrategy expand --out ./docs --plugin typedoc-theme-hierarchy --theme hierarchy --name websocket-ts"
   },
   "devDependencies": {
     "@typescript-eslint/eslint-plugin": "^6.6.0",
