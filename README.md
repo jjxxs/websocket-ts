@@ -47,7 +47,7 @@ For a more detailed description of the API, please refer to the [API Documentati
 Create a new instance with the `WebsocketBuilder`:
 
 ```typescript
-const ws = new WebsocketBuilder('ws://localhost:42421').build();
+const ws = new WebsocketBuilder("ws://localhost:42421").build();
 ```
 
 #### Events
@@ -69,7 +69,7 @@ export enum WebsocketEvent {
 Event listeners receive the websocket instance (`i`) and the triggering event (`ev`) as arguments.
 
  ```typescript
- const ws = new WebsocketBuilder('ws://localhost:42421')
+ const ws = new WebsocketBuilder("ws://localhost:42421")
    .onOpen((i, ev) => console.log("opened"))
    .onClose((i, ev) => console.log("closed"))
    .onError((i, ev) => console.log("error"))
@@ -156,7 +156,7 @@ removes the oldest element. For instance, to set up a `RingQueue` with a 100-ele
 use:
 
 ```typescript
-const ws = new WebsocketBuilder('ws://localhost:42421')
+const ws = new WebsocketBuilder("ws://localhost:42421")
   .withBuffer(new RingQueue(100))
   .build();
 ```
@@ -167,7 +167,7 @@ The ArrayQueue offers an unbounded capacity, functioning as a first-in-first-out
 Reading from this queue returns and removes the oldest element. To use an `ArrayQueue`, use:
 
 ```typescript
-const ws = new WebsocketBuilder('ws://localhost:42421')
+const ws = new WebsocketBuilder("ws://localhost:42421")
   .withBuffer(new ArrayQueue())
   .build();
 ```
