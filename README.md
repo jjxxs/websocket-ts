@@ -1,12 +1,6 @@
 <div>
   <div align="center">
-    <img src="websocket-ts-logo3-plain.svg" alt="websocket-ts" width="300" height="70" />
-  </div>
-  <div align="center">
-    <img src="websocket-ts-logo4-plain.svg" alt="websocket-ts" width="300" height="70" />
-  </div>
-  <div align="center">
-    which to pick? TODO: TEST CODE EXAMPLES
+    <img src="websocket-ts-logo.svg" alt="websocket-ts" width="300" height="60" />
   </div>
   <p align="center">
     <img src="https://github.com/jjxxs/websocket-ts/actions/workflows/build.yml/badge.svg" alt="Build Status" />
@@ -24,7 +18,7 @@
 </div>
 
 <div align="center">
-A WebSocket for browsers with auto-reconnect and message buffering written in TypeScript.
+A <b>WebSocket</b> for browsers with <b>auto-reconnect</b> and <b>message buffering</b> written in <b>TypeScript</b>.
 </div>
 
 ## Features
@@ -44,7 +38,9 @@ $ npm install websocket-ts
 ```
 
 ## Usage
-This will demonstrate how to use `websocket-ts` in your project. For a more detailed description of the API, please refer to the [API Documentation](https://jjxxs.github.io/websocket-ts/).
+This will demonstrate how to use `websocket-ts` in your project using the provided `WebsocketBuild`-class.
+
+For a more detailed description of the API, please refer to the [API Documentation](https://jjxxs.github.io/websocket-ts/).
 
 #### Initialization
 
@@ -56,7 +52,7 @@ const ws = new WebsocketBuilder('ws://localhost:42421').build();
 
 #### Events
 
-There are six events which can be subscribed to through callbacks:
+There are six events which can be subscribed to through with event listeners:
 
 ```typescript
 export enum WebsocketEvent {
@@ -72,26 +68,16 @@ export enum WebsocketEvent {
 #### Add Event Listeners
 Event listeners receive the websocket instance (`i`) and the triggering event (`ev`) as arguments.
 
-You can add event listeners in two ways:
-
-1. During websocket construction:
-    ```typescript
-    const ws = new WebsocketBuilder('ws://localhost:42421')
-      .onOpen((i, ev) => console.log("opened"))
-      .onClose((i, ev) => console.log("closed"))
-      .onError((i, ev) => console.log("error"))
-      .onMessage((i, ev) => console.log("message"))
-      .onRetry((i, ev) => console.log("retry"))
-      .onReconnect((i, ev) => console.log("reconnect"))
-      .build();
-    ```
-
-2. After the websocket was created:
-    ```typescript
-    let ws: Websocket;
-    /* ... */
-    ws.addEventListener(WebsocketEvent.Message, closeEventListener);
-    ```
+ ```typescript
+ const ws = new WebsocketBuilder('ws://localhost:42421')
+   .onOpen((i, ev) => console.log("opened"))
+   .onClose((i, ev) => console.log("closed"))
+   .onError((i, ev) => console.log("error"))
+   .onMessage((i, ev) => console.log("message"))
+   .onRetry((i, ev) => console.log("retry"))
+   .onReconnect((i, ev) => console.log("reconnect"))
+   .build();
+ ```
 
 #### Remove Event Listeners
 
@@ -103,8 +89,6 @@ let ws: Websocket
 ws.removeEventListener(WebsocketEvent.open, openEventListener);
 ```
 
-This will remove the `openEventListener` from handling the `open` event.
-
 #### Send Message
 
 Use the `send` method to send a message to the server:
@@ -115,78 +99,80 @@ let ws: Websocket;
 ws.send("Hello World!");
 ```
 
-This will send the message `"Hello World!"` to the server.
+#### Reconnect & Backoff (Optional)
 
-#### Reconnect & Backoff
-
-If you want the websocket to automatically try to re-connect when the connection is lost, you can provide it with a `Backoff`.
-The websocket will use the `Backoff` to determine how long it should wait between re-tries. There are currently three
-`Backoff`-implementations. You can also implement your own by inheriting from the `Backoff`-interface.
+If you'd like the websocket to automatically reconnect upon disconnection, you can optionally provide a `Backoff` strategy. 
+This sets the delay between reconnection attempts. There are three built-in `Backoff` implementations, or you can create 
+your own by implementing the `Backoff` interface. If no Backoff is provided, the websocket will not attempt to reconnect.
 
 ##### ConstantBackoff
 
-The `ConstantBackoff` will make the websocket wait a constant time between each connection retry. To use the `ConstantBackoff`
-with a wait-time of `1 second`:
+The `ConstantBackoff` strategy enforces a fixed delay between each reconnection attempt. 
+To set a constant 1-second wait time, use:
 
 ```typescript
-const ws = new WebsocketBuilder('ws://localhost:42421')
+const ws = new WebsocketBuilder("ws://localhost:42421")
   .withBackoff(new ConstantBackoff(1000)) // 1000ms = 1s
   .build();
 ```
 
 ##### LinearBackoff
 
-The `LinearBackoff` linearly increases the wait-time between connection-retries until an optional maximum is reached.
-To use the `LinearBackoff` to initially wait `0 seconds` and increase the wait-time by `1 second` with every retry until
-a maximum of `8 seconds` is reached:
+The `LinearBackoff` strategy increases the delay between reconnection attempts linearly,
+up to an optional maximum. For example, to start with a 0-second delay and increase by
+10 second for each retry, capping at 60 seconds, use:
 
 ```typescript
-const ws = new WebsocketBuilder('ws://localhost:42421')
-  .withBackoff(new LinearBackoff(0, 1000, 8000))
+const ws = new WebsocketBuilder("ws://localhost:42421")
+  .withBackoff(new LinearBackoff(0, 10000, 60000)) // 0ms, 10s, 20s, 30s, 40s, 50s, 60s
   .build();
 ```
 
 ##### ExponentialBackoff
 
-The `ExponentialBackoff` doubles the backoff with every retry until a maximum is reached. This is modelled after the binary
-exponential-backoff algorithm used in computer-networking. To use the `ExponentialBackoff` that will produce the series
-`[100, 200, 400, 800, 1600, 3200, 6400]`:
+The `ExponentialBackoff` strategy doubles the delay between each reconnection attempt, up
+to a specified maximum. This approach is inspired by the binary exponential backoff algorithm
+commonly used in networking. For example, to generate a backoff series like `[1s, 2s, 4s, 8s]`, use:
 
 ```typescript
-const ws = new WebsocketBuilder('ws://localhost:42421')
-  .withBackoff(new ExponentialBackoff(100, 7))
+const ws = new WebsocketBuilder("ws://localhost:42421")
+  .withBackoff(new ExponentialBackoff(1000, 6)) // 1s, 2s, 4s, 8s, 16s, 32s, 64s
   .build();
 ```
 
-#### Buffer
+#### Buffer (Optional)
 
-If you want to buffer to-be-send messages while the websocket is disconnected, you can provide it with a `Buffer`.
-The websocket will use the buffer to temporarily keep your messages and send them in order once the websocket
-(re-)connects. There are currently two `Buffer`-implementations. You can also implement your own
-by inheriting from the `Buffer`-interface.
+To buffer outgoing messages when the websocket is disconnected, you can optionally specify
+a `Queue`. This queue will temporarily store your messages and send them in sequence when
+the websocket (re)connects. Two built-in `Queue` implementations are available, or you can
+create your own by implementing the `Queue` interface. If no queue is provided, messages 
+won't be buffered.
 
-##### Lruqueue
+##### RingQueue
 
-The `Lruqueue` keeps the last `n` messages. When the buffer is full, the oldest message in the buffer will be replaced.
-It uses an array as a circular-buffer for linear space- and time-requirements. To use the `Lruqueue` with a capacity of `1000`:
+The `RingQueue` is a fixed-capacity, first-in-first-out (FIFO) queue. When it reaches capacity, 
+the oldest element is removed to accommodate new ones. Reading from the queue returns and
+removes the oldest element. For instance, to set up a `RingQueue` with a 100-element capacity,
+use:
 
 ```typescript
 const ws = new WebsocketBuilder('ws://localhost:42421')
-  .withBuffer(new Lruqueue(1000))
+  .withBuffer(new RingQueue(100))
   .build();
 ```
 
-##### TimeBuffer
+##### ArrayQueue
 
-The `TimeBuffer` will keep all messages that were written within the last `n` milliseconds. It will drop messages that are
-older than the specified amount. To use the `TimeBuffer` that keeps messages from the last `5 minutes`:
+The ArrayQueue offers an unbounded capacity, functioning as a first-in-first-out (FIFO) queue. 
+Reading from this queue returns and removes the oldest element. To use an `ArrayQueue`, use:
 
 ```typescript
 const ws = new WebsocketBuilder('ws://localhost:42421')
-  .withBuffer(new TimeBuffer(5 * 60 * 1000))
+  .withBuffer(new ArrayQueue())
   .build();
 ```
 
 #### Build & Tests
 
-To build the project run `npm run build`. All provided components are covered with unit-tests. Run the tests with `npm run test`.
+To compile the project, execute `npm run build`. The codebase includes unit tests for all
+components. To run these tests, use `npm run test`.

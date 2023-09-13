@@ -10,8 +10,8 @@ import {
   WebsocketEvent,
   WebsocketEventListenerParams,
   WebsocketEventListenerWithOptions,
-} from "../src/websocket_event";
-import { WebsocketBuffer } from "../src/websocket_buffer";
+} from "../src";
+import { WebsocketBuffer } from "../src";
 
 describe("Testsuite for Websocket", () => {
   const port: number = process.env.PORT ? parseInt(process.env.PORT) : 41337;
