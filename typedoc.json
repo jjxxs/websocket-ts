@@ -1,6 +1,6 @@
 {
   "entryPoints": ["src"],
-  "entryPointStrategy": "Expand",
+  "entryPointStrategy": "expand",
   "out": "public/docs",
   "plugin": ["typedoc-theme-hierarchy"],
   "theme": "hierarchy",
