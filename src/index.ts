@@ -6,4 +6,8 @@ export * from "./queue/queue";
 export * from "./queue/array_queue";
 export * from "./queue/ring_queue";
 export * from "./websocket";
+export * from "./websocket_buffer";
 export * from "./websocket_builder";
+export * from "./websocket_event";
+export * from "./websocket_options";
+export * from "./websocket_retry_options";
