@@ -15,7 +15,7 @@ jobs:
             node-version: '18.15.0'
         - name: Install dependencies and generate documentation
           run: |
-            npm install --only=dev
+            npm install
             npm install -g typedoc@0.25.1
             npm install -g typedoc-theme-hierarchy@4.1.1
             typedoc --entryPoints ./src --entryPointStrategy expand --out ./docs --plugin typedoc-theme-hierarchy --theme hierarchy --name websocket-ts
