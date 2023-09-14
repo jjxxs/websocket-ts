@@ -16,13 +16,12 @@ jobs:
         - name: Install dependencies and generate documentation
           run: |
             npm install --only=dev
-            npm install -g typedoc@0.25.1
-            npm install -g typedoc-theme-hierarchy@4.1.1
+            npm install typedoc@0.25.1
+            npm install typedoc-theme-hierarchy@4.1.1
             typedoc --entryPoints ./src --entryPointStrategy expand --out ./docs --plugin typedoc-theme-hierarchy --theme hierarchy --name websocket-ts
-        - name: Disable Jekyll
-          run: touch docs/.nojekyll
         - name: Deploy
           uses: JamesIves/github-pages-deploy-action@v4.4.3
           with:
             branch: gh-pages
             folder: docs
+            target-folder: docs
