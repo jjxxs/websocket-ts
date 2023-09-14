@@ -64,6 +64,14 @@ describe("Testsuite for WebSocketBuilder", () => {
     expect(ws.maxRetries).toBe(maxRetries2);
   });
 
+  test("WebsocketBuilder should return undefined for max-retries if not set", () => {
+    const builder = new WebsocketBuilder(url);
+    expect(builder.maxRetries).toBeUndefined();
+
+    const ws = builder.build();
+    expect(ws.maxRetries).toBeUndefined();
+  });
+
   test("WebsocketBuilder should set instant-reconnect", () => {
     const instantReconnect = true;
 
@@ -74,6 +82,14 @@ describe("Testsuite for WebSocketBuilder", () => {
 
     const ws = builder.build();
     expect(ws.instantReconnect).toBe(instantReconnect);
+  });
+
+  test("WebsocketBuilder should return undefined for instant-reconnect if not set", () => {
+    const builder = new WebsocketBuilder(url);
+    expect(builder.instantReconnect).toBeUndefined();
+
+    const ws = builder.build();
+    expect(ws.instantReconnect).toBeUndefined();
   });
 
   test("WebsocketBuilder should set backoff", () => {
@@ -99,6 +115,14 @@ describe("Testsuite for WebSocketBuilder", () => {
     expect(ws.backoff).toBe(backoff2);
   });
 
+  test("WebsocketBuilder should return undefined for backoff if not set", () => {
+    const builder = new WebsocketBuilder(url);
+    expect(builder.backoff).toBeUndefined();
+
+    const ws = builder.build();
+    expect(ws.backoff).toBeUndefined();
+  });
+
   test("WebsocketBuilder should set buffer", () => {
     const buffer: WebsocketBuffer = new ArrayQueue();
 
@@ -120,6 +144,14 @@ describe("Testsuite for WebSocketBuilder", () => {
 
     const ws = builder.build();
     expect(ws.buffer).toBe(buffer2);
+  });
+
+  test("WebsocketBuilder should return undefined for buffer if not set", () => {
+    const builder = new WebsocketBuilder(url);
+    expect(builder.buffer).toBeUndefined();
+
+    const ws = builder.build();
+    expect(ws.buffer).toBeUndefined();
   });
 
   test("WebsocketBuilder should set 'open'-listener", () => {
