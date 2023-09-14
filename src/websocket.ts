@@ -25,7 +25,7 @@ export class Websocket {
   private retryTimeout?: number; // timeout for the next retry, if any
 
   private _options: WebsocketOptions &
-    Required<Pick<WebsocketOptions, "listeners">>; // options/config for the websocket
+    Required<Pick<WebsocketOptions, "listeners" | "retry">>; // options/config for the websocket
 
   /**
    * Creates a new websocket.
@@ -87,7 +87,7 @@ export class Websocket {
    * @return the buffer, or undefined if none was provided.
    */
   get buffer(): WebsocketBuffer | undefined {
-    return this._options?.buffer;
+    return this._options.buffer;
   }
 
   /**
@@ -96,7 +96,7 @@ export class Websocket {
    * @return the maxRetries, or undefined if none was provided (no limit).
    */
   get maxRetries(): number | undefined {
-    return this._options?.retry?.maxRetries;
+    return this._options.retry.maxRetries;
   }
 
   /**
@@ -105,7 +105,7 @@ export class Websocket {
    * @return the instantReconnect, or undefined if none was provided.
    */
   get instantReconnect(): boolean | undefined {
-    return this._options?.retry?.instantReconnect;
+    return this._options.retry.instantReconnect;
   }
 
   /**
@@ -114,7 +114,7 @@ export class Websocket {
    * @return the backoff, or undefined if none was provided.
    */
   get backoff(): Backoff | undefined {
-    return this._options?.retry?.backoff;
+    return this._options.retry.backoff;
   }
 
   /**
@@ -457,11 +457,9 @@ export class Websocket {
     // create retry event detail, depending on the 'instantReconnect' option
     const retryEventDetail: RetryEventDetail = {
       backoff:
-        this._options.retry?.instantReconnect === true
-          ? 0
-          : this.backoff.next(),
+        this._options.retry.instantReconnect === true ? 0 : this.backoff.next(),
       retries:
-        this._options.retry?.instantReconnect === true
+        this._options.retry.instantReconnect === true
           ? 0
           : this.backoff.retries,
       lastConnection: this._lastConnection,
@@ -469,7 +467,7 @@ export class Websocket {
 
     // schedule a new connection-retry if the maximum number of retries is not reached yet
     if (
-      this._options.retry?.maxRetries === undefined ||
+      this._options.retry.maxRetries === undefined ||
       retryEventDetail.retries <= this._options.retry.maxRetries
     ) {
       this.retryTimeout = window.setTimeout(
