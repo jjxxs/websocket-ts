@@ -1,6 +1,17 @@
-.idea/
 node_modules/
-dist/
+
+# tool directories
+.idea/
+.github/
+
+# development directories
+test/
 coverage/
+dist/tests/
+
+# config files
+.eslintrc.json
 .gitignore
 .travis.yml
+jest.config.ts
+typedoc.json
