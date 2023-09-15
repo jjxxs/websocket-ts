@@ -7,8 +7,8 @@ import { Queue } from "./queue";
  */
 export class RingQueue<E> implements Queue<E> {
   private readonly elements: E[];
-  private head: number;
-  private tail: number;
+  private head: number; // index of the next position to write to
+  private tail: number; // index of the next position to read from
 
   constructor(capacity: number) {
     if (!Number.isInteger(capacity) || capacity <= 0) {
