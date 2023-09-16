@@ -21,7 +21,7 @@ export class Websocket {
 
   private _closedByUser: boolean = false; // whether the websocket was closed by the user
   private _lastConnection?: Date; // timestamp of the last connection
-  private _underlyingWebsocket?: WebSocket; // the underlying websocket, e.g. native browser websocket
+  private _underlyingWebsocket: WebSocket; // the underlying websocket, e.g. native browser websocket
   private retryTimeout?: number; // timeout for the next retry, if any
 
   private _options: WebsocketOptions &
@@ -60,7 +60,7 @@ export class Websocket {
       },
     };
 
-    this.tryConnect();
+    this._underlyingWebsocket = this.tryConnect();
   }
 
   /**
@@ -139,9 +139,9 @@ export class Websocket {
    * Getter for the underlying websocket. This can be used to access the browser's native websocket directly.
    *
    * @see https://developer.mozilla.org/en-US/docs/Web/API/WebSocket
-   * @return the underlying websocket or undefined if it was not created yet.
+   * @return the underlying websocket.
    */
-  get underlyingWebsocket(): WebSocket | undefined {
+  get underlyingWebsocket(): WebSocket {
     return this._underlyingWebsocket;
   }
 
@@ -149,40 +149,40 @@ export class Websocket {
    * Getter for the readyState of the underlying websocket.
    *
    * @see https://developer.mozilla.org/en-US/docs/Web/API/WebSocket/readyState
-   * @return the readyState of the underlying websocket or undefined if the websocket was not created yet.
+   * @return the readyState of the underlying websocket.
    */
-  get readyState(): number | undefined {
-    return this._underlyingWebsocket?.readyState;
+  get readyState(): number {
+    return this._underlyingWebsocket.readyState;
   }
 
   /**
    * Getter for the bufferedAmount of the underlying websocket.
    *
    * @see https://developer.mozilla.org/en-US/docs/Web/API/WebSocket/bufferedAmount
-   * @return the bufferedAmount of the underlying websocket or undefined if the websocket was not created yet.
+   * @return the bufferedAmount of the underlying websocket.
    */
-  get bufferedAmount(): number | undefined {
-    return this._underlyingWebsocket?.bufferedAmount;
+  get bufferedAmount(): number {
+    return this._underlyingWebsocket.bufferedAmount;
   }
 
   /**
    * Getter for the extensions of the underlying websocket.
    *
    * @see https://developer.mozilla.org/en-US/docs/Web/API/WebSocket/extensions
-   * @return the extensions of the underlying websocket or undefined if the websocket was not created yet.
+   * @return the extensions of the underlying websocket.
    */
-  get extensions(): string | undefined {
-    return this._underlyingWebsocket?.extensions;
+  get extensions(): string {
+    return this._underlyingWebsocket.extensions;
   }
 
   /**
    * Getter for the binaryType of the underlying websocket.
    *
    * @see https://developer.mozilla.org/en-US/docs/Web/API/WebSocket/binaryType
-   * @return the binaryType of the underlying websocket or undefined if the websocket was not created yet.
+   * @return the binaryType of the underlying websocket.
    */
-  get binaryType(): BinaryType | undefined {
-    return this._underlyingWebsocket?.binaryType;
+  get binaryType(): BinaryType {
+    return this._underlyingWebsocket.binaryType;
   }
 
   /**
@@ -190,9 +190,7 @@ export class Websocket {
    *
    * @param value to set, 'blob' or 'arraybuffer'.
    */
-  set binaryType(value: BinaryType | undefined) {
-    if (this._underlyingWebsocket === undefined) return;
-    if (value === undefined) return;
+  set binaryType(value: BinaryType) {
     this._underlyingWebsocket.binaryType = value;
   }
 
@@ -209,7 +207,6 @@ export class Websocket {
     if (this.closedByUser) return; // no-op if closed by user
 
     if (
-      this._underlyingWebsocket !== undefined &&
       this._underlyingWebsocket.readyState === this._underlyingWebsocket.OPEN
     ) {
       this._underlyingWebsocket.send(data); // websocket is connected, send data
@@ -228,10 +225,7 @@ export class Websocket {
   public close(code?: number, reason?: string): void {
     this.cancelScheduledConnectionRetry(); // cancel any scheduled retries
     this._closedByUser = true; // mark websocket as closed by user
-
-    if (this._underlyingWebsocket !== undefined) {
-      this._underlyingWebsocket.close(code, reason); // close underlying websocket with provided code and reason
-    }
+    this._underlyingWebsocket.close(code, reason); // close underlying websocket with provided code and reason
   }
 
   /**
@@ -273,29 +267,10 @@ export class Websocket {
   /**
    * Creates a new browser-native websocket and connects it to the given URL with the given protocols
    * and adds all event listeners to the browser-native websocket.
+   *
+   * @return the created browser-native websocket which is also stored in the '_underlyingWebsocket' property.
    */
-  private tryConnect(): void {
-    if (this._underlyingWebsocket !== undefined) {
-      // websocket was already created, this is a retry. remove all event listeners, close and start over.
-      this._underlyingWebsocket.removeEventListener(
-        WebsocketEvent.open,
-        this.handleOpenEvent,
-      );
-      this._underlyingWebsocket.removeEventListener(
-        WebsocketEvent.close,
-        this.handleCloseEvent,
-      );
-      this._underlyingWebsocket.removeEventListener(
-        WebsocketEvent.error,
-        this.handleErrorEvent,
-      );
-      this._underlyingWebsocket.removeEventListener(
-        WebsocketEvent.message,
-        this.handleMessageEvent,
-      );
-      this._underlyingWebsocket.close();
-    }
-
+  private tryConnect(): WebSocket {
     this._underlyingWebsocket = new WebSocket(this.url, this.protocols); // create new browser-native websocket and add all event listeners
     this._underlyingWebsocket.addEventListener(
       WebsocketEvent.open,
@@ -313,6 +288,31 @@ export class Websocket {
       WebsocketEvent.message,
       this.handleMessageEvent,
     );
+
+    return this._underlyingWebsocket;
+  }
+
+  /**
+   * Removes all event listeners from the browser-native websocket and closes it.
+   */
+  private clearWebsocket() {
+    this._underlyingWebsocket.removeEventListener(
+      WebsocketEvent.open,
+      this.handleOpenEvent,
+    );
+    this._underlyingWebsocket.removeEventListener(
+      WebsocketEvent.close,
+      this.handleCloseEvent,
+    );
+    this._underlyingWebsocket.removeEventListener(
+      WebsocketEvent.error,
+      this.handleErrorEvent,
+    );
+    this._underlyingWebsocket.removeEventListener(
+      WebsocketEvent.message,
+      this.handleMessageEvent,
+    );
+    this._underlyingWebsocket.close();
   }
 
   /**
@@ -409,6 +409,7 @@ export class Websocket {
 
       case WebsocketEvent.retry:
         this.dispatchEvent(type, event); // dispatch retry event and try to connect
+        this.clearWebsocket(); // clear the old websocket
         this.tryConnect();
         break;
 
