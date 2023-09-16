@@ -5,7 +5,7 @@ node_modules/
 .github/
 
 # development directories
-test/
+tests/
 coverage/
 dist/tests/
 
