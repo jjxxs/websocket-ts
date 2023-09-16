@@ -3,7 +3,7 @@ name: Generate and Deploy Documentation
 on:
   push:
     branches:
-      - v1.1.2
+      - master
 
 jobs:
     documentation:
