@@ -16,5 +16,5 @@ jobs:
         run: npm run test:coverage
       - name: Generate coveralls report
         env:
-          COVERALLS_REPO_TOKEN=${{ secrets.COVERALLS_REPO_TOKEN }}
+          COVERALLS_REPO_TOKEN: ${{ secrets.COVERALLS_REPO_TOKEN }}
         run: npm run coveralls
