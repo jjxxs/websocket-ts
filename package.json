@@ -18,7 +18,8 @@
   "scripts": {
     "build": "tsc -p .",
     "test": "jest",
-    "coveralls": "jest --coverage && cat ./coverage/lcov.info | coveralls",
+    "test:coverage": "jest --coverage",
+    "coveralls": "cat ./coverage/lcov.info | coveralls",
     "lint": "cross-env-shell eslint './src/{**/*,*}.{js,ts}' './tests/{**/*,*}.{js,ts}'"
   },
   "devDependencies": {
