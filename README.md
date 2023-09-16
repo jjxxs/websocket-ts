@@ -37,6 +37,37 @@ Install `websocket-ts` with npm:
 $ npm install websocket-ts 
 ```
 
+## Quickstart
+This example shows how to use the package, complete with message buffering and automatic reconnection.
+The created websocket will echo back any received messages.
+
+```typescript
+import {
+  ArrayQueue,
+  ConstantBackoff,
+  Websocket,
+  WebsocketBuilder,
+  WebsocketEvent,
+} from "websocket-ts";
+
+// Initialize WebSocket with buffering and 1s reconnection delay
+const ws = new WebsocketBuilder("ws://localhost:8080")
+  .withBuffer(new ArrayQueue())           // buffer messages when disconnected
+  .withBackoff(new ConstantBackoff(1000)) // retry every 1s
+  .build();
+
+// Function to output & echo received messages
+const echoOnMessage = (i: Websocket, ev: MessageEvent) => {
+  console.log(`received message: ${ev.data}`);
+  i.send(`echo: ${ev.data}`);
+};
+
+// Add event listeners
+ws.addEventListener(WebsocketEvent.open, () => console.log("opened!"));
+ws.addEventListener(WebsocketEvent.close, () => console.log("closed!"));
+ws.addEventListener(WebsocketEvent.message, echoOnMessage);
+```
+
 ## Usage
 This will demonstrate how to use `websocket-ts` in your project using the provided `WebsocketBuild`-class.
 
@@ -172,7 +203,7 @@ const ws = new WebsocketBuilder("ws://localhost:42421")
   .build();
 ```
 
-#### Build & Tests
+## Build & Tests
 
 To compile the project, execute `npm run build`. The codebase includes unit tests for all
 components. To run these tests, use `npm run test`.
