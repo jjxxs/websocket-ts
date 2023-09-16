@@ -1,8 +1,8 @@
 {
   "name": "websocket-ts",
   "version": "2.1.0",
-  "main": "dist/index.js",
-  "types": "dist/",
+  "main": "dist/src/index.js",
+  "types": "dist/src/index.d.ts",
   "license": "MIT",
   "keywords": [
     "websocket",
