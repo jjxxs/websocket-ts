@@ -811,6 +811,25 @@ describe("Testsuite for Websocket", () => {
         expect(messages).toEqual(["Hello1", "Hello2"]);
       });
     });
+
+    test("Websocket send should short circuit if the websocket was closed by user", async () => {
+      await new Promise<WebsocketEventListenerParams<WebsocketEvent.open>>(
+        (resolve) => {
+          client = new WebsocketBuilder(url)
+            .onOpen((instance, ev) => resolve([instance, ev]))
+            .build();
+        },
+      ).then(([instance, ev]) => {
+        expect(instance).toBe(client);
+        expect(ev.type).toBe(WebsocketEvent.open);
+        expect(instance.underlyingWebsocket).not.toBeUndefined();
+        expect(instance.underlyingWebsocket!.readyState).toBe(WebSocket.OPEN);
+
+        // close the websocket and send a message
+        instance.close();
+        instance.send("This send should short circuit");
+      });
+    });
   });
 });
 
