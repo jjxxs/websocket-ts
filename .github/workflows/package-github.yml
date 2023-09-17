@@ -12,7 +12,8 @@ jobs:
       - uses: actions/setup-node@v3.8.1
         with:
           node-version: '18.15.0'
-          registry-url: 'https://npm.pkg.github.com/'
+          registry-url: 'https://npm.pkg.github.com'
+          scope: '@jjxxs'
 
       # Install, build & publish to GitHub
       - name: Install dependencies
