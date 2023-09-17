@@ -40,7 +40,8 @@ $ npm install websocket-ts
 
 ## Quickstart
 This example shows how to use the package, complete with message buffering and automatic reconnection.
-The created websocket will echo back any received messages.
+The created websocket will echo back any received messages. It will buffer messages when disconnected
+and attempt to reconnect every 1 second.
 
 ```typescript
 import {
