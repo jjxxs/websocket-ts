@@ -23,11 +23,12 @@ A <b>WebSocket</b> for browsers with <b>auto-reconnect</b> and <b>message buffer
 
 ## Features
 
-- **Lightweight & Standalone**: No dependencies.
+- **Lightweight & Standalone**: No dependencies, 2.1 kB minified & gzipped.
 - **Browser-native**: Utilizes WebSocket API, offers direct access.
 - **Smart Reconnect**: Optional auto-reconnect and message buffering.
 - **Easy Setup**: Optional builder class for quick initialization.
 - **Well-Tested**: High test coverage, well-documented for extensibility.
+- **Module Support**: Supports CommonJS, and ES6 modules.
 
 ## Installation
 
