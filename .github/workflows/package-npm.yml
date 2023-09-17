@@ -2,7 +2,7 @@ name: Create and publish npm package
 
 on:
   release:
-    types: [created]
+    types: [ created ]
 
 jobs:
   build:
@@ -14,12 +14,11 @@ jobs:
           node-version: '18.15.0'
           registry-url: 'https://registry.npmjs.org'
 
-      # Publish to npm
+      # Install, build & publish to npm
+      - name: Install dependencies
+        run: npm install
+      - name: Build package
+        run: npm run build
       - run: npm publish
         env:
           NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
-
-      # Publish to GitHub Packages
-      - run: npm publish --registry=https://npm.pkg.github.com/
-        env:
-          NODE_AUTH_TOKEN: ${{secrets.PAT}}
