@@ -13,6 +13,13 @@ jobs:
         with:
           node-version: '18.15.0'
           registry-url: 'https://registry.npmjs.org'
+
+      # Publish to npm
       - run: npm publish
         env:
           NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
+
+      # Publish to GitHub Packages
+      - run: npm publish --registry=https://npm.pkg.github.com/
+        env:
+          NODE_AUTH_TOKEN: ${{secrets.GITHUB_TOKEN}}
