@@ -7,7 +7,8 @@ node_modules/
 # development directories
 tests/
 coverage/
-dist/tests/
+dist/cjs/tests/
+dist/esm/tests/
 
 # config files
 .eslintrc.json
