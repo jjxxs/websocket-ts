@@ -2,7 +2,7 @@ name: Create and publish npm package
 
 on:
   release:
-    types: [ created ]
+    types: [ published ]
 
 jobs:
   build:

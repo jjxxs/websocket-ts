@@ -2,7 +2,7 @@ name: Create and publish github package
 
 on:
   release:
-    types: [ created ]
+    types: [ published ]
 
 jobs:
   build:
