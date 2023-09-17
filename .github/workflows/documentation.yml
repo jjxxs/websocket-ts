@@ -18,7 +18,7 @@ jobs:
             npm install
             npm install typedoc@0.25.1
             npm install typedoc-theme-hierarchy@4.1.1
-            npx typedoc --entryPoints ./src --entryPointStrategy expand --out ./docs --plugin typedoc-theme-hierarchy --theme hierarchy --name websocket-ts
+            npx typedoc --tsconfig tsconfig.esm.json --exclude "src/**/index.ts" --entryPoints ./src --entryPointStrategy expand --out ./docs --plugin typedoc-theme-hierarchy --theme hierarchy --name websocket-ts
         - name: Deploy
           uses: JamesIves/github-pages-deploy-action@v4.4.3
           with:
