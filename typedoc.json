@@ -1,9 +1,0 @@
-{
-  "entryPoints": ["src"],
-  "entryPointStrategy": "expand",
-  "out": "public/docs",
-  "plugin": ["typedoc-theme-hierarchy"],
-  "theme": "hierarchy",
-  "tsconfig": "./tsconfig.json",
-  "name": "Project name"
-}
