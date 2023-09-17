@@ -1,8 +1,9 @@
 {
   "name": "websocket-ts",
   "version": "2.1.0",
-  "main": "dist/src/index.js",
-  "types": "dist/src/index.d.ts",
+  "main": "dist/cjs/src/index.js",
+  "types": "dist/cjs/src/index.d.ts",
+  "module": "dist/esm/src/index.js",
   "license": "MIT",
   "keywords": [
     "websocket",
@@ -12,11 +13,14 @@
     "reconnecting",
     "buffered"
   ],
+  "sideEffects": false,
   "repository": {
     "url": "github:jjxxs/websocket-ts"
   },
   "scripts": {
-    "build": "tsc -p .",
+    "build:cjs": "tsc -p tsconfig.cjs.json",
+    "build:esm": "tsc -p tsconfig.esm.json",
+    "build": "npm run build:cjs && npm run build:esm",
     "test": "jest",
     "test:coverage": "jest --coverage",
     "coveralls": "cat ./coverage/lcov.info | coveralls",
