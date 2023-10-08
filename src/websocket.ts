@@ -22,7 +22,7 @@ export class Websocket {
   private _closedByUser: boolean = false; // whether the websocket was closed by the user
   private _lastConnection?: Date; // timestamp of the last connection
   private _underlyingWebsocket: WebSocket; // the underlying websocket, e.g. native browser websocket
-  private retryTimeout?: number; // timeout for the next retry, if any
+  private retryTimeout?: ReturnType<typeof globalThis.setTimeout>; // timeout for the next retry, if any
 
   private _options: WebsocketOptions &
     Required<Pick<WebsocketOptions, "listeners" | "retry">>; // options/config for the websocket
@@ -447,6 +447,7 @@ export class Websocket {
       return; // no backoff defined, no retry
     }
 
+    // handler dispatches the retry event to all listeners of the retry event-type
     const handleRetryEvent = (detail: RetryEventDetail) => {
       const event: CustomEvent<RetryEventDetail> = new CustomEvent(
         WebsocketEvent.retry,
@@ -471,7 +472,7 @@ export class Websocket {
       this._options.retry.maxRetries === undefined ||
       retryEventDetail.retries <= this._options.retry.maxRetries
     ) {
-      this.retryTimeout = +globalThis.setTimeout(
+      this.retryTimeout = globalThis.setTimeout(
         () => handleRetryEvent(retryEventDetail),
         retryEventDetail.backoff,
       );
