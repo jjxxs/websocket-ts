@@ -471,7 +471,7 @@ export class Websocket {
       this._options.retry.maxRetries === undefined ||
       retryEventDetail.retries <= this._options.retry.maxRetries
     ) {
-      this.retryTimeout = window.setTimeout(
+      this.retryTimeout = +globalThis.setTimeout(
         () => handleRetryEvent(retryEventDetail),
         retryEventDetail.backoff,
       );
@@ -482,6 +482,6 @@ export class Websocket {
    * Cancels the scheduled connection-retry, if there is one.
    */
   private cancelScheduledConnectionRetry() {
-    window.clearTimeout(this.retryTimeout);
+    globalThis.clearTimeout(this.retryTimeout);
   }
 }
