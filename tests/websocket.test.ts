@@ -1,4 +1,4 @@
-import WebSocket, { Server } from "ws";
+import { Server } from "ws";
 import {
   ArrayQueue,
   Backoff,
@@ -12,6 +12,7 @@ import {
   WebsocketEventListenerWithOptions,
 } from "../src";
 import { WebsocketBuffer } from "../src";
+import { describe, test, expect, beforeAll, beforeEach, afterEach } from "vitest";
 
 describe("Testsuite for Websocket", () => {
   const port: number = process.env.PORT ? parseInt(process.env.PORT) : 41337;
@@ -455,11 +456,10 @@ describe("Testsuite for Websocket", () => {
         await new Promise<WebsocketEventListenerParams<WebsocketEvent.close>>(
           (resolve) => {
             client = new WebsocketBuilder(url)
-              .onOpen(
-                () =>
-                  server?.clients.forEach((client) =>
-                    client.close(1001, "CLOSE_GOING_AWAY"),
-                  ),
+              .onOpen(() =>
+                server?.clients.forEach((client) =>
+                  client.close(1001, "CLOSE_GOING_AWAY"),
+                ),
               )
               .onClose((instance, ev) => resolve([instance, ev]))
               .build();
@@ -530,8 +530,8 @@ describe("Testsuite for Websocket", () => {
         await new Promise<WebsocketEventListenerParams<WebsocketEvent.message>>(
           (resolve) => {
             client = new WebsocketBuilder(url)
-              .onOpen(
-                () => server?.clients.forEach((client) => client.send("Hello")),
+              .onOpen(() =>
+                server?.clients.forEach((client) => client.send("Hello")),
               )
               .onMessage((instance, ev) => {
                 expect(ev.data).toBe("Hello");
@@ -921,4 +921,4 @@ const getListenersWithOptions = <K extends WebsocketEvent>(
   client: Websocket | undefined,
   type: K,
 ): WebsocketEventListenerWithOptions<K>[] =>
-  client === undefined ? [] : client["_options"]["listeners"][type] ?? [];
+  client === undefined ? [] : (client["_options"]["listeners"][type] ?? []);

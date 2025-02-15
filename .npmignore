@@ -14,5 +14,5 @@ dist/esm/tests/
 .eslintrc.json
 .gitignore
 .travis.yml
-jest.config.ts
+vitest.config.ts
 typedoc.json

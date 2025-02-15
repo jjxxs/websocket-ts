@@ -1,4 +1,5 @@
 import { ExponentialBackoff } from "../../src";
+import { describe, test, expect } from "vitest";
 
 describe("Testsuite for ExponentialBackoff", () => {
   test("Initialization should throw on negative base", () => {
