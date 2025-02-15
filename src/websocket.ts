@@ -118,7 +118,7 @@ export class Websocket {
   }
 
   /**
-   * Whether the websocket was closed by the user. A websocket is closed by the user if the close().
+   * Whether the websocket was closed by the user. A websocket is closed by the user by calling close().
    *
    * @return true if the websocket was closed by the user, false otherwise.
    */
