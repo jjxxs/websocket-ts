@@ -1,4 +1,5 @@
 import { ConstantBackoff } from "../../src";
+import { describe, test, expect } from "vitest";
 
 describe("Testsuite for ConstantBackoff", () => {
   test("Initialization should throw on negative backoff", () => {

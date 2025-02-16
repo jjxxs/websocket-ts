@@ -28,7 +28,7 @@ A <b>WebSocket</b> for browsers with <b>auto-reconnect</b> and <b>message buffer
 - **Smart Reconnect**: Optional auto-reconnect and message buffering.
 - **Easy Setup**: Optional builder class for quick initialization.
 - **Well-Tested**: High test coverage, well-documented for extensibility.
-- **Module Support**: Supports CommonJS, and ES6 modules.
+- **Module Support**: Supports CommonJS and ES6 modules.
 
 ## Installation
 
@@ -207,5 +207,6 @@ const ws = new WebsocketBuilder("ws://localhost:42421")
 
 ## Build & Tests
 
-To compile the project, execute `npm run build`. The codebase includes unit tests for all
-components. To run these tests, use `npm run test`.
+To compile the project, execute `npm run build`. 
+
+To run tests, use `npm run test`.

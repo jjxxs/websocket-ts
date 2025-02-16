@@ -6,6 +6,7 @@ import {
 } from "../src";
 import { WebsocketBuffer } from "../src";
 import { WebsocketEvent, WebsocketEventListenerWithOptions } from "../src";
+import { vi, describe, test, expect } from "vitest";
 
 describe("Testsuite for WebSocketBuilder", () => {
   const url = "ws://localhost:8080";
@@ -155,7 +156,7 @@ describe("Testsuite for WebSocketBuilder", () => {
   });
 
   test("WebsocketBuilder should set 'open'-listener", () => {
-    const listener = jest.fn();
+    const listener = vi.fn();
 
     const builder = new WebsocketBuilder(url).onOpen(listener);
     expect(builder["_options"]!["listeners"]!.open).toStrictEqual<
@@ -179,8 +180,8 @@ describe("Testsuite for WebSocketBuilder", () => {
   });
 
   test("WebsocketBuilder should set 'open'-listener for subsequent calls", () => {
-    const listener1 = jest.fn();
-    const listener2 = jest.fn();
+    const listener1 = vi.fn();
+    const listener2 = vi.fn();
 
     const builder = new WebsocketBuilder(url)
       .onOpen(listener1)
@@ -208,7 +209,7 @@ describe("Testsuite for WebSocketBuilder", () => {
   });
 
   test("WebsocketBuilder should set 'open'-listener with options", () => {
-    const listener = jest.fn();
+    const listener = vi.fn();
     const options = { once: true };
 
     const builder = new WebsocketBuilder(url).onOpen(listener, options);
@@ -223,8 +224,8 @@ describe("Testsuite for WebSocketBuilder", () => {
   });
 
   test("WebsocketBuilder should set 'open'-listener with mixed options", () => {
-    const listener1 = jest.fn();
-    const listener2 = jest.fn();
+    const listener1 = vi.fn();
+    const listener2 = vi.fn();
     const options = { once: true };
 
     const builder = new WebsocketBuilder(url)
@@ -253,7 +254,7 @@ describe("Testsuite for WebSocketBuilder", () => {
   });
 
   test("WebsocketBuilder should set 'close'-listener", () => {
-    const listener = jest.fn();
+    const listener = vi.fn();
 
     const builder = new WebsocketBuilder(url).onClose(listener);
     expect(builder["_options"]!["listeners"]!.close).toStrictEqual<
@@ -277,8 +278,8 @@ describe("Testsuite for WebSocketBuilder", () => {
   });
 
   test("WebsocketBuilder should set 'close'-listener for subsequent calls", () => {
-    const listener1 = jest.fn();
-    const listener2 = jest.fn();
+    const listener1 = vi.fn();
+    const listener2 = vi.fn();
 
     const builder = new WebsocketBuilder(url)
       .onClose(listener1)
@@ -306,7 +307,7 @@ describe("Testsuite for WebSocketBuilder", () => {
   });
 
   test("WebsocketBuilder should set 'close'-listener with options", () => {
-    const listener = jest.fn();
+    const listener = vi.fn();
     const options = { once: true };
 
     const builder = new WebsocketBuilder(url).onClose(listener, options);
@@ -326,8 +327,8 @@ describe("Testsuite for WebSocketBuilder", () => {
   });
 
   test("WebsocketBuilder should set 'close'-listener with mixed options", () => {
-    const listener1 = jest.fn();
-    const listener2 = jest.fn();
+    const listener1 = vi.fn();
+    const listener2 = vi.fn();
     const options = { once: true };
 
     const builder = new WebsocketBuilder(url)
@@ -356,7 +357,7 @@ describe("Testsuite for WebSocketBuilder", () => {
   });
 
   test("WebsocketBuilder should set 'error'-listener", () => {
-    const listener = jest.fn();
+    const listener = vi.fn();
 
     const builder = new WebsocketBuilder(url).onError(listener);
     expect(builder["_options"]!["listeners"]!.error).toStrictEqual<
@@ -380,8 +381,8 @@ describe("Testsuite for WebSocketBuilder", () => {
   });
 
   test("WebsocketBuilder should set 'error'-listener for subsequent calls", () => {
-    const listener1 = jest.fn();
-    const listener2 = jest.fn();
+    const listener1 = vi.fn();
+    const listener2 = vi.fn();
 
     const builder = new WebsocketBuilder(url)
       .onError(listener1)
@@ -409,7 +410,7 @@ describe("Testsuite for WebSocketBuilder", () => {
   });
 
   test("WebsocketBuilder should set 'error'-listener with options", () => {
-    const listener = jest.fn();
+    const listener = vi.fn();
     const options = { once: true };
 
     const builder = new WebsocketBuilder(url).onError(listener, options);
@@ -429,8 +430,8 @@ describe("Testsuite for WebSocketBuilder", () => {
   });
 
   test("WebsocketBuilder should set 'error'-listener with mixed options", () => {
-    const listener1 = jest.fn();
-    const listener2 = jest.fn();
+    const listener1 = vi.fn();
+    const listener2 = vi.fn();
     const options = { once: true };
 
     const builder = new WebsocketBuilder(url)
@@ -459,7 +460,7 @@ describe("Testsuite for WebSocketBuilder", () => {
   });
 
   test("WebsocketBuilder should set 'message'-listener", () => {
-    const listener = jest.fn();
+    const listener = vi.fn();
 
     const builder = new WebsocketBuilder(url).onMessage(listener);
     expect(builder["_options"]!["listeners"]!.message).toStrictEqual<
@@ -483,8 +484,8 @@ describe("Testsuite for WebSocketBuilder", () => {
   });
 
   test("WebsocketBuilder should set 'message'-listener for subsequent calls", () => {
-    const listener1 = jest.fn();
-    const listener2 = jest.fn();
+    const listener1 = vi.fn();
+    const listener2 = vi.fn();
 
     const builder = new WebsocketBuilder(url)
       .onMessage(listener1)
@@ -512,7 +513,7 @@ describe("Testsuite for WebSocketBuilder", () => {
   });
 
   test("WebsocketBuilder should set 'message'-listener with options", () => {
-    const listener = jest.fn();
+    const listener = vi.fn();
     const options = { once: true };
 
     const builder = new WebsocketBuilder(url).onMessage(listener, options);
@@ -537,8 +538,8 @@ describe("Testsuite for WebSocketBuilder", () => {
   });
 
   test("WebsocketBuilder should set 'message'-listener with mixed options", () => {
-    const listener1 = jest.fn();
-    const listener2 = jest.fn();
+    const listener1 = vi.fn();
+    const listener2 = vi.fn();
     const options = { once: true };
 
     const builder = new WebsocketBuilder(url)
@@ -567,7 +568,7 @@ describe("Testsuite for WebSocketBuilder", () => {
   });
 
   test("WebsocketBuilder should set 'retry'-listener", () => {
-    const listener = jest.fn();
+    const listener = vi.fn();
 
     const builder = new WebsocketBuilder(url).onRetry(listener);
     expect(builder["_options"]!["listeners"]!.retry).toStrictEqual<
@@ -591,8 +592,8 @@ describe("Testsuite for WebSocketBuilder", () => {
   });
 
   test("WebsocketBuilder should set 'retry'-listener for subsequent calls", () => {
-    const listener1 = jest.fn();
-    const listener2 = jest.fn();
+    const listener1 = vi.fn();
+    const listener2 = vi.fn();
 
     const builder = new WebsocketBuilder(url)
       .onRetry(listener1)
@@ -620,7 +621,7 @@ describe("Testsuite for WebSocketBuilder", () => {
   });
 
   test("WebsocketBuilder should set 'retry'-listener with options", () => {
-    const listener = jest.fn();
+    const listener = vi.fn();
     const options = { once: true };
 
     const builder = new WebsocketBuilder(url).onRetry(listener, options);
@@ -640,8 +641,8 @@ describe("Testsuite for WebSocketBuilder", () => {
   });
 
   test("WebsocketBuilder should set 'retry'-listener with mixed options", () => {
-    const listener1 = jest.fn();
-    const listener2 = jest.fn();
+    const listener1 = vi.fn();
+    const listener2 = vi.fn();
     const options = { once: true };
 
     const builder = new WebsocketBuilder(url)
@@ -670,7 +671,7 @@ describe("Testsuite for WebSocketBuilder", () => {
   });
 
   test("WebsocketBuilder should set 'reconnect'-listener", () => {
-    const listener = jest.fn();
+    const listener = vi.fn();
 
     const builder = new WebsocketBuilder(url).onReconnect(listener);
     expect(builder["_options"]!["listeners"]!.reconnect).toStrictEqual<
@@ -694,8 +695,8 @@ describe("Testsuite for WebSocketBuilder", () => {
   });
 
   test("WebsocketBuilder should set 'reconnect'-listener for subsequent calls", () => {
-    const listener1 = jest.fn();
-    const listener2 = jest.fn();
+    const listener1 = vi.fn();
+    const listener2 = vi.fn();
 
     const builder = new WebsocketBuilder(url)
       .onReconnect(listener1)
@@ -723,7 +724,7 @@ describe("Testsuite for WebSocketBuilder", () => {
   });
 
   test("WebsocketBuilder should set 'reconnect'-listener with options", () => {
-    const listener = jest.fn();
+    const listener = vi.fn();
     const options = { once: true };
 
     const builder = new WebsocketBuilder(url).onReconnect(listener, options);
@@ -748,8 +749,8 @@ describe("Testsuite for WebSocketBuilder", () => {
   });
 
   test("WebsocketBuilder should set 'reconnect'-listener with mixed options", () => {
-    const listener1 = jest.fn();
-    const listener2 = jest.fn();
+    const listener1 = vi.fn();
+    const listener2 = vi.fn();
     const options = { once: true };
 
     const builder = new WebsocketBuilder(url)

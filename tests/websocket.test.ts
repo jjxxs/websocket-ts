@@ -1,4 +1,4 @@
-import WebSocket, { Server } from "ws";
+import { WebSocketServer, WebSocket } from "ws";
 import {
   ArrayQueue,
   Backoff,
@@ -12,6 +12,14 @@ import {
   WebsocketEventListenerWithOptions,
 } from "../src";
 import { WebsocketBuffer } from "../src";
+import {
+  describe,
+  test,
+  expect,
+  beforeAll,
+  beforeEach,
+  afterEach,
+} from "vitest";
 
 describe("Testsuite for Websocket", () => {
   const port: number = process.env.PORT ? parseInt(process.env.PORT) : 41337;
@@ -27,7 +35,7 @@ describe("Testsuite for Websocket", () => {
     : 10_000;
 
   let client: Websocket | undefined; // subject under test
-  let server: Server | undefined; // websocket server used for testing
+  let server: WebSocketServer | undefined; // websocket server used for testing
 
   /** Before all tests, log the test configuration. */
   beforeAll(() =>
@@ -153,7 +161,7 @@ describe("Testsuite for Websocket", () => {
         await new Promise<WebsocketEventListenerParams<WebsocketEvent.close>>(
           (resolve) => {
             client = new WebsocketBuilder(url)
-              .onOpen(() => server!.close())
+              .onOpen(() => closeServer(server))
               .onClose((instance, ev) => resolve([instance, ev]))
               .build();
           },
@@ -231,7 +239,7 @@ describe("Testsuite for Websocket", () => {
         await new Promise<WebsocketEventListenerParams<WebsocketEvent.close>>(
           (resolve) => {
             client = new WebsocketBuilder(url)
-              .onOpen(() => server!.close())
+              .onOpen(() => closeServer(server))
               .onClose((instance, ev) => resolve([instance, ev]))
               .build();
           },
@@ -415,7 +423,7 @@ describe("Testsuite for Websocket", () => {
           await new Promise<WebsocketEventListenerParams<WebsocketEvent.close>>(
             (resolve) => {
               client = new WebsocketBuilder(url)
-                .onOpen(() => server!.close())
+                .onOpen(() => closeServer(server))
                 .onClose((instance, ev) => resolve([instance, ev]))
                 .build();
             },
@@ -455,11 +463,10 @@ describe("Testsuite for Websocket", () => {
         await new Promise<WebsocketEventListenerParams<WebsocketEvent.close>>(
           (resolve) => {
             client = new WebsocketBuilder(url)
-              .onOpen(
-                () =>
-                  server?.clients.forEach((client) =>
-                    client.close(1001, "CLOSE_GOING_AWAY"),
-                  ),
+              .onOpen(() =>
+                server?.clients.forEach((client) =>
+                  client.close(1001, "CLOSE_GOING_AWAY"),
+                ),
               )
               .onClose((instance, ev) => resolve([instance, ev]))
               .build();
@@ -530,8 +537,8 @@ describe("Testsuite for Websocket", () => {
         await new Promise<WebsocketEventListenerParams<WebsocketEvent.message>>(
           (resolve) => {
             client = new WebsocketBuilder(url)
-              .onOpen(
-                () => server?.clients.forEach((client) => client.send("Hello")),
+              .onOpen(() =>
+                server?.clients.forEach((client) => client.send("Hello")),
               )
               .onMessage((instance, ev) => {
                 expect(ev.data).toBe("Hello");
@@ -717,9 +724,12 @@ describe("Testsuite for Websocket", () => {
     test("Websocket should send a message to the server and the server should receive it", async () => {
       const serverReceivedMessage = new Promise<string>((resolve) => {
         server?.on("connection", (client) => {
-          client?.on("message", (message: string) => {
-            resolve(message);
-          });
+          client?.on(
+            "message",
+            onStringMessageReceived((str: string) => {
+              resolve(str);
+            }),
+          );
         });
       });
 
@@ -778,12 +788,15 @@ describe("Testsuite for Websocket", () => {
       const messagesReceived: string[] = [];
       const serverReceivedMessages = new Promise<string[]>((resolve) => {
         server?.on("connection", (client) => {
-          client?.on("message", (message: string) => {
-            messagesReceived.push(message);
-            if (messagesReceived.length === 2) {
-              resolve(messagesReceived);
-            }
-          });
+          client?.on(
+            "message",
+            onStringMessageReceived((str: string) => {
+              messagesReceived.push(str);
+              if (messagesReceived.length === 2) {
+                resolve(messagesReceived);
+              }
+            }),
+          );
         });
       });
 
@@ -871,10 +884,10 @@ const stopClient = (
  * @param port the port to start the server on
  * @param timeout the amount of milliseconds to wait before rejecting
  */
-const startServer = (port: number, timeout: number): Promise<Server> =>
+const startServer = (port: number, timeout: number): Promise<WebSocketServer> =>
   new Promise((resolve, reject) => {
     rejectAfter(timeout, "failed to start server").catch((err) => reject(err));
-    const wss = new Server({ port });
+    const wss = new WebSocketServer({ port });
     wss.on("listening", () => resolve(wss));
     wss.on("error", (err) => reject(err));
   });
@@ -884,7 +897,10 @@ const startServer = (port: number, timeout: number): Promise<Server> =>
  * @param wss the websocket server to stop
  * @param timeout the amount of milliseconds to wait before rejecting
  */
-const stopServer = (wss: Server | undefined, timeout: number): Promise<void> =>
+const stopServer = (
+  wss: WebSocketServer | undefined,
+  timeout: number,
+): Promise<void> =>
   new Promise<void>((resolve, reject) => {
     if (wss === undefined) return resolve();
     rejectAfter(timeout, "failed to stop server").catch((err) => reject(err));
@@ -900,10 +916,10 @@ const stopServer = (wss: Server | undefined, timeout: number): Promise<void> =>
  * @param timeout the amount of milliseconds to wait before rejecting
  */
 const waitForClientToConnectToServer = (
-  wss: Server | undefined,
+  wss: WebSocketServer | undefined,
   timeout: number,
-): Promise<WebSocket.WebSocket> =>
-  new Promise<WebSocket.WebSocket>((resolve, reject) => {
+): Promise<WebSocket> =>
+  new Promise<WebSocket>((resolve, reject) => {
     if (wss === undefined) return reject(new Error("wss is undefined"));
     rejectAfter(timeout, "failed to wait for client to connect").catch((err) =>
       reject(err),
@@ -921,4 +937,44 @@ const getListenersWithOptions = <K extends WebsocketEvent>(
   client: Websocket | undefined,
   type: K,
 ): WebsocketEventListenerWithOptions<K>[] =>
-  client === undefined ? [] : client["_options"]["listeners"][type] ?? [];
+  client === undefined ? [] : (client["_options"]["listeners"][type] ?? []);
+
+/**
+ * Converts a websocket message to a string.
+ *
+ * @param message the message to convert to a string
+ * @param isBinary whether the message is binary
+ * @returns the message as a string
+ */
+const wsMessageToString = (
+  message: ArrayBuffer | Blob | Buffer | Buffer[],
+  isBinary: boolean,
+): string => {
+  if (isBinary) {
+    throw new Error("Unexpected binary message");
+  } else if (!(message instanceof Buffer)) {
+    throw new Error("Unexpected message type");
+  } else return message.toString("utf-8");
+};
+
+/**
+ * Converts a websocket message to a string and calls the given handler.
+ *
+ * @param handler the handler to call with the message
+ */
+const onStringMessageReceived =
+  (handler: (str: string) => void) =>
+  (message: ArrayBuffer | Blob | Buffer | Buffer[], isBinary: boolean) => {
+    handler(wsMessageToString(message, isBinary));
+  };
+
+/**
+ * Closes the given websocket server and terminates all connections.
+ *
+ * @param wss the websocket server to close
+ */
+const closeServer = (wss: WebSocketServer | undefined) => {
+  if (wss === undefined) return;
+  wss.clients.forEach((client) => client.terminate());
+  wss.close();
+};

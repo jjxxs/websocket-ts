@@ -1,4 +1,5 @@
 import { ArrayQueue } from "../../src";
+import { describe, test, expect } from "vitest";
 
 describe("Testsuite for ArrayQueue", () => {
   test("Queue should be empty after initialization", () => {

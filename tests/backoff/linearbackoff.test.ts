@@ -1,4 +1,5 @@
 import { LinearBackoff } from "../../src";
+import { describe, test, expect } from "vitest";
 
 describe("Testsuite for LinearBackoff", () => {
   test("Initialization should throw on negative initial-backoff", () => {
