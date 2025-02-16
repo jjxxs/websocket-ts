@@ -76,7 +76,9 @@ describe("Testsuite for WebSocketBuilder", () => {
   test("WebsocketBuilder should set instant-reconnect", () => {
     const instantReconnect = true;
 
-    const builder = new WebsocketBuilder(url).withInstantReconnect(instantReconnect);
+    const builder = new WebsocketBuilder(url).withInstantReconnect(
+      instantReconnect,
+    );
     expect(builder.instantReconnect).toBe(instantReconnect);
 
     const ws = builder.build();
@@ -162,8 +164,8 @@ describe("Testsuite for WebSocketBuilder", () => {
     >([
       {
         listener,
-        options: undefined
-      }
+        options: undefined,
+      },
     ]);
 
     const ws = builder.build();
@@ -172,8 +174,8 @@ describe("Testsuite for WebSocketBuilder", () => {
     >([
       {
         listener,
-        options: undefined
-      }
+        options: undefined,
+      },
     ]);
   });
 
@@ -189,9 +191,9 @@ describe("Testsuite for WebSocketBuilder", () => {
     >([
       {
         listener: listener1,
-        options: undefined
+        options: undefined,
       },
-      { listener: listener2, options: undefined }
+      { listener: listener2, options: undefined },
     ]);
 
     const ws = builder.build();
@@ -200,9 +202,9 @@ describe("Testsuite for WebSocketBuilder", () => {
     >([
       {
         listener: listener1,
-        options: undefined
+        options: undefined,
       },
-      { listener: listener2, options: undefined }
+      { listener: listener2, options: undefined },
     ]);
   });
 
@@ -234,9 +236,9 @@ describe("Testsuite for WebSocketBuilder", () => {
     >([
       {
         listener: listener1,
-        options: undefined
+        options: undefined,
       },
-      { listener: listener2, options }
+      { listener: listener2, options },
     ]);
 
     const ws = builder.build();
@@ -245,9 +247,9 @@ describe("Testsuite for WebSocketBuilder", () => {
     >([
       {
         listener: listener1,
-        options: undefined
+        options: undefined,
       },
-      { listener: listener2, options }
+      { listener: listener2, options },
     ]);
   });
 
@@ -260,8 +262,8 @@ describe("Testsuite for WebSocketBuilder", () => {
     >([
       {
         listener,
-        options: undefined
-      }
+        options: undefined,
+      },
     ]);
 
     const ws = builder.build();
@@ -270,8 +272,8 @@ describe("Testsuite for WebSocketBuilder", () => {
     >([
       {
         listener,
-        options: undefined
-      }
+        options: undefined,
+      },
     ]);
   });
 
@@ -287,9 +289,9 @@ describe("Testsuite for WebSocketBuilder", () => {
     >([
       {
         listener: listener1,
-        options: undefined
+        options: undefined,
       },
-      { listener: listener2, options: undefined }
+      { listener: listener2, options: undefined },
     ]);
 
     const ws = builder.build();
@@ -298,9 +300,9 @@ describe("Testsuite for WebSocketBuilder", () => {
     >([
       {
         listener: listener1,
-        options: undefined
+        options: undefined,
       },
-      { listener: listener2, options: undefined }
+      { listener: listener2, options: undefined },
     ]);
   });
 
@@ -314,8 +316,8 @@ describe("Testsuite for WebSocketBuilder", () => {
     >([
       {
         listener,
-        options
-      }
+        options,
+      },
     ]);
 
     const ws = builder.build();
@@ -337,9 +339,9 @@ describe("Testsuite for WebSocketBuilder", () => {
     >([
       {
         listener: listener1,
-        options: undefined
+        options: undefined,
       },
-      { listener: listener2, options }
+      { listener: listener2, options },
     ]);
 
     const ws = builder.build();
@@ -348,9 +350,9 @@ describe("Testsuite for WebSocketBuilder", () => {
     >([
       {
         listener: listener1,
-        options: undefined
+        options: undefined,
       },
-      { listener: listener2, options }
+      { listener: listener2, options },
     ]);
   });
 
@@ -363,8 +365,8 @@ describe("Testsuite for WebSocketBuilder", () => {
     >([
       {
         listener,
-        options: undefined
-      }
+        options: undefined,
+      },
     ]);
 
     const ws = builder.build();
@@ -373,8 +375,8 @@ describe("Testsuite for WebSocketBuilder", () => {
     >([
       {
         listener,
-        options: undefined
-      }
+        options: undefined,
+      },
     ]);
   });
 
@@ -390,9 +392,9 @@ describe("Testsuite for WebSocketBuilder", () => {
     >([
       {
         listener: listener1,
-        options: undefined
+        options: undefined,
       },
-      { listener: listener2, options: undefined }
+      { listener: listener2, options: undefined },
     ]);
 
     const ws = builder.build();
@@ -401,9 +403,9 @@ describe("Testsuite for WebSocketBuilder", () => {
     >([
       {
         listener: listener1,
-        options: undefined
+        options: undefined,
       },
-      { listener: listener2, options: undefined }
+      { listener: listener2, options: undefined },
     ]);
   });
 
@@ -417,8 +419,8 @@ describe("Testsuite for WebSocketBuilder", () => {
     >([
       {
         listener,
-        options
-      }
+        options,
+      },
     ]);
 
     const ws = builder.build();
@@ -440,9 +442,9 @@ describe("Testsuite for WebSocketBuilder", () => {
     >([
       {
         listener: listener1,
-        options: undefined
+        options: undefined,
       },
-      { listener: listener2, options }
+      { listener: listener2, options },
     ]);
 
     const ws = builder.build();
@@ -451,9 +453,9 @@ describe("Testsuite for WebSocketBuilder", () => {
     >([
       {
         listener: listener1,
-        options: undefined
+        options: undefined,
       },
-      { listener: listener2, options }
+      { listener: listener2, options },
     ]);
   });
 
@@ -466,8 +468,8 @@ describe("Testsuite for WebSocketBuilder", () => {
     >([
       {
         listener,
-        options: undefined
-      }
+        options: undefined,
+      },
     ]);
 
     const ws = builder.build();
@@ -476,8 +478,8 @@ describe("Testsuite for WebSocketBuilder", () => {
     >([
       {
         listener,
-        options: undefined
-      }
+        options: undefined,
+      },
     ]);
   });
 
@@ -493,9 +495,9 @@ describe("Testsuite for WebSocketBuilder", () => {
     >([
       {
         listener: listener1,
-        options: undefined
+        options: undefined,
       },
-      { listener: listener2, options: undefined }
+      { listener: listener2, options: undefined },
     ]);
 
     const ws = builder.build();
@@ -504,9 +506,9 @@ describe("Testsuite for WebSocketBuilder", () => {
     >([
       {
         listener: listener1,
-        options: undefined
+        options: undefined,
       },
-      { listener: listener2, options: undefined }
+      { listener: listener2, options: undefined },
     ]);
   });
 
@@ -520,8 +522,8 @@ describe("Testsuite for WebSocketBuilder", () => {
     >([
       {
         listener,
-        options
-      }
+        options,
+      },
     ]);
 
     const ws = builder.build();
@@ -530,8 +532,8 @@ describe("Testsuite for WebSocketBuilder", () => {
     >([
       {
         listener,
-        options
-      }
+        options,
+      },
     ]);
   });
 
@@ -548,9 +550,9 @@ describe("Testsuite for WebSocketBuilder", () => {
     >([
       {
         listener: listener1,
-        options: undefined
+        options: undefined,
       },
-      { listener: listener2, options }
+      { listener: listener2, options },
     ]);
 
     const ws = builder.build();
@@ -559,9 +561,9 @@ describe("Testsuite for WebSocketBuilder", () => {
     >([
       {
         listener: listener1,
-        options: undefined
+        options: undefined,
       },
-      { listener: listener2, options }
+      { listener: listener2, options },
     ]);
   });
 
@@ -574,8 +576,8 @@ describe("Testsuite for WebSocketBuilder", () => {
     >([
       {
         listener,
-        options: undefined
-      }
+        options: undefined,
+      },
     ]);
 
     const ws = builder.build();
@@ -584,8 +586,8 @@ describe("Testsuite for WebSocketBuilder", () => {
     >([
       {
         listener,
-        options: undefined
-      }
+        options: undefined,
+      },
     ]);
   });
 
@@ -601,9 +603,9 @@ describe("Testsuite for WebSocketBuilder", () => {
     >([
       {
         listener: listener1,
-        options: undefined
+        options: undefined,
       },
-      { listener: listener2, options: undefined }
+      { listener: listener2, options: undefined },
     ]);
 
     const ws = builder.build();
@@ -612,9 +614,9 @@ describe("Testsuite for WebSocketBuilder", () => {
     >([
       {
         listener: listener1,
-        options: undefined
+        options: undefined,
       },
-      { listener: listener2, options: undefined }
+      { listener: listener2, options: undefined },
     ]);
   });
 
@@ -628,8 +630,8 @@ describe("Testsuite for WebSocketBuilder", () => {
     >([
       {
         listener,
-        options
-      }
+        options,
+      },
     ]);
 
     const ws = builder.build();
@@ -651,9 +653,9 @@ describe("Testsuite for WebSocketBuilder", () => {
     >([
       {
         listener: listener1,
-        options: undefined
+        options: undefined,
       },
-      { listener: listener2, options }
+      { listener: listener2, options },
     ]);
 
     const ws = builder.build();
@@ -662,9 +664,9 @@ describe("Testsuite for WebSocketBuilder", () => {
     >([
       {
         listener: listener1,
-        options: undefined
+        options: undefined,
       },
-      { listener: listener2, options }
+      { listener: listener2, options },
     ]);
   });
 
@@ -677,8 +679,8 @@ describe("Testsuite for WebSocketBuilder", () => {
     >([
       {
         listener,
-        options: undefined
-      }
+        options: undefined,
+      },
     ]);
 
     const ws = builder.build();
@@ -687,8 +689,8 @@ describe("Testsuite for WebSocketBuilder", () => {
     >([
       {
         listener,
-        options: undefined
-      }
+        options: undefined,
+      },
     ]);
   });
 
@@ -704,9 +706,9 @@ describe("Testsuite for WebSocketBuilder", () => {
     >([
       {
         listener: listener1,
-        options: undefined
+        options: undefined,
       },
-      { listener: listener2, options: undefined }
+      { listener: listener2, options: undefined },
     ]);
 
     const ws = builder.build();
@@ -715,9 +717,9 @@ describe("Testsuite for WebSocketBuilder", () => {
     >([
       {
         listener: listener1,
-        options: undefined
+        options: undefined,
       },
-      { listener: listener2, options: undefined }
+      { listener: listener2, options: undefined },
     ]);
   });
 
@@ -731,8 +733,8 @@ describe("Testsuite for WebSocketBuilder", () => {
     >([
       {
         listener,
-        options
-      }
+        options,
+      },
     ]);
 
     const ws = builder.build();
@@ -741,8 +743,8 @@ describe("Testsuite for WebSocketBuilder", () => {
     >([
       {
         listener,
-        options
-      }
+        options,
+      },
     ]);
   });
 
@@ -759,9 +761,9 @@ describe("Testsuite for WebSocketBuilder", () => {
     >([
       {
         listener: listener1,
-        options: undefined
+        options: undefined,
       },
-      { listener: listener2, options }
+      { listener: listener2, options },
     ]);
 
     const ws = builder.build();
@@ -770,9 +772,9 @@ describe("Testsuite for WebSocketBuilder", () => {
     >([
       {
         listener: listener1,
-        options: undefined
+        options: undefined,
       },
-      { listener: listener2, options }
+      { listener: listener2, options },
     ]);
   });
 

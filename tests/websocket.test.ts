@@ -12,7 +12,14 @@ import {
   WebsocketEventListenerWithOptions,
 } from "../src";
 import { WebsocketBuffer } from "../src";
-import { describe, test, expect, beforeAll, beforeEach, afterEach } from "vitest";
+import {
+  describe,
+  test,
+  expect,
+  beforeAll,
+  beforeEach,
+  afterEach,
+} from "vitest";
 
 describe("Testsuite for Websocket", () => {
   const port: number = process.env.PORT ? parseInt(process.env.PORT) : 41337;
@@ -715,11 +722,14 @@ describe("Testsuite for Websocket", () => {
 
   describe("Send", () => {
     test("Websocket should send a message to the server and the server should receive it", async () => {
-      const serverReceivedMessage = new Promise<string>((resolve, reject) => {
+      const serverReceivedMessage = new Promise<string>((resolve) => {
         server?.on("connection", (client) => {
-          client?.on("message", onStringMessageReceived((str: string) => {
-            resolve(str);
-          }));
+          client?.on(
+            "message",
+            onStringMessageReceived((str: string) => {
+              resolve(str);
+            }),
+          );
         });
       });
 
@@ -778,12 +788,15 @@ describe("Testsuite for Websocket", () => {
       const messagesReceived: string[] = [];
       const serverReceivedMessages = new Promise<string[]>((resolve) => {
         server?.on("connection", (client) => {
-          client?.on("message", onStringMessageReceived((str: string) => {
-            messagesReceived.push(str);
-            if (messagesReceived.length === 2) {
-              resolve(messagesReceived);
-            }
-          }));
+          client?.on(
+            "message",
+            onStringMessageReceived((str: string) => {
+              messagesReceived.push(str);
+              if (messagesReceived.length === 2) {
+                resolve(messagesReceived);
+              }
+            }),
+          );
         });
       });
 
@@ -884,7 +897,10 @@ const startServer = (port: number, timeout: number): Promise<WebSocketServer> =>
  * @param wss the websocket server to stop
  * @param timeout the amount of milliseconds to wait before rejecting
  */
-const stopServer = (wss: WebSocketServer | undefined, timeout: number): Promise<void> =>
+const stopServer = (
+  wss: WebSocketServer | undefined,
+  timeout: number,
+): Promise<void> =>
   new Promise<void>((resolve, reject) => {
     if (wss === undefined) return resolve();
     rejectAfter(timeout, "failed to stop server").catch((err) => reject(err));
@@ -930,20 +946,27 @@ const getListenersWithOptions = <K extends WebsocketEvent>(
  * @param isBinary whether the message is binary
  * @returns the message as a string
  */
-const wsMessageToString = (message: ArrayBuffer | Blob | Buffer | Buffer[], isBinary: boolean): string => {
-  if (isBinary) throw new Error("Unexpected binary message");
-  else if (!(message instanceof Buffer)) throw new Error("Unexpected message type");
-  else return message.toString("utf-8");
-}
+const wsMessageToString = (
+  message: ArrayBuffer | Blob | Buffer | Buffer[],
+  isBinary: boolean,
+): string => {
+  if (isBinary) {
+    throw new Error("Unexpected binary message");
+  } else if (!(message instanceof Buffer)) {
+    throw new Error("Unexpected message type");
+  } else return message.toString("utf-8");
+};
 
 /**
  * Converts a websocket message to a string and calls the given handler.
  *
  * @param handler the handler to call with the message
  */
-const onStringMessageReceived = (handler: (str: string) => void) => (message: ArrayBuffer | Blob | Buffer | Buffer[], isBinary: boolean) => {
-  handler(wsMessageToString(message, isBinary));
-}
+const onStringMessageReceived =
+  (handler: (str: string) => void) =>
+  (message: ArrayBuffer | Blob | Buffer | Buffer[], isBinary: boolean) => {
+    handler(wsMessageToString(message, isBinary));
+  };
 
 /**
  * Closes the given websocket server and terminates all connections.
@@ -954,4 +977,4 @@ const closeServer = (wss: WebSocketServer | undefined) => {
   if (wss === undefined) return;
   wss.clients.forEach((client) => client.terminate());
   wss.close();
-}
+};

@@ -47,8 +47,8 @@ export class RingQueue<E> implements Queue<E> {
     return this.tail === this.head
       ? 0
       : this.tail < this.head
-      ? this.head - this.tail
-      : this.elements.length - this.tail + this.head;
+        ? this.head - this.tail
+        : this.elements.length - this.tail + this.head;
   }
 
   isEmpty(): boolean {

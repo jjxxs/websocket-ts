@@ -4,6 +4,11 @@
   "main": "dist/cjs/src/index.js",
   "types": "dist/cjs/src/index.d.ts",
   "module": "dist/esm/src/index.js",
+  "type": "module",
+  "exports": {
+    "import": "./dist/esm/src/index.js",
+    "require": "./dist/cjs/src/index.js"
+  },
   "license": "MIT",
   "keywords": [
     "websocket",
@@ -22,24 +27,27 @@
     "build:cjs": "tsc -p tsconfig.cjs.json",
     "build:esm": "tsc -p tsconfig.esm.json",
     "coveralls": "cat ./coverage/lcov.info | coveralls",
-    "lint": "cross-env-shell eslint './src/{**/*,*}.{js,ts}' './tests/{**/*,*}.{js,ts}'",
+    "lint": "cross-env-shell eslint",
     "test": "vitest",
     "test:coverage": "vitest --coverage"
   },
   "devDependencies": {
+    "@eslint/eslintrc": "^3.2.0",
+    "@eslint/js": "^9.20.0",
     "@types/ws": "^8.5.14",
     "@typescript-eslint/eslint-plugin": "^8.24.0",
     "@typescript-eslint/parser": "^8.24.0",
+    "@vitest/coverage-v8": "^3.0.5",
     "coveralls": "^3.1.1",
     "cross-env": "^7.0.3",
     "eslint": "^9.20.1",
     "eslint-config-prettier": "^10.0.1",
     "eslint-plugin-prettier": "^5.2.3",
+    "globals": "^15.15.0",
+    "jsdom": "^26.0.0",
     "ts-node": "^10.9.2",
     "typescript": "^5.7.3",
     "vitest": "^3.0.5",
-    "@vitest/coverage-v8": "^3.0.5",
-    "jsdom": "^26.0.0",
     "ws": "^8.18.0"
   }
 }
