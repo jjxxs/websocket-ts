@@ -16,7 +16,7 @@ import { WebsocketOptions } from "./websocket_options";
  * A websocket wrapper that can be configured to reconnect automatically and buffer messages when the websocket is not connected.
  */
 export class Websocket {
-  private readonly _url: string; // the url to connect to
+  private _url: string; // the url to connect to
   private readonly _protocols?: string | string[]; // the protocols to use
 
   private _closedByUser: boolean = false; // whether the websocket was closed by the user
@@ -70,6 +70,10 @@ export class Websocket {
    */
   get url(): string {
     return this._url;
+  }
+
+  set url(url: string) {
+    this._url = url;
   }
 
   /**
@@ -349,7 +353,7 @@ export class Websocket {
    * @param type of the event to dispatch.
    * @param event to dispatch.
    */
-  private dispatchEvent<K extends WebsocketEvent>(
+  private async dispatchEvent<K extends WebsocketEvent>(
     type: K,
     event: WebsocketEventMap[K],
   ) {
@@ -357,17 +361,23 @@ export class Websocket {
       this._options.listeners[type];
     const newEventListeners: WebsocketEventListeners[K] = [];
 
-    eventListeners.forEach(({ listener, options }) => {
-      listener(this, event); // invoke listener with event
+    await Promise.all(
+      eventListeners.map(async ({ listener, options }) => {
+        if (listener.constructor.name === "AsyncFunction") {
+          await listener(this, event); // invoke listener with event
+        } else {
+          listener(this, event); // invoke listener with event
+        }
 
-      if (
-        options === undefined ||
-        options.once === undefined ||
-        !options.once
-      ) {
-        newEventListeners.push({ listener, options }); // only keep listener if it isn't a once-listener
-      }
-    });
+        if (
+          options === undefined ||
+          options.once === undefined ||
+          !options.once
+        ) {
+          newEventListeners.push({ listener, options }); // only keep listener if it isn't a once-listener
+        }
+      }),
+    );
 
     this._options.listeners[type] = newEventListeners; // replace old listeners with new listeners that don't include once-listeners
   }
@@ -378,13 +388,13 @@ export class Websocket {
    * @param type of the event to handle.
    * @param event to handle.
    */
-  private handleEvent<K extends WebsocketEvent>(
+  private async handleEvent<K extends WebsocketEvent>(
     type: K,
     event: WebsocketEventMap[K],
   ) {
     switch (type) {
       case WebsocketEvent.close:
-        this.dispatchEvent(type, event);
+        await this.dispatchEvent(type, event);
         this.scheduleConnectionRetryIfNeeded(); // schedule a new connection retry if the websocket was closed by the server
         break;
 
@@ -399,22 +409,22 @@ export class Websocket {
             new CustomEvent<ReconnectEventDetail>(WebsocketEvent.reconnect, {
               detail,
             });
-          this.dispatchEvent(WebsocketEvent.reconnect, event);
+          await this.dispatchEvent(WebsocketEvent.reconnect, event);
           this.backoff.reset();
         }
         this._lastConnection = new Date();
-        this.dispatchEvent(type, event); // dispatch open event and send buffered data
+        await this.dispatchEvent(type, event); // dispatch open event and send buffered data
         this.sendBufferedData();
         break;
 
       case WebsocketEvent.retry:
-        this.dispatchEvent(type, event); // dispatch retry event and try to connect
+        await this.dispatchEvent(type, event); // dispatch retry event and try to connect
         this.clearWebsocket(); // clear the old websocket
         this.tryConnect();
         break;
 
       default:
-        this.dispatchEvent(type, event); // dispatch event to all listeners of the given event-type
+        await this.dispatchEvent(type, event); // dispatch event to all listeners of the given event-type
         break;
     }
   }
