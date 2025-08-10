@@ -22,7 +22,6 @@
     "build": "npm run build:cjs && npm run build:esm",
     "build:cjs": "tsc -p tsconfig.cjs.json",
     "build:esm": "tsc -p tsconfig.esm.json",
-    "coveralls": "cat ./coverage/lcov.info | coveralls",
     "lint": "cross-env-shell eslint './src/{**/*,*}.{js,ts}' './tests/{**/*,*}.{js,ts}'",
     "test": "vitest",
     "test:coverage": "vitest --coverage"
