@@ -11,6 +11,7 @@ jobs:
         with:
           node-version: '22'
           check-latest: true
+          cache: 'npm'
       - name: Install dev-dependencies
         run: npm install --only=dev
       - name: Run test with coverage

@@ -1,16 +1,18 @@
 name: Lint
 
-on: [ push, pull_request ]
+on: [push, pull_request]
 
 jobs:
   lint:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4.2.0
+      - uses: actions/checkout@v4.2.2
+      - uses: actions/setup-node@v4.4.0
         with:
-          node-version: '22.14.0'
+          node-version: '22'
+          check-latest: true
+          cache: 'npm'
       - name: Install dev-dependencies
-        run: npm install --only=dev
+        run: npm ci --only=dev
       - name: Run lint
         run: npm run lint

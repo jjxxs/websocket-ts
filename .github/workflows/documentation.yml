@@ -17,6 +17,7 @@ jobs:
         with:
           node-version: '22'
           check-latest: true
+          cache: 'npm'
       - name: Install dependencies and generate documentation
         run: |
           npm ci
