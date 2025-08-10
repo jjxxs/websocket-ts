@@ -2,23 +2,30 @@ name: Create and publish npm package
 
 on:
   release:
-    types: [ published ]
+    types: [published]
+
+permissions:
+  contents: read
+  id-token: write
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4.2.0
+      - uses: actions/checkout@v4.2.2
+      - uses: actions/setup-node@v4.4.0
         with:
-          node-version: '22.14.0'
+          node-version: '22'
+          check-latest: true
+          cache: 'npm'
           registry-url: 'https://registry.npmjs.org'
 
       # Install, build & publish to npm
       - name: Install dependencies
-        run: npm install
+        run: npm ci
       - name: Build package
         run: npm run build
-      - run: npm publish
+      - name: Publish to npm
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish --provenance
