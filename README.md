@@ -1,20 +1,18 @@
-<div>
-  <div align="center">
-    <img src="https://raw.githubusercontent.com/jjxxs/websocket-ts/gh-pages/websocket-ts-logo.svg" alt="websocket-ts" width="300" height="65" />
-  </div>
-  <p align="center">
-    <img src="https://github.com/jjxxs/websocket-ts/actions/workflows/build.yml/badge.svg" alt="Build Status" />
-    <img src="https://github.com/jjxxs/websocket-ts/actions/workflows/test.yml/badge.svg" alt="Build Status" />
-    <a href="https://coveralls.io/github/jjxxs/websocket-ts?branch=master">
-      <img src="https://coveralls.io/repos/github/jjxxs/websocket-ts/badge.svg?branch=master&service=github" alt="Coverage Status" />
-    </a>
-    <a href="https://github.com/jjxxs/websocket-ts/releases/latest">
-      <img src="https://img.shields.io/github/v/release/jjxxs/websocket-ts" alt="Release" />
-    </a>
-    <a href="/LICENSE">
-      <img src="https://img.shields.io/github/license/jjxxs/websocket-ts" alt="License" />
-    </a>
-  </p>
+<div align="center">
+<img src="https://raw.githubusercontent.com/jjxxs/websocket-ts/gh-pages/websocket-ts-logo.svg" alt="websocket-ts" width="300" height="65" />
+</div>
+
+<div align="center">
+
+[![Build Status](https://img.shields.io/github/actions/workflow/status/jjxxs/websocket-ts/build.yml?style=flat-square)](https://github.com/jjxxs/websocket-ts/actions/workflows/build.yml)
+[![Test Status](https://img.shields.io/github/actions/workflow/status/jjxxs/websocket-ts/test.yml?label=tests&style=flat-square)](https://github.com/jjxxs/websocket-ts/actions/workflows/test.yml)
+[![Coverage Status](https://img.shields.io/coveralls/github/jjxxs/websocket-ts/master?style=flat-square)](https://coveralls.io/github/jjxxs/websocket-ts?branch=master)
+[![npm downloads](https://img.shields.io/npm/dm/websocket-ts.svg?style=flat-square)](https://npm-stat.com/charts.html?package=websocket-ts)
+[![npm version](https://img.shields.io/npm/v/websocket-ts.svg?style=flat-square)](https://www.npmjs.org/package/websocket-ts)
+[![Bundle Size](https://badgen.net/bundlephobia/minzip/websocket-ts)](https://bundlephobia.com/package/websocket-ts)
+[![Known Vulnerabilities](https://snyk.io/test/npm/websocket-ts/badge.svg)](https://snyk.io/test/npm/websocket-ts)
+[![License](https://img.shields.io/github/license/jjxxs/websocket-ts?style=flat-square)](/LICENSE)
+
 </div>
 
 <div align="center">
@@ -23,7 +21,7 @@ A <b>WebSocket</b> for browsers with <b>auto-reconnect</b> and <b>message buffer
 
 ## Features
 
-- **Lightweight & Standalone**: No dependencies, 2.1 kB minified & gzipped.
+- **Lightweight & Standalone**: No dependencies, 2.5 kB minified & gzipped.
 - **Browser-native**: Utilizes WebSocket API, offers direct access.
 - **Smart Reconnect**: Optional auto-reconnect and message buffering.
 - **Easy Setup**: Optional builder class for quick initialization.
