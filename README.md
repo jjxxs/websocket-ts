@@ -1,11 +1,11 @@
-<div align="center" style="padding-bottom: 8px;">
+<div align="center">
 <img src="https://raw.githubusercontent.com/jjxxs/websocket-ts/gh-pages/websocket-ts-logo.svg" alt="websocket-ts" width="300" height="65" />
 </div>
 
 <div align="center">
 A <b>WebSocket</b> for browsers with <b>auto-reconnect</b> and <b>message buffering</b> written in <b>TypeScript</b>.
 </div>
-
+&nbsp;
 <div align="center">
 
 [![Build Status](https://img.shields.io/github/actions/workflow/status/jjxxs/websocket-ts/build.yml)](https://github.com/jjxxs/websocket-ts/actions/workflows/build.yml)
