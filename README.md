@@ -1,22 +1,32 @@
-<div align="center">
+<div align="center" style="padding-bottom: 8px;">
 <img src="https://raw.githubusercontent.com/jjxxs/websocket-ts/gh-pages/websocket-ts-logo.svg" alt="websocket-ts" width="300" height="65" />
 </div>
 
 <div align="center">
+A <b>WebSocket</b> for browsers with <b>auto-reconnect</b> and <b>message buffering</b> written in <b>TypeScript</b>.
+</div>
 
-[![Build Status](https://img.shields.io/github/actions/workflow/status/jjxxs/websocket-ts/build.yml?style=flat-square)](https://github.com/jjxxs/websocket-ts/actions/workflows/build.yml)
-[![Test Status](https://img.shields.io/github/actions/workflow/status/jjxxs/websocket-ts/test.yml?label=tests&style=flat-square)](https://github.com/jjxxs/websocket-ts/actions/workflows/test.yml)
-[![Coverage Status](https://img.shields.io/coveralls/github/jjxxs/websocket-ts/master?style=flat-square)](https://coveralls.io/github/jjxxs/websocket-ts?branch=master)
-[![npm downloads](https://img.shields.io/npm/dm/websocket-ts.svg?style=flat-square)](https://npm-stat.com/charts.html?package=websocket-ts)
-[![npm version](https://img.shields.io/npm/v/websocket-ts.svg?style=flat-square)](https://www.npmjs.org/package/websocket-ts)
-[![Bundle Size](https://badgen.net/bundlephobia/minzip/websocket-ts)](https://bundlephobia.com/package/websocket-ts)
-[![Known Vulnerabilities](https://snyk.io/test/npm/websocket-ts/badge.svg)](https://snyk.io/test/npm/websocket-ts)
-[![License](https://img.shields.io/github/license/jjxxs/websocket-ts?style=flat-square)](/LICENSE)
+<div align="center">
+
+[![Build Status](https://img.shields.io/github/actions/workflow/status/jjxxs/websocket-ts/build.yml)](https://github.com/jjxxs/websocket-ts/actions/workflows/build.yml)
+[![Test Status](https://img.shields.io/github/actions/workflow/status/jjxxs/websocket-ts/test.yml?label=tests)](https://github.com/jjxxs/websocket-ts/actions/workflows/test.yml)
+[![Coverage Status](https://img.shields.io/coveralls/github/jjxxs/websocket-ts/master)](https://coveralls.io/github/jjxxs/websocket-ts?branch=master)
+[![npm downloads](https://img.shields.io/npm/dm/websocket-ts.svg)](https://npm-stat.com/charts.html?package=websocket-ts)
 
 </div>
 
 <div align="center">
-A <b>WebSocket</b> for browsers with <b>auto-reconnect</b> and <b>message buffering</b> written in <b>TypeScript</b>.
+
+[![npm version](https://img.shields.io/npm/v/websocket-ts.svg)](https://www.npmjs.org/package/websocket-ts)
+[![Bundle Size](https://badgen.net/bundlephobia/minzip/websocket-ts)](https://bundlephobia.com/package/websocket-ts)
+
+</div>
+
+<div align="center">
+
+[![Known Vulnerabilities](https://snyk.io/test/npm/websocket-ts/badge.svg)](https://snyk.io/test/npm/websocket-ts)
+[![License](https://img.shields.io/github/license/jjxxs/websocket-ts)](/LICENSE)
+
 </div>
 
 ## Features
