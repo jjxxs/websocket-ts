@@ -48,9 +48,7 @@ class ErrorThenCloseWebSocket extends EventTarget {
     super();
     ErrorThenCloseWebSocket.errors++;
     queueMicrotask(() => this.dispatchEvent(new Event("error")));
-    queueMicrotask(() =>
-      this.dispatchEvent(new Event("close") as CloseEvent),
-    );
+    queueMicrotask(() => this.dispatchEvent(new Event("close") as CloseEvent));
   }
 
   public close(): void {
@@ -94,7 +92,7 @@ describe("Websocket retries on connect-time failures", () => {
 
     globalThis.clearTimeout = ((id?: number | undefined) => {
       if (typeof id === "number") {
-        scheduled[id - 1] = undefined as unknown as () => void;
+        scheduled[id - 1] = undefined;
       }
     }) as typeof globalThis.clearTimeout;
 
@@ -122,7 +120,7 @@ describe("Websocket retries on connect-time failures", () => {
   test("it does not schedule multiple retries while a retry is pending", async () => {
     const originalSetTimeout = globalThis.setTimeout;
     const originalClearTimeout = globalThis.clearTimeout;
-    const scheduled: Array<() => void | undefined> = [];
+    const scheduled: Array<(() => void) | undefined> = [];
 
     globalThis.setTimeout = ((cb: TimerHandler) => {
       if (typeof cb === "function") {
