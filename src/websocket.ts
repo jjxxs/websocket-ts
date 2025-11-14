@@ -413,6 +413,18 @@ export class Websocket {
         this.tryConnect();
         break;
 
+      case WebsocketEvent.error: {
+        this.dispatchEvent(type, event);
+        const isConnecting =
+          this._underlyingWebsocket.readyState ===
+          this._underlyingWebsocket.CONNECTING;
+
+        if (isConnecting) {
+          this.scheduleConnectionRetryIfNeeded(); // connection attempt failed before opening, schedule another retry
+        }
+        break;
+      }
+
       default:
         this.dispatchEvent(type, event); // dispatch event to all listeners of the given event-type
         break;
@@ -446,6 +458,9 @@ export class Websocket {
     if (this.backoff === undefined) {
       return; // no backoff defined, no retry
     }
+    if (this.retryTimeout !== undefined) {
+      return; // retry already scheduled
+    }
 
     // handler dispatches the retry event to all listeners of the retry event-type
     const handleRetryEvent = (detail: RetryEventDetail) => {
@@ -472,10 +487,10 @@ export class Websocket {
       this._options.retry.maxRetries === undefined ||
       retryEventDetail.retries <= this._options.retry.maxRetries
     ) {
-      this.retryTimeout = globalThis.setTimeout(
-        () => handleRetryEvent(retryEventDetail),
-        retryEventDetail.backoff,
-      );
+      this.retryTimeout = globalThis.setTimeout(() => {
+        this.retryTimeout = undefined;
+        handleRetryEvent(retryEventDetail);
+      }, retryEventDetail.backoff);
     }
   }
 
@@ -483,6 +498,10 @@ export class Websocket {
    * Cancels the scheduled connection-retry, if there is one.
    */
   private cancelScheduledConnectionRetry() {
+    if (this.retryTimeout === undefined) {
+      return;
+    }
     globalThis.clearTimeout(this.retryTimeout);
+    this.retryTimeout = undefined;
   }
 }
