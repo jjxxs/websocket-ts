@@ -5,7 +5,7 @@ export { LinearBackoff } from "./backoff/linearbackoff";
 export { Queue } from "./queue/queue";
 export { ArrayQueue } from "./queue/array_queue";
 export { RingQueue } from "./queue/ring_queue";
-export { Websocket } from "./websocket";
+export { UrlProvider, Websocket } from "./websocket";
 export { WebsocketBuffer } from "./websocket_buffer";
 export { WebsocketBuilder } from "./websocket_builder";
 export {

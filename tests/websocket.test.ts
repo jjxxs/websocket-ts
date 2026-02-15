@@ -61,6 +61,12 @@ describe("Testsuite for Websocket", () => {
         const client = new Websocket(url);
         expect(client.url).toBe(url);
       });
+
+      test("Websocket constructed with a URL function should resolve and return the string from url getter", () => {
+        const urlProvider = () => url;
+        const client = new Websocket(urlProvider);
+        expect(client.url).toBe(url);
+      });
     });
 
     describe("Protocols", () => {
@@ -595,6 +601,38 @@ describe("Testsuite for Websocket", () => {
   });
 
   describe("Reconnect behaviour", () => {
+    describe("UrlProvider", () => {
+      test("URL provider function is called on each connection attempt", async () => {
+        let callCount = 0;
+        const urlProvider = () => {
+          callCount++;
+          return url;
+        };
+
+        await new Promise<WebsocketEventListenerParams<WebsocketEvent.open>>(
+          (resolve) => {
+            client = new WebsocketBuilder(urlProvider)
+              .withBackoff(new ConstantBackoff(0))
+              .onOpen((instance, ev) => resolve([instance, ev]))
+              .build();
+          },
+        ).then(([instance, ev]) => {
+          expect(instance).toBe(client);
+          expect(ev.type).toBe(WebsocketEvent.open);
+        });
+
+        // give some time for all handlers to be called
+        await new Promise((resolve) => setTimeout(resolve, 100));
+        expect(callCount).toBe(1); // called once for the initial connection
+
+        // disconnect all clients to trigger a retry
+        server?.clients.forEach((client) => client.close());
+        await new Promise((resolve) => setTimeout(resolve, 100));
+
+        expect(callCount).toBe(2); // called again for the retry
+      });
+    });
+
     describe("InstantReconnect", () => {
       test("Websocket should try to reconnect immediately when instantReconnect is true", async () => {
         let [openCount, retryCount, reconnectCount] = [0, 0, 0];

@@ -4,7 +4,7 @@ import {
   WebsocketEventListener,
   WebsocketEventListenerOptions,
 } from "./websocket_event";
-import { Websocket } from "./websocket";
+import { UrlProvider, Websocket } from "./websocket";
 import { WebsocketBuffer } from "./websocket_buffer";
 import { WebsocketOptions } from "./websocket_options";
 
@@ -12,7 +12,7 @@ import { WebsocketOptions } from "./websocket_options";
  * Builder for websockets.
  */
 export class WebsocketBuilder {
-  private readonly _url: string;
+  private readonly _url: UrlProvider;
 
   private _protocols?: string | string[];
   private _options?: WebsocketOptions;
@@ -20,18 +20,18 @@ export class WebsocketBuilder {
   /**
    * Creates a new WebsocketBuilder.
    *
-   * @param url the url to connect to
+   * @param url the url to connect to, or a function that returns a URL
    */
-  constructor(url: string) {
+  constructor(url: UrlProvider) {
     this._url = url;
   }
 
   /**
    * Getter for the url.
    *
-   * @returns the url
+   * @returns the url or url provider
    */
-  get url(): string {
+  get url(): UrlProvider {
     return this._url;
   }
 

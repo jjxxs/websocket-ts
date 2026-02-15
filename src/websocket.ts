@@ -13,10 +13,17 @@ import {
 import { WebsocketOptions } from "./websocket_options";
 
 /**
+ * A URL or a function that returns a URL. When a function is provided, it is called on each connection attempt,
+ * enabling use cases like load balancing, auth token rotation, and failover.
+ */
+export type UrlProvider = string | (() => string);
+
+/**
  * A websocket wrapper that can be configured to reconnect automatically and buffer messages when the websocket is not connected.
  */
 export class Websocket {
-  private readonly _url: string; // the url to connect to
+  private readonly _urlProvider: UrlProvider; // the url or url provider
+  private _url!: string; // the last resolved url
   private readonly _protocols?: string | string[]; // the protocols to use
 
   private _closedByUser: boolean = false; // whether the websocket was closed by the user
@@ -30,16 +37,16 @@ export class Websocket {
   /**
    * Creates a new websocket.
    *
-   * @param url to connect to.
+   * @param url to connect to, or a function that returns a URL.
    * @param protocols optional protocols to use.
    * @param options optional options to use.
    */
   constructor(
-    url: string,
+    url: UrlProvider,
     protocols?: string | string[],
     options?: WebsocketOptions,
   ) {
-    this._url = url;
+    this._urlProvider = url;
     this._protocols = protocols;
 
     // make a copy of the options to prevent the user from changing them
@@ -271,7 +278,11 @@ export class Websocket {
    * @return the created browser-native websocket which is also stored in the '_underlyingWebsocket' property.
    */
   private tryConnect(): WebSocket {
-    this._underlyingWebsocket = new WebSocket(this.url, this.protocols); // create new browser-native websocket and add all event listeners
+    this._url =
+      typeof this._urlProvider === "function"
+        ? this._urlProvider()
+        : this._urlProvider;
+    this._underlyingWebsocket = new WebSocket(this._url, this.protocols); // create new browser-native websocket and add all event listeners
     this._underlyingWebsocket.addEventListener(
       WebsocketEvent.open,
       this.handleOpenEvent,
