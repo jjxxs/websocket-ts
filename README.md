@@ -74,7 +74,7 @@ ws.addEventListener(WebsocketEvent.message, echoOnMessage);
 ```
 
 ## Usage
-This will demonstrate how to use `websocket-ts` in your project using the provided `WebsocketBuild`-class.
+This will demonstrate how to use `websocket-ts` in your project using the provided `WebsocketBuilder`-class.
 
 For a more detailed description of the API, please refer to the [API Documentation](https://jjxxs.github.io/websocket-ts/).
 
