@@ -3,24 +3,39 @@ import { Websocket } from "./websocket";
 /**
  * Events that can be fired by the websocket.
  */
-export enum WebsocketEvent {
+export const WebsocketEvent = {
   /** Fired when the connection is opened. */
-  open = "open",
+  open: "open",
 
   /** Fired when the connection is closed. */
-  close = "close",
+  close: "close",
 
   /** Fired when the connection has been closed because of an error, such as when some data couldn't be sent. */
-  error = "error",
+  error: "error",
 
   /** Fired when a message is received. */
-  message = "message",
+  message: "message",
 
   /** Fired when the websocket tries to reconnect after a connection loss. */
-  retry = "retry",
+  retry: "retry",
 
   /** Fired when the websocket successfully reconnects after a connection loss. */
-  reconnect = "reconnect",
+  reconnect: "reconnect",
+} as const;
+
+/** Union of all event type strings, allowing plain strings like "open" as event types. */
+export type WebsocketEvent =
+  (typeof WebsocketEvent)[keyof typeof WebsocketEvent];
+
+/** Provides member types (e.g. WebsocketEvent.open) for use as generic type arguments. */
+// eslint-disable-next-line @typescript-eslint/no-namespace
+export namespace WebsocketEvent {
+  export type open = typeof WebsocketEvent.open;
+  export type close = typeof WebsocketEvent.close;
+  export type error = typeof WebsocketEvent.error;
+  export type message = typeof WebsocketEvent.message;
+  export type retry = typeof WebsocketEvent.retry;
+  export type reconnect = typeof WebsocketEvent.reconnect;
 }
 
 /***
