@@ -10,7 +10,7 @@ export interface WebsocketConnectionRetryOptions {
   readonly maxRetries?: number;
 
   /**
-   * Wether to reconnect immediately after a connection has been lost,
+   * Whether to reconnect immediately after a connection has been lost,
    * ignoring the backoff strategy for the first retry.
    */
   readonly instantReconnect?: boolean;
