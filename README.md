@@ -206,6 +206,18 @@ const ws = new WebsocketBuilder("ws://localhost:42421")
   .build();
 ```
 
+#### URL Provider (Optional)
+
+By default, the URL is a static string. To use a different URL between connection attempts, provide
+a function instead. The function is called on each connection attempt, including the initial one and
+any retries. This enables use cases like load balancing, auth token rotation, and failover.
+
+```typescript
+const ws = new WebsocketBuilder(() => `ws://localhost:42421?token=${getToken()}`)
+  .withBackoff(new ConstantBackoff(1000))
+  .build();
+```
+
 ## Build & Tests
 
 To compile the project, run `npm run build`.
