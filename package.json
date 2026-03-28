@@ -27,22 +27,22 @@
     "test:coverage": "vitest --coverage"
   },
   "devDependencies": {
-    "@eslint/eslintrc": "^3.3.1",
-    "@eslint/js": "^9.33.0",
+    "@eslint/eslintrc": "^3.3.5",
+    "@eslint/js": "^9.39.4",
     "@types/ws": "^8.18.1",
-    "@typescript-eslint/eslint-plugin": "^8.39.0",
-    "@typescript-eslint/parser": "^8.39.0",
+    "@typescript-eslint/eslint-plugin": "^8.57.2",
+    "@typescript-eslint/parser": "^8.57.2",
     "@vitest/coverage-v8": "^3.2.4",
     "coveralls-next": "^5.0.0",
-    "cross-env": "^10.0.0",
-    "eslint": "^9.33.0",
+    "cross-env": "^10.1.0",
+    "eslint": "^9.39.4",
     "eslint-config-prettier": "^10.1.8",
-    "eslint-plugin-prettier": "^5.5.4",
-    "globals": "^16.3.0",
+    "eslint-plugin-prettier": "^5.5.5",
+    "globals": "^16.5.0",
     "jsdom": "^26.1.0",
     "ts-node": "^10.9.2",
-    "typescript": "^5.9.2",
+    "typescript": "^5.9.3",
     "vitest": "^3.2.4",
-    "ws": "^8.18.3"
+    "ws": "^8.20.0"
   }
 }
