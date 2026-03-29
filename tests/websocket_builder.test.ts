@@ -19,6 +19,15 @@ describe("Testsuite for WebSocketBuilder", () => {
     expect(ws.url).toBe(url);
   });
 
+  test("WebsocketBuilder should accept a URL provider function", () => {
+    const urlProvider = () => url;
+    const builder = new WebsocketBuilder(urlProvider);
+    expect(builder.url).toBe(urlProvider);
+
+    const ws = builder.build();
+    expect(ws.url).toBe(url);
+  });
+
   test("WebsocketBuilder should set protocols", () => {
     const protocols = ["protocol1", "protocol2"];
 

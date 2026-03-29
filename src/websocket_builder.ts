@@ -4,7 +4,7 @@ import {
   WebsocketEventListener,
   WebsocketEventListenerOptions,
 } from "./websocket_event";
-import { Websocket } from "./websocket";
+import { UrlProvider, Websocket } from "./websocket";
 import { WebsocketBuffer } from "./websocket_buffer";
 import { WebsocketOptions } from "./websocket_options";
 
@@ -12,7 +12,7 @@ import { WebsocketOptions } from "./websocket_options";
  * Builder for websockets.
  */
 export class WebsocketBuilder {
-  private readonly _url: string;
+  private readonly _url: UrlProvider;
 
   private _protocols?: string | string[];
   private _options?: WebsocketOptions;
@@ -20,18 +20,18 @@ export class WebsocketBuilder {
   /**
    * Creates a new WebsocketBuilder.
    *
-   * @param url the url to connect to
+   * @param url the url to connect to, or a function that returns a URL
    */
-  constructor(url: string) {
+  constructor(url: UrlProvider) {
     this._url = url;
   }
 
   /**
    * Getter for the url.
    *
-   * @returns the url
+   * @returns the url or url provider
    */
-  get url(): string {
+  get url(): UrlProvider {
     return this._url;
   }
 
@@ -79,9 +79,9 @@ export class WebsocketBuilder {
   }
 
   /**
-   * Sets wether to reconnect immediately after a connection has been lost, ignoring the backoff strategy for the first retry.
+   * Sets whether to reconnect immediately after a connection has been lost, ignoring the backoff strategy for the first retry.
    *
-   * @param instantReconnect wether to reconnect immediately after a connection has been lost
+   * @param instantReconnect whether to reconnect immediately after a connection has been lost
    */
   public withInstantReconnect(
     instantReconnect: boolean | undefined,
@@ -94,9 +94,9 @@ export class WebsocketBuilder {
   }
 
   /**
-   * Getter for wether to reconnect immediately after a connection has been lost, ignoring the backoff strategy for the first retry.
+   * Getter for whether to reconnect immediately after a connection has been lost, ignoring the backoff strategy for the first retry.
    *
-   * @returns wether to reconnect immediately after a connection has been lost, undefined if no value has been set
+   * @returns whether to reconnect immediately after a connection has been lost, undefined if no value has been set
    */
   get instantReconnect(): boolean | undefined {
     return this._options?.retry?.instantReconnect;

@@ -1,20 +1,23 @@
 name: Coverage
 
-on: [ push, pull_request ]
+on: [push, pull_request]
 
 jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4.2.0
+      - uses: actions/checkout@v4.2.2
+      - uses: actions/setup-node@v4.4.0
         with:
-          node-version: '22.14.0'
+          node-version: '22'
+          check-latest: true
+          cache: 'npm'
       - name: Install dev-dependencies
         run: npm install --only=dev
       - name: Run test with coverage
         run: npm run test:coverage
-      - name: Generate coveralls report
-        env:
-          COVERALLS_REPO_TOKEN: ${{ secrets.COVERALLS_REPO_TOKEN }}
-        run: npm run coveralls
+      - name: Upload coverage to Coveralls
+        uses: coverallsapp/github-action@v2.3.6
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path-to-lcov: ./coverage/lcov.info

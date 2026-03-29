@@ -46,7 +46,7 @@ export class ExponentialBackoff implements Backoff {
       throw new Error("Base must be a positive integer or zero");
     }
     if (expMax !== undefined && (!Number.isInteger(expMax) || expMax < 0)) {
-      throw new Error("ExpMax must be a undefined, a positive integer or zero");
+      throw new Error("ExpMax must be undefined, a positive integer, or zero");
     }
 
     this.base = base;
