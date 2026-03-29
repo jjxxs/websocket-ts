@@ -18,7 +18,6 @@ jobs:
           node-version: '22'
           check-latest: true
           cache: 'npm'
-          registry-url: 'https://registry.npmjs.org'
 
       # Install, build & publish to npm
       - name: Install dependencies
@@ -26,6 +25,6 @@ jobs:
       - name: Build package
         run: npm run build
       - name: Publish to npm
-        run: npm publish --provenance
-        env:
-          NODE_AUTH_TOKEN: ''
+        run: |
+          npm config set registry https://registry.npmjs.org/
+          npm publish --provenance
