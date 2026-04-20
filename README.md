@@ -1,5 +1,8 @@
 <div align="center">
-<img src="https://raw.githubusercontent.com/jjxxs/websocket-ts/gh-pages/websocket-ts-logo.svg" alt="websocket-ts" width="300" height="65" />
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/jjxxs/websocket-ts/gh-pages/websocket-ts-logo-dark.svg" />
+  <img src="https://raw.githubusercontent.com/jjxxs/websocket-ts/gh-pages/websocket-ts-logo.svg" alt="websocket-ts" width="300" height="65" />
+</picture>
 </div>
 &nbsp;
 <div align="center">
