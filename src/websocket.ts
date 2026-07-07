@@ -634,7 +634,7 @@ export class Websocket {
           ? 0
           : backoff,
       retries: this.backoff.retries,
-      lastConnection: this._lastConnection,
+      lastConnection: this._lastConnection && new Date(this._lastConnection), // copy so listeners can't mutate our state
     };
 
     this.retryTimeout = globalThis.setTimeout(

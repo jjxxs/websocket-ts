@@ -582,6 +582,35 @@ describe("Testsuite for Websocket", () => {
     });
 
     describe("Retry & Reconnect", () => {
+      test("Retry event detail should hold a copy of the last connection date so listeners can't mutate state", async () => {
+        const retryDetails: Date[] = [];
+
+        await new Promise<void>((resolve) => {
+          client = new WebsocketBuilder(url)
+            .withBackoff(new ConstantBackoff(50))
+            .withMaxRetries(2)
+            .onOpen(() => resolve(), { once: true })
+            .onRetry((_, ev) => {
+              if (ev.detail.lastConnection !== undefined) {
+                retryDetails.push(ev.detail.lastConnection);
+              }
+            })
+            .build();
+        });
+
+        // stop the server entirely so no reconnect succeeds and the instance's
+        // lastConnection keeps referring to the same Date while we vandalize
+        // the one from the event detail
+        await stopServer(server, serverTimeout).then(
+          () => (server = undefined),
+        );
+        await new Promise((resolve) => setTimeout(resolve, 200));
+
+        expect(retryDetails.length).toBeGreaterThan(0);
+        retryDetails[0].setTime(0); // vandalize the detail's date
+        expect(client!.lastConnection!.getTime()).not.toBe(0); // instance state must be unaffected
+      });
+
       test("Websocket should not emit 'retry' on the first connection attempt, emit it when retrying and emit 'reconnect' when it reconnects", async () => {
         let [openCount, retryCount, reconnectCount] = [0, 0, 0];
         const onOpen = () => openCount++;
