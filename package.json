@@ -22,7 +22,7 @@
     "build": "npm run build:cjs && npm run build:esm",
     "build:cjs": "tsc -p tsconfig.cjs.json",
     "build:esm": "tsc -p tsconfig.esm.json",
-    "lint": "cross-env-shell eslint './src/{**/*,*}.{js,ts}' './tests/{**/*,*}.{js,ts}'",
+    "lint": "cross-env-shell eslint './src/**/*.ts' './tests/**/*.ts'",
     "test": "vitest",
     "test:coverage": "vitest --coverage"
   },
