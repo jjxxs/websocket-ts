@@ -368,23 +368,28 @@ export class Websocket {
     type: K,
     event: WebsocketEventMap[K],
   ) {
-    const eventListeners: WebsocketEventListeners[K] =
-      this._options.listeners[type];
-    const newEventListeners: WebsocketEventListeners[K] = [];
+    // iterate over a snapshot so that listeners registered during dispatch are
+    // not invoked in this round, while mutations of the live list persist
+    const snapshot: WebsocketEventListeners[K] = [
+      ...this._options.listeners[type],
+    ];
 
-    eventListeners.forEach(({ listener, options }) => {
-      listener(this, event); // invoke listener with event
+    snapshot.forEach((listenerWithOptions) => {
+      // re-read the live list on every invocation: a listener may have
+      // added/removed listeners of this type, or replaced the list entirely
+      const listeners: WebsocketEventListeners[K] =
+        this._options.listeners[type];
 
-      if (
-        options === undefined ||
-        options.once === undefined ||
-        !options.once
-      ) {
-        newEventListeners.push({ listener, options }); // only keep listener if it isn't a once-listener
+      const index = listeners.indexOf(listenerWithOptions);
+      if (index === -1) {
+        return; // listener was removed during dispatch, don't invoke it
       }
-    });
+      if (listenerWithOptions.options?.once) {
+        listeners.splice(index, 1); // remove once-listener before invoking it
+      }
 
-    this._options.listeners[type] = newEventListeners; // replace old listeners with new listeners that don't include once-listeners
+      listenerWithOptions.listener(this, event); // invoke listener with event
+    });
   }
 
   /**
