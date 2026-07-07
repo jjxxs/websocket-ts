@@ -467,14 +467,19 @@ export class Websocket {
       this.handleEvent(WebsocketEvent.retry, event);
     };
 
-    // create retry event detail, depending on the 'instantReconnect' option
+    // the backoff is reset on every successful reconnect, so a retry-count of
+    // zero means this is the first retry of the current disconnection episode
+    const isFirstRetryOfEpisode = this.backoff.retries === 0;
+
+    // always advance the backoff so the retry-count is accurate and maxRetries
+    // applies; with 'instantReconnect' only the episode's first retry is instant
+    const backoff = this.backoff.next();
     const retryEventDetail: RetryEventDetail = {
       backoff:
-        this._options.retry.instantReconnect === true ? 0 : this.backoff.next(),
-      retries:
-        this._options.retry.instantReconnect === true
+        this._options.retry.instantReconnect === true && isFirstRetryOfEpisode
           ? 0
-          : this.backoff.retries,
+          : backoff,
+      retries: this.backoff.retries,
       lastConnection: this._lastConnection,
     };
 
