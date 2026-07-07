@@ -252,20 +252,24 @@ export class Websocket {
   }
 
   /**
-   * Removes one or more event listener for the given event-type that match the given listener and options.
+   * Removes all event listeners for the given event-type that match the given listener.
+   *
+   * Matching is done by listener identity only, mirroring the native EventTarget:
+   * the options a listener was added with are ignored when matching.
    *
    * @param type of the event to remove the listener for.
    * @param listener to remove.
-   * @param options that were used when the listener was added.
+   * @param options ignored when matching, present for backward compatibility.
    */
   public removeEventListener<K extends WebsocketEvent>(
     type: K,
     listener: WebsocketEventListener<K>,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     options?: WebsocketEventListenerOptions,
   ): void {
     const isListenerNotToBeRemoved = (
       l: WebsocketEventListenerWithOptions<K>,
-    ) => l.listener !== listener || l.options !== options;
+    ) => l.listener !== listener;
 
     (this._options.listeners[type] as WebsocketEventListenerWithOptions<K>[]) =
       this._options.listeners[type].filter(isListenerNotToBeRemoved); // only keep listeners that are not to be removed
