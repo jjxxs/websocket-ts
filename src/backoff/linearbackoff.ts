@@ -45,14 +45,14 @@ export class LinearBackoff implements Backoff {
    * @param max the maximum backoff-time (in milliseconds), no bound if undefined
    */
   constructor(initial: number, increment: number, max?: number) {
-    if (initial < 0) {
-      throw new Error("Initial must be a positive number or zero");
+    if (!Number.isFinite(initial) || initial < 0) {
+      throw new Error("Initial must be a finite, non-negative number");
     }
-    if (increment < 0) {
-      throw new Error("Increment must be a positive number or zero");
+    if (!Number.isFinite(increment) || increment < 0) {
+      throw new Error("Increment must be a finite, non-negative number");
     }
-    if (max !== undefined && max < 0) {
-      throw new Error("Max must be undefined, a positive number or zero");
+    if (max !== undefined && (!Number.isFinite(max) || max < 0)) {
+      throw new Error("Max must be undefined or a finite, non-negative number");
     }
     if (max !== undefined && max < initial) {
       throw new Error(

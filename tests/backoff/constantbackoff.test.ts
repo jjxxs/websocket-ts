@@ -18,6 +18,17 @@ describe("Testsuite for ConstantBackoff", () => {
     expect(() => new ConstantBackoff(1001)).not.toThrow();
   });
 
+  test("Initialization should not throw on non-integer backoff", () => {
+    expect(() => new ConstantBackoff(0.5)).not.toThrow();
+    expect(() => new ConstantBackoff(1500.25)).not.toThrow();
+  });
+
+  test("Initialization should throw on non-finite backoff", () => {
+    expect(() => new ConstantBackoff(NaN)).toThrow();
+    expect(() => new ConstantBackoff(Infinity)).toThrow();
+    expect(() => new ConstantBackoff(-Infinity)).toThrow();
+  });
+
   test("Backoff should be equal to the given backoff", () => {
     expect(new ConstantBackoff(1).current).toBe(1);
     expect(new ConstantBackoff(42).current).toBe(42);

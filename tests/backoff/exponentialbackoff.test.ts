@@ -38,6 +38,23 @@ describe("Testsuite for ExponentialBackoff", () => {
     expect(() => new ExponentialBackoff(42)).not.toThrow();
   });
 
+  test("Initialization should not throw on non-integer base", () => {
+    expect(() => new ExponentialBackoff(0.5)).not.toThrow();
+    expect(() => new ExponentialBackoff(1500.25, 3)).not.toThrow();
+  });
+
+  test("Initialization should throw on non-finite base", () => {
+    expect(() => new ExponentialBackoff(NaN)).toThrow();
+    expect(() => new ExponentialBackoff(Infinity)).toThrow();
+    expect(() => new ExponentialBackoff(-Infinity)).toThrow();
+  });
+
+  test("Initialization should throw on non-integer max-exponent", () => {
+    expect(() => new ExponentialBackoff(42, 1.5)).toThrow();
+    expect(() => new ExponentialBackoff(42, NaN)).toThrow();
+    expect(() => new ExponentialBackoff(42, Infinity)).toThrow();
+  });
+
   test("Backoff should be equal to the given base", () => {
     expect(new ExponentialBackoff(1).current).toBe(1);
     expect(new ExponentialBackoff(42).current).toBe(42);

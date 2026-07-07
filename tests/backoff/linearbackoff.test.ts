@@ -50,6 +50,25 @@ describe("Testsuite for LinearBackoff", () => {
     expect(() => new LinearBackoff(1000, 1000, 1)).toThrow();
   });
 
+  test("Initialization should not throw on non-integer parameters", () => {
+    expect(() => new LinearBackoff(0.5, 100.25, 1000.75)).not.toThrow();
+  });
+
+  test("Initialization should throw on non-finite initial-backoff", () => {
+    expect(() => new LinearBackoff(NaN, 1000)).toThrow();
+    expect(() => new LinearBackoff(Infinity, 1000)).toThrow();
+  });
+
+  test("Initialization should throw on non-finite increment", () => {
+    expect(() => new LinearBackoff(1000, NaN)).toThrow();
+    expect(() => new LinearBackoff(1000, Infinity)).toThrow();
+  });
+
+  test("Initialization should throw on non-finite max-backoff", () => {
+    expect(() => new LinearBackoff(1000, 1000, NaN)).toThrow();
+    expect(() => new LinearBackoff(1000, 1000, Infinity)).toThrow();
+  });
+
   test("Backoff should be equal to the given initial-backoff", () => {
     expect(new LinearBackoff(1, 1000).current).toBe(1);
     expect(new LinearBackoff(42, 1000).current).toBe(42);
