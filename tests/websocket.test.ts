@@ -109,8 +109,11 @@ describe("Testsuite for Websocket", () => {
 
       test("Websocket should return the correct maxRetries when maxRetries is set", () => {
         const maxRetries = 5;
-        const client = new Websocket(url, undefined, { retry: { maxRetries } });
+        const client = new Websocket(url, undefined, {
+          retry: { maxRetries, backoff: new ConstantBackoff(1000) },
+        });
         expect(client.maxRetries).toBe(maxRetries);
+        client.close(); // don't leak a retrying client into subsequent tests
       });
     });
 
@@ -123,9 +126,10 @@ describe("Testsuite for Websocket", () => {
       test("Websocket should return the correct instantReconnect when instantReconnect is set", () => {
         const instantReconnect = true;
         const client = new Websocket(url, undefined, {
-          retry: { instantReconnect },
+          retry: { instantReconnect, backoff: new ConstantBackoff(1000) },
         });
         expect(client.instantReconnect).toBe(instantReconnect);
+        client.close(); // don't leak a retrying client into subsequent tests
       });
     });
 
@@ -139,6 +143,23 @@ describe("Testsuite for Websocket", () => {
         const backoff: Backoff = new ConstantBackoff(1000);
         const client = new Websocket(url, undefined, { retry: { backoff } });
         expect(client.backoff).toBe(backoff);
+        client.close(); // don't leak a retrying client into subsequent tests
+      });
+    });
+
+    describe("Listeners", () => {
+      test("Websocket should accept initial listeners for only some event-types", () => {
+        const onOpen = () => undefined;
+        const client = new Websocket(url, undefined, {
+          listeners: { open: [{ listener: onOpen }] }, // other event-types omitted
+        });
+        expect(getListenersWithOptions(client, WebsocketEvent.open)).toEqual([
+          { listener: onOpen },
+        ]);
+        expect(
+          getListenersWithOptions(client, WebsocketEvent.message),
+        ).toHaveLength(0);
+        client.close();
       });
     });
 

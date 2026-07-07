@@ -12,6 +12,7 @@ export {
   WebsocketEvent,
   RetryEventDetail,
   ReconnectEventDetail,
+  ExhaustedEventDetail,
   WebsocketEventMap,
   WebsocketEventListener,
   WebsocketEventListenerParams,

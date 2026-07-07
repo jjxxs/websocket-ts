@@ -54,7 +54,9 @@ describe("Testsuite for WebSocketBuilder", () => {
   test("WebsocketBuilder should set max-retries", () => {
     const maxRetries = 42;
 
-    const builder = new WebsocketBuilder(url).withMaxRetries(maxRetries);
+    const builder = new WebsocketBuilder(url)
+      .withBackoff(new ConstantBackoff(1000)) // retry options require a backoff
+      .withMaxRetries(maxRetries);
     expect(builder.maxRetries).toBe(maxRetries);
 
     const ws = builder.build();
@@ -66,6 +68,7 @@ describe("Testsuite for WebSocketBuilder", () => {
     const maxRetries2 = 1337;
 
     const builder = new WebsocketBuilder(url)
+      .withBackoff(new ConstantBackoff(1000)) // retry options require a backoff
       .withMaxRetries(maxRetries1)
       .withMaxRetries(maxRetries2);
     expect(builder.maxRetries).toBe(maxRetries2);
@@ -85,9 +88,9 @@ describe("Testsuite for WebSocketBuilder", () => {
   test("WebsocketBuilder should set instant-reconnect", () => {
     const instantReconnect = true;
 
-    const builder = new WebsocketBuilder(url).withInstantReconnect(
-      instantReconnect,
-    );
+    const builder = new WebsocketBuilder(url)
+      .withBackoff(new ConstantBackoff(1000)) // retry options require a backoff
+      .withInstantReconnect(instantReconnect);
     expect(builder.instantReconnect).toBe(instantReconnect);
 
     const ws = builder.build();
@@ -778,6 +781,109 @@ describe("Testsuite for WebSocketBuilder", () => {
     const ws = builder.build();
     expect(ws["_options"]!["listeners"]!.reconnect).toStrictEqual<
       WebsocketEventListenerWithOptions<WebsocketEvent.reconnect>[]
+    >([
+      {
+        listener: listener1,
+        options: undefined,
+      },
+      { listener: listener2, options },
+    ]);
+  });
+
+  test("WebsocketBuilder should set 'exhausted'-listener", () => {
+    const listener = vi.fn();
+
+    const builder = new WebsocketBuilder(url).onExhausted(listener);
+    expect(builder["_options"]!["listeners"]!.exhausted).toStrictEqual<
+      WebsocketEventListenerWithOptions<WebsocketEvent.exhausted>[]
+    >([
+      {
+        listener,
+        options: undefined,
+      },
+    ]);
+
+    const ws = builder.build();
+    expect(ws["_options"]!["listeners"]!.exhausted).toStrictEqual<
+      WebsocketEventListenerWithOptions<WebsocketEvent.exhausted>[]
+    >([
+      {
+        listener,
+        options: undefined,
+      },
+    ]);
+  });
+
+  test("WebsocketBuilder should set 'exhausted'-listener for subsequent calls", () => {
+    const listener1 = vi.fn();
+    const listener2 = vi.fn();
+
+    const builder = new WebsocketBuilder(url)
+      .onExhausted(listener1)
+      .onExhausted(listener2);
+    expect(builder["_options"]!["listeners"]!.exhausted).toStrictEqual<
+      WebsocketEventListenerWithOptions<WebsocketEvent.exhausted>[]
+    >([
+      {
+        listener: listener1,
+        options: undefined,
+      },
+      { listener: listener2, options: undefined },
+    ]);
+
+    const ws = builder.build();
+    expect(ws["_options"]!["listeners"]!.exhausted).toStrictEqual<
+      WebsocketEventListenerWithOptions<WebsocketEvent.exhausted>[]
+    >([
+      {
+        listener: listener1,
+        options: undefined,
+      },
+      { listener: listener2, options: undefined },
+    ]);
+  });
+
+  test("WebsocketBuilder should set 'exhausted'-listener with options", () => {
+    const listener = vi.fn();
+    const options = { once: true };
+
+    const builder = new WebsocketBuilder(url).onExhausted(listener, options);
+    expect(builder["_options"]!["listeners"]!.exhausted).toStrictEqual<
+      WebsocketEventListenerWithOptions<WebsocketEvent.exhausted>[]
+    >([
+      {
+        listener,
+        options,
+      },
+    ]);
+
+    const ws = builder.build();
+    expect(ws["_options"]!["listeners"]!.exhausted).toStrictEqual<
+      WebsocketEventListenerWithOptions<WebsocketEvent.exhausted>[]
+    >([{ listener, options }]);
+  });
+
+  test("WebsocketBuilder should set 'exhausted'-listener with mixed options", () => {
+    const listener1 = vi.fn();
+    const listener2 = vi.fn();
+    const options = { once: true };
+
+    const builder = new WebsocketBuilder(url)
+      .onExhausted(listener1)
+      .onExhausted(listener2, options);
+    expect(builder["_options"]!["listeners"]!.exhausted).toStrictEqual<
+      WebsocketEventListenerWithOptions<WebsocketEvent.exhausted>[]
+    >([
+      {
+        listener: listener1,
+        options: undefined,
+      },
+      { listener: listener2, options },
+    ]);
+
+    const ws = builder.build();
+    expect(ws["_options"]!["listeners"]!.exhausted).toStrictEqual<
+      WebsocketEventListenerWithOptions<WebsocketEvent.exhausted>[]
     >([
       {
         listener: listener1,

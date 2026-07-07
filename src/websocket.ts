@@ -1,15 +1,18 @@
 import { Backoff } from "./backoff/backoff";
 import { WebsocketBuffer } from "./websocket_buffer";
 import {
+  ExhaustedEventDetail,
   ReconnectEventDetail,
   RetryEventDetail,
   WebsocketEvent,
   WebsocketEventListener,
   WebsocketEventListenerOptions,
+  WebsocketEventListeners,
   WebsocketEventListenerWithOptions,
   WebsocketEventMap,
 } from "./websocket_event";
 import { WebsocketOptions } from "./websocket_options";
+import { WebsocketConnectionRetryOptions } from "./websocket_retry_options";
 
 /**
  * A URL or a function that returns a URL. When a function is provided, it is called on each connection attempt,
@@ -31,8 +34,13 @@ export class Websocket {
   private _underlyingWebsocket: WebSocket; // the underlying websocket, e.g. native browser websocket
   private retryTimeout?: ReturnType<typeof globalThis.setTimeout>; // timeout for the next retry, if any
 
-  private _options: WebsocketOptions &
-    Required<Pick<WebsocketOptions, "listeners" | "retry">>; // options/config for the websocket
+  // options/config for the websocket; internally the retry options and the
+  // listeners for every event-type are always present, even when the
+  // user-supplied options omitted them
+  private _options: Omit<WebsocketOptions, "listeners" | "retry"> & {
+    readonly retry: WebsocketConnectionRetryOptions;
+    readonly listeners: WebsocketEventListeners;
+  };
 
   /**
    * Creates a new websocket.
@@ -40,12 +48,24 @@ export class Websocket {
    * @param url to connect to, or a function that returns a URL.
    * @param protocols optional protocols to use.
    * @param options optional options to use.
+   * @throws Error if retry options (maxRetries, instantReconnect) are set without a backoff.
    */
   constructor(
     url: UrlProvider,
     protocols?: string | string[],
     options?: WebsocketOptions,
   ) {
+    if (
+      options?.retry?.backoff === undefined &&
+      (options?.retry?.maxRetries !== undefined ||
+        options?.retry?.instantReconnect !== undefined)
+    ) {
+      // retrying is driven by the backoff; without one, the other retry options would silently do nothing
+      throw new Error(
+        "Retry options (maxRetries, instantReconnect) require a backoff to be configured",
+      );
+    }
+
     this._urlProvider = url;
     this._protocols = protocols;
 
@@ -64,6 +84,7 @@ export class Websocket {
         message: [...(options?.listeners?.message ?? [])],
         retry: [...(options?.listeners?.retry ?? [])],
         reconnect: [...(options?.listeners?.reconnect ?? [])],
+        exhausted: [...(options?.listeners?.exhausted ?? [])],
       },
     };
 
@@ -225,7 +246,8 @@ export class Websocket {
   }
 
   /**
-   * Close the websocket. No connection-retry will be attempted after this.
+   * Close the websocket. No automatic connection-retry will be attempted after this,
+   * until reconnect() is called.
    *
    * @see https://developer.mozilla.org/en-US/docs/Web/API/WebSocket/close
    * @param code optional close code.
@@ -235,6 +257,27 @@ export class Websocket {
     this.cancelScheduledConnectionRetry(); // cancel any scheduled retries
     this._closedByUser = true; // mark websocket as closed by user
     this._underlyingWebsocket.close(code, reason); // close underlying websocket with provided code and reason
+  }
+
+  /**
+   * (Re-)connects the websocket immediately, regardless of its current state:
+   * any scheduled retry is cancelled, the backoff and its retry-counter are
+   * reset, the URL provider is resolved again and a new connection is opened.
+   * This also revives a websocket that was closed by the user or that gave up
+   * after exceeding maxRetries (see the 'exhausted' event).
+   *
+   * Typical uses: a "reconnect" button after the 'exhausted' event, reacting to
+   * the browser's 'online' event, or forcing the URL provider to pick up a new
+   * auth token without waiting for the connection to drop.
+   *
+   * @throws whatever the URL provider or the WebSocket constructor throws.
+   */
+  public reconnect(): void {
+    this.cancelScheduledConnectionRetry(); // cancel any scheduled retries
+    this._closedByUser = false; // revive if the websocket was closed by the user
+    this.backoff?.reset(); // start the next disconnection episode with a fresh retry budget
+    this.clearWebsocket(); // detach and close the current underlying websocket
+    this.tryConnect();
   }
 
   /**
@@ -497,12 +540,32 @@ export class Websocket {
       this.handleEvent(WebsocketEvent.retry, event);
     };
 
+    // when the maximum number of retries is exceeded, give up and dispatch the
+    // exhausted event; checked before advancing the backoff so that the counter
+    // equals the number of retries actually performed
+    if (
+      this._options.retry.maxRetries !== undefined &&
+      this.backoff.retries >= this._options.retry.maxRetries
+    ) {
+      const detail: ExhaustedEventDetail = {
+        retries: this.backoff.retries,
+        lastConnection:
+          this._lastConnection && new Date(this._lastConnection),
+      };
+      const event: CustomEvent<ExhaustedEventDetail> =
+        new CustomEvent<ExhaustedEventDetail>(WebsocketEvent.exhausted, {
+          detail,
+        });
+      this.dispatchEvent(WebsocketEvent.exhausted, event);
+      return;
+    }
+
     // the backoff is reset on every successful reconnect, so a retry-count of
     // zero means this is the first retry of the current disconnection episode
     const isFirstRetryOfEpisode = this.backoff.retries === 0;
 
-    // always advance the backoff so the retry-count is accurate and maxRetries
-    // applies; with 'instantReconnect' only the episode's first retry is instant
+    // advance the backoff so the retry-count is accurate and maxRetries applies;
+    // with 'instantReconnect' only the episode's first retry is instant
     const backoff = this.backoff.next();
     const retryEventDetail: RetryEventDetail = {
       backoff:
@@ -513,16 +576,10 @@ export class Websocket {
       lastConnection: this._lastConnection,
     };
 
-    // schedule a new connection-retry if the maximum number of retries is not reached yet
-    if (
-      this._options.retry.maxRetries === undefined ||
-      retryEventDetail.retries <= this._options.retry.maxRetries
-    ) {
-      this.retryTimeout = globalThis.setTimeout(
-        () => handleRetryEvent(retryEventDetail),
-        retryEventDetail.backoff,
-      );
-    }
+    this.retryTimeout = globalThis.setTimeout(
+      () => handleRetryEvent(retryEventDetail),
+      retryEventDetail.backoff,
+    );
   }
 
   /**

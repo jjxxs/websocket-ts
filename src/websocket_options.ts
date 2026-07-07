@@ -17,7 +17,8 @@ export interface WebsocketOptions {
   readonly retry?: WebsocketConnectionRetryOptions;
 
   /**
-   * The initial listeners to add to the websocket.
+   * The initial listeners to add to the websocket. Event-types without
+   * listeners can be omitted.
    */
-  readonly listeners?: WebsocketEventListeners;
+  readonly listeners?: Partial<WebsocketEventListeners>;
 }

@@ -234,6 +234,21 @@ export class WebsocketBuilder {
   }
 
   /**
+   * Adds an 'exhausted' event listener to the websocket. Subsequent calls to this method will add additional listeners that will be
+   * called in the order they were added.
+   *
+   * @param listener the listener to add
+   * @param options the listener options
+   */
+  public onExhausted(
+    listener: WebsocketEventListener<WebsocketEvent.exhausted>,
+    options?: WebsocketEventListenerOptions,
+  ): WebsocketBuilder {
+    this.addListener(WebsocketEvent.exhausted, listener, options);
+    return this;
+  }
+
+  /**
    * Builds the websocket.
    *
    * @return a new websocket, with the set options
@@ -263,6 +278,7 @@ export class WebsocketBuilder {
         message: this._options?.listeners?.message ?? [],
         retry: this._options?.listeners?.retry ?? [],
         reconnect: this._options?.listeners?.reconnect ?? [],
+        exhausted: this._options?.listeners?.exhausted ?? [],
         [event]: [
           ...(this._options?.listeners?.[event] ?? []),
           { listener, options },
