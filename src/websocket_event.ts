@@ -93,10 +93,14 @@ export type WebsocketEventListenerParams<K extends WebsocketEvent> = Parameters<
 >;
 
 /**
- * Options for websocket events.
+ * Options for websocket event listeners. Only 'once' and 'signal' are
+ * supported: a websocket has no capture/bubble phases and its events are not
+ * cancelable, so the remaining AddEventListenerOptions have no meaning here.
  */
-export type WebsocketEventListenerOptions = EventListenerOptions &
-  AddEventListenerOptions;
+export type WebsocketEventListenerOptions = Pick<
+  AddEventListenerOptions,
+  "once" | "signal"
+>;
 
 /**
  * Listener for websocket events with options.

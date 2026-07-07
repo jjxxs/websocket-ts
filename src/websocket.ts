@@ -34,6 +34,11 @@ export class Websocket {
   private _underlyingWebsocket: WebSocket; // the underlying websocket, e.g. native browser websocket
   private retryTimeout?: ReturnType<typeof globalThis.setTimeout>; // timeout for the next retry, if any
 
+  // for each listener-registration made with an AbortSignal, the function that
+  // unhooks the 'abort'-handler again; used to avoid piling up dead handlers on
+  // long-lived signals when listeners are removed by other means
+  private readonly abortHandlerCleanups = new WeakMap<object, () => void>();
+
   // options/config for the websocket; internally the retry options and the
   // listeners for every event-type are always present, even when the
   // user-supplied options omitted them
@@ -78,15 +83,39 @@ export class Websocket {
         backoff: options?.retry?.backoff,
       },
       listeners: {
-        open: [...(options?.listeners?.open ?? [])],
-        close: [...(options?.listeners?.close ?? [])],
-        error: [...(options?.listeners?.error ?? [])],
-        message: [...(options?.listeners?.message ?? [])],
-        retry: [...(options?.listeners?.retry ?? [])],
-        reconnect: [...(options?.listeners?.reconnect ?? [])],
-        exhausted: [...(options?.listeners?.exhausted ?? [])],
+        open: [],
+        close: [],
+        error: [],
+        message: [],
+        retry: [],
+        reconnect: [],
+        exhausted: [],
       },
     };
+
+    // register the initial listeners through addEventListener so that
+    // listener options (e.g. 'signal') are honored for them as well
+    options?.listeners?.open?.forEach((l) =>
+      this.addEventListener(WebsocketEvent.open, l.listener, l.options),
+    );
+    options?.listeners?.close?.forEach((l) =>
+      this.addEventListener(WebsocketEvent.close, l.listener, l.options),
+    );
+    options?.listeners?.error?.forEach((l) =>
+      this.addEventListener(WebsocketEvent.error, l.listener, l.options),
+    );
+    options?.listeners?.message?.forEach((l) =>
+      this.addEventListener(WebsocketEvent.message, l.listener, l.options),
+    );
+    options?.listeners?.retry?.forEach((l) =>
+      this.addEventListener(WebsocketEvent.retry, l.listener, l.options),
+    );
+    options?.listeners?.reconnect?.forEach((l) =>
+      this.addEventListener(WebsocketEvent.reconnect, l.listener, l.options),
+    );
+    options?.listeners?.exhausted?.forEach((l) =>
+      this.addEventListener(WebsocketEvent.exhausted, l.listener, l.options),
+    );
 
     this._underlyingWebsocket = this.tryConnect();
   }
@@ -281,7 +310,10 @@ export class Websocket {
   }
 
   /**
-   * Adds an event listener for the given event-type.
+   * Adds an event listener for the given event-type. When an AbortSignal is
+   * provided in the options, aborting it removes exactly this registration;
+   * a listener whose signal is already aborted is never registered, mirroring
+   * the native EventTarget.
    *
    * @see https://developer.mozilla.org/en-US/docs/Web/API/EventTarget/addEventListener
    * @param type of the event to add the listener for.
@@ -293,7 +325,31 @@ export class Websocket {
     listener: WebsocketEventListener<K>,
     options?: WebsocketEventListenerOptions,
   ): void {
-    this._options.listeners[type].push({ listener, options }); // add listener to list of listeners
+    const signal = options?.signal;
+    if (signal?.aborted) {
+      return; // the signal is already aborted, never register the listener
+    }
+
+    const entry: WebsocketEventListenerWithOptions<K> = { listener, options };
+
+    if (signal !== undefined) {
+      // aborting the signal removes exactly this registration; the same
+      // listener-function may be registered again with a different signal
+      const removeOnAbort = () => {
+        this.abortHandlerCleanups.delete(entry);
+        (this._options.listeners[
+          type
+        ] as WebsocketEventListenerWithOptions<K>[]) = this._options.listeners[
+          type
+        ].filter((l) => l !== entry);
+      };
+      signal.addEventListener("abort", removeOnAbort, { once: true });
+      this.abortHandlerCleanups.set(entry, () =>
+        signal.removeEventListener("abort", removeOnAbort),
+      );
+    }
+
+    this._options.listeners[type].push(entry); // add listener to list of listeners
   }
 
   /**
@@ -315,6 +371,10 @@ export class Websocket {
     const isListenerNotToBeRemoved = (
       l: WebsocketEventListenerWithOptions<K>,
     ) => l.listener !== listener;
+
+    this._options.listeners[type]
+      .filter((l) => !isListenerNotToBeRemoved(l))
+      .forEach((l) => this.cleanupAbortHandler(l)); // unhook abort-handlers of removed listeners
 
     (this._options.listeners[type] as WebsocketEventListenerWithOptions<K>[]) =
       this._options.listeners[type].filter(isListenerNotToBeRemoved); // only keep listeners that are not to be removed
@@ -434,6 +494,7 @@ export class Websocket {
       }
       if (listenerWithOptions.options?.once) {
         listeners.splice(index, 1); // remove once-listener before invoking it
+        this.cleanupAbortHandler(listenerWithOptions); // unhook its abort-handler, if any
       }
 
       listenerWithOptions.listener(this, event); // invoke listener with event
@@ -587,5 +648,19 @@ export class Websocket {
    */
   private cancelScheduledConnectionRetry() {
     globalThis.clearTimeout(this.retryTimeout);
+  }
+
+  /**
+   * Unhooks the 'abort'-handler that was registered on the AbortSignal of the
+   * given listener-registration, if there is one.
+   *
+   * @param entry the listener-registration to unhook the abort-handler for.
+   */
+  private cleanupAbortHandler(entry: object) {
+    const cleanup = this.abortHandlerCleanups.get(entry);
+    if (cleanup !== undefined) {
+      cleanup();
+      this.abortHandlerCleanups.delete(entry);
+    }
   }
 }
