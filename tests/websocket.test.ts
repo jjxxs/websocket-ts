@@ -3,6 +3,7 @@ import {
   ArrayQueue,
   Backoff,
   ConstantBackoff,
+  RingQueue,
   Websocket,
   WebsocketBuilder,
 } from "../src";
@@ -58,13 +59,13 @@ describe("Testsuite for Websocket", () => {
   describe("Getter/setter tests", () => {
     describe("Url", () => {
       test("Websocket should return the correct url", () => {
-        const client = new Websocket(url);
+        client = new Websocket(url);
         expect(client.url).toBe(url);
       });
 
       test("Websocket constructed with a URL function should resolve and return the string from url getter", () => {
         const urlProvider = () => url;
-        const client = new Websocket(urlProvider);
+        client = new Websocket(urlProvider);
         expect(client.url).toBe(url);
       });
     });
@@ -72,44 +73,44 @@ describe("Testsuite for Websocket", () => {
     describe("Protocols", () => {
       test("Websocket should return the correct protocols when protocols are a string", () => {
         const protocols = "protocol1";
-        const client = new Websocket(url, protocols);
+        client = new Websocket(url, protocols);
         expect(client.protocols).toEqual(protocols);
       });
 
       test("Websocket should return the correct protocols when protocols are an array", () => {
         const protocols = ["protocol1", "protocol2"];
-        const client = new Websocket(url, protocols);
+        client = new Websocket(url, protocols);
         expect(client.protocols).toEqual(protocols);
       });
 
       test("Websocket should return the correct protocols when protocols are undefined", () => {
-        const client = new Websocket(url);
+        client = new Websocket(url);
         expect(client.protocols).toBeUndefined();
       });
     });
 
     describe("Buffer", () => {
       test("Websocket should return the correct buffer when buffer is undefined", () => {
-        const client = new Websocket(url);
+        client = new Websocket(url);
         expect(client.buffer).toBeUndefined();
       });
 
       test("Websocket should return the correct buffer when buffer is set", () => {
         const buffer: WebsocketBuffer = new ArrayQueue();
-        const client = new Websocket(url, undefined, { buffer });
+        client = new Websocket(url, undefined, { buffer });
         expect(client.buffer).toBe(buffer);
       });
     });
 
     describe("MaxRetries", () => {
       test("Websocket should return the correct maxRetries when maxRetries is undefined", () => {
-        const client = new Websocket(url);
+        client = new Websocket(url);
         expect(client.maxRetries).toBeUndefined();
       });
 
       test("Websocket should return the correct maxRetries when maxRetries is set", () => {
         const maxRetries = 5;
-        const client = new Websocket(url, undefined, {
+        client = new Websocket(url, undefined, {
           retry: { maxRetries, backoff: new ConstantBackoff(1000) },
         });
         expect(client.maxRetries).toBe(maxRetries);
@@ -119,13 +120,13 @@ describe("Testsuite for Websocket", () => {
 
     describe("InstantReconnect", () => {
       test("Websocket should return the correct instantReconnect when instantReconnect is undefined", () => {
-        const client = new Websocket(url);
+        client = new Websocket(url);
         expect(client.instantReconnect).toBeUndefined();
       });
 
       test("Websocket should return the correct instantReconnect when instantReconnect is set", () => {
         const instantReconnect = true;
-        const client = new Websocket(url, undefined, {
+        client = new Websocket(url, undefined, {
           retry: { instantReconnect, backoff: new ConstantBackoff(1000) },
         });
         expect(client.instantReconnect).toBe(instantReconnect);
@@ -135,13 +136,13 @@ describe("Testsuite for Websocket", () => {
 
     describe("Backoff", () => {
       test("Websocket should return the correct backoff when backoff is undefined", () => {
-        const client = new Websocket(url);
+        client = new Websocket(url);
         expect(client.backoff).toBeUndefined();
       });
 
       test("Websocket should return the correct backoff when backoff is set", () => {
         const backoff: Backoff = new ConstantBackoff(1000);
-        const client = new Websocket(url, undefined, { retry: { backoff } });
+        client = new Websocket(url, undefined, { retry: { backoff } });
         expect(client.backoff).toBe(backoff);
         client.close(); // don't leak a retrying client into subsequent tests
       });
@@ -150,7 +151,7 @@ describe("Testsuite for Websocket", () => {
     describe("Listeners", () => {
       test("Websocket should accept initial listeners for only some event-types", () => {
         const onOpen = () => undefined;
-        const client = new Websocket(url, undefined, {
+        client = new Websocket(url, undefined, {
           listeners: { open: [{ listener: onOpen }] }, // other event-types omitted
         });
         expect(getListenersWithOptions(client, WebsocketEvent.open)).toEqual([
@@ -165,7 +166,7 @@ describe("Testsuite for Websocket", () => {
 
     describe("ClosedByUser", () => {
       test("Websocket should return false after initialization", () => {
-        const client = new Websocket(url);
+        client = new Websocket(url);
         expect(client.closedByUser).toBe(false);
       });
 
@@ -202,7 +203,7 @@ describe("Testsuite for Websocket", () => {
 
     describe("LastConnection", () => {
       test("Websocket should return undefined after initialization", () => {
-        const client = new Websocket(url);
+        client = new Websocket(url);
         expect(client.lastConnection).toBeUndefined();
       });
 
@@ -223,7 +224,7 @@ describe("Testsuite for Websocket", () => {
 
     describe("UnderlyingWebsocket", () => {
       test("Websocket should return native websocket after initialization", () => {
-        const client = new Websocket(url);
+        client = new Websocket(url);
         expect(client.underlyingWebsocket).not.toBeUndefined();
         expect(client.underlyingWebsocket).toBeInstanceOf(window.WebSocket);
       });
@@ -284,7 +285,7 @@ describe("Testsuite for Websocket", () => {
 
     describe("ReadyState", () => {
       test("Websocket should return the correct readyState after initialization", () => {
-        const client = new Websocket(url);
+        client = new Websocket(url);
         expect(client.readyState).toBe(WebSocket.CONNECTING);
       });
 
@@ -320,26 +321,26 @@ describe("Testsuite for Websocket", () => {
 
     describe("BufferedAmount", () => {
       test("Websocket should return the correct bufferedAmount after initialization", () => {
-        const client = new Websocket(url);
+        client = new Websocket(url);
         expect(client.bufferedAmount).toBe(0);
       });
     });
 
     describe("Extensions", () => {
       test("Websocket should return the correct extensions after initialization", () => {
-        const client = new Websocket(url);
+        client = new Websocket(url);
         expect(client.extensions).toBe("");
       });
     });
 
     describe("BinaryType", () => {
       test("Websocket should return the correct binaryType after initialization", () => {
-        const client = new Websocket(url);
+        client = new Websocket(url);
         expect(client.binaryType).toBe("blob");
       });
 
       test("Websocket should return the correct binaryType after setting it", () => {
-        const client = new Websocket(url);
+        client = new Websocket(url);
         client.binaryType = "arraybuffer";
         expect(client.binaryType).toBe("arraybuffer");
       });
@@ -615,21 +616,32 @@ describe("Testsuite for Websocket", () => {
         let [openCount, retryCount, reconnectCount] = [0, 0, 0];
         const onOpen = () => openCount++;
         const onRetry = () => retryCount++;
-        const onReconnect = () => reconnectCount++;
 
-        await new Promise<WebsocketEventListenerParams<WebsocketEvent.open>>(
-          (resolve) => {
-            client = new WebsocketBuilder(url)
-              .withBackoff(new ConstantBackoff(0)) // immediately retry
-              .onOpen((instance, ev) => resolve([instance, ev]))
-              .onOpen(onOpen)
-              .onRetry(onRetry)
-              .onReconnect(onReconnect)
-              .build();
-          },
-        ).then(([instance, ev]) => {
-          expect(instance).toBe(client);
-          expect(ev.type).toBe(WebsocketEvent.open);
+        // waiting for the reconnect event instead of sleeping makes the test
+        // independent of how fast the retry actually happens; also capture the
+        // reconnect detail to verify its contents
+        let reconnectDetail:
+          | { retries: number; lastConnection: Date | undefined }
+          | undefined;
+        const reconnected = new Promise<void>((resolveReconnected) => {
+          void new Promise<WebsocketEventListenerParams<WebsocketEvent.open>>(
+            (resolve) => {
+              client = new WebsocketBuilder(url)
+                .withBackoff(new ConstantBackoff(0)) // immediately retry
+                .onOpen((instance, ev) => resolve([instance, ev]))
+                .onOpen(onOpen)
+                .onRetry(onRetry)
+                .onReconnect((_, ev) => {
+                  reconnectCount++;
+                  reconnectDetail = ev.detail;
+                  resolveReconnected();
+                })
+                .build();
+            },
+          ).then(([instance, ev]) => {
+            expect(instance).toBe(client);
+            expect(ev.type).toBe(WebsocketEvent.open);
+          });
         });
 
         // give some time for all handlers to be called
@@ -638,14 +650,18 @@ describe("Testsuite for Websocket", () => {
         expect(retryCount).toBe(0);
         expect(reconnectCount).toBe(0);
 
-        // disconnect all clients and give some time for the retry to happen
+        // disconnect all clients and wait for the retry to reconnect
         server?.clients.forEach((client) => client.close());
-        await new Promise((resolve) => setTimeout(resolve, 100));
+        await reconnected;
 
         // ws should have retried & reconnect
         expect(openCount).toBe(2);
         expect(retryCount).toBe(1);
         expect(reconnectCount).toBe(1);
+
+        // the reconnect detail reports the retries of the outage and the previous connection date
+        expect(reconnectDetail?.retries).toBe(1);
+        expect(reconnectDetail?.lastConnection).toBeInstanceOf(Date);
       });
     });
   });
@@ -659,25 +675,30 @@ describe("Testsuite for Websocket", () => {
           return url;
         };
 
-        await new Promise<WebsocketEventListenerParams<WebsocketEvent.open>>(
-          (resolve) => {
-            client = new WebsocketBuilder(urlProvider)
-              .withBackoff(new ConstantBackoff(0))
-              .onOpen((instance, ev) => resolve([instance, ev]))
-              .build();
-          },
-        ).then(([instance, ev]) => {
-          expect(instance).toBe(client);
-          expect(ev.type).toBe(WebsocketEvent.open);
+        // waiting for the reconnect event instead of sleeping makes the test
+        // independent of how fast the retry actually happens
+        const reconnected = new Promise<void>((resolveReconnected) => {
+          void new Promise<WebsocketEventListenerParams<WebsocketEvent.open>>(
+            (resolve) => {
+              client = new WebsocketBuilder(urlProvider)
+                .withBackoff(new ConstantBackoff(0))
+                .onOpen((instance, ev) => resolve([instance, ev]))
+                .onReconnect(() => resolveReconnected())
+                .build();
+            },
+          ).then(([instance, ev]) => {
+            expect(instance).toBe(client);
+            expect(ev.type).toBe(WebsocketEvent.open);
+          });
         });
 
         // give some time for all handlers to be called
         await new Promise((resolve) => setTimeout(resolve, 100));
         expect(callCount).toBe(1); // called once for the initial connection
 
-        // disconnect all clients to trigger a retry
+        // disconnect all clients to trigger a retry and wait for the reconnect
         server?.clients.forEach((client) => client.close());
-        await new Promise((resolve) => setTimeout(resolve, 100));
+        await reconnected;
 
         expect(callCount).toBe(2); // called again for the retry
       });
@@ -688,22 +709,28 @@ describe("Testsuite for Websocket", () => {
         let [openCount, retryCount, reconnectCount] = [0, 0, 0];
         const onOpen = () => openCount++;
         const onRetry = () => retryCount++;
-        const onReconnect = () => reconnectCount++;
 
-        await new Promise<WebsocketEventListenerParams<WebsocketEvent.open>>(
-          (resolve) => {
-            client = new WebsocketBuilder(url)
-              .withBackoff(new ConstantBackoff(1000)) // retry after 1 second
-              .withInstantReconnect(true) // reconnect immediately, don't wait for the backoff for the first retry
-              .onOpen((instance, ev) => resolve([instance, ev]))
-              .onOpen(onOpen)
-              .onRetry(onRetry)
-              .onReconnect(onReconnect)
-              .build();
-          },
-        ).then(([instance, ev]) => {
-          expect(instance).toBe(client);
-          expect(ev.type).toBe(WebsocketEvent.open);
+        // the backoff is deliberately much larger than the test timeout; only
+        // an instant first retry can reconnect in time
+        const reconnected = new Promise<void>((resolveReconnected) => {
+          void new Promise<WebsocketEventListenerParams<WebsocketEvent.open>>(
+            (resolve) => {
+              client = new WebsocketBuilder(url)
+                .withBackoff(new ConstantBackoff(60_000))
+                .withInstantReconnect(true) // reconnect immediately, don't wait for the backoff for the first retry
+                .onOpen((instance, ev) => resolve([instance, ev]))
+                .onOpen(onOpen)
+                .onRetry(onRetry)
+                .onReconnect(() => {
+                  reconnectCount++;
+                  resolveReconnected();
+                })
+                .build();
+            },
+          ).then(([instance, ev]) => {
+            expect(instance).toBe(client);
+            expect(ev.type).toBe(WebsocketEvent.open);
+          });
         });
 
         // give some time for all handlers to be called
@@ -712,9 +739,9 @@ describe("Testsuite for Websocket", () => {
         expect(retryCount).toBe(0);
         expect(reconnectCount).toBe(0);
 
-        // disconnect all clients and give some time for the retry to happen
+        // disconnect all clients; the instant retry should reconnect right away
         server?.clients.forEach((client) => client.close());
-        await new Promise((resolve) => setTimeout(resolve, 100));
+        await reconnected;
 
         // ws should have retried & reconnect
         expect(openCount).toBe(2);
@@ -726,22 +753,26 @@ describe("Testsuite for Websocket", () => {
         let [openCount, retryCount, reconnectCount] = [0, 0, 0];
         const onOpen = () => openCount++;
         const onRetry = () => retryCount++;
-        const onReconnect = () => reconnectCount++;
 
-        await new Promise<WebsocketEventListenerParams<WebsocketEvent.open>>(
-          (resolve) => {
-            client = new WebsocketBuilder(url)
-              .withBackoff(new ConstantBackoff(1000)) // retry after 1 second
-              .withInstantReconnect(false) // reconnect immediately, don't wait for the backoff for the first retry
-              .onOpen((instance, ev) => resolve([instance, ev]))
-              .onOpen(onOpen)
-              .onRetry(onRetry)
-              .onReconnect(onReconnect)
-              .build();
-          },
-        ).then(([instance, ev]) => {
-          expect(instance).toBe(client);
-          expect(ev.type).toBe(WebsocketEvent.open);
+        const reconnected = new Promise<void>((resolveReconnected) => {
+          void new Promise<WebsocketEventListenerParams<WebsocketEvent.open>>(
+            (resolve) => {
+              client = new WebsocketBuilder(url)
+                .withBackoff(new ConstantBackoff(500)) // retry after 500ms
+                .withInstantReconnect(false) // wait for the backoff before the first retry
+                .onOpen((instance, ev) => resolve([instance, ev]))
+                .onOpen(onOpen)
+                .onRetry(onRetry)
+                .onReconnect(() => {
+                  reconnectCount++;
+                  resolveReconnected();
+                })
+                .build();
+            },
+          ).then(([instance, ev]) => {
+            expect(instance).toBe(client);
+            expect(ev.type).toBe(WebsocketEvent.open);
+          });
         });
 
         // give some time for all handlers to be called
@@ -750,7 +781,7 @@ describe("Testsuite for Websocket", () => {
         expect(retryCount).toBe(0);
         expect(reconnectCount).toBe(0);
 
-        // disconnect all clients and give some time for the retry to happen
+        // disconnect all clients; well within the 500ms backoff nothing may have happened yet
         server?.clients.forEach((client) => client.close());
         await new Promise((resolve) => setTimeout(resolve, 100));
 
@@ -759,8 +790,8 @@ describe("Testsuite for Websocket", () => {
         expect(retryCount).toBe(0);
         expect(reconnectCount).toBe(0);
 
-        // give some time for the retry to happen
-        await new Promise((resolve) => setTimeout(resolve, 1000));
+        // wait for the backoff to elapse and the retry to reconnect
+        await reconnected;
         expect(openCount).toBe(2);
         expect(retryCount).toBe(1);
         expect(reconnectCount).toBe(1);
@@ -774,20 +805,26 @@ describe("Testsuite for Websocket", () => {
         const onRetry = () => retryCount++;
         const onReconnect = () => reconnectCount++;
 
-        await new Promise<WebsocketEventListenerParams<WebsocketEvent.open>>(
-          (resolve) => {
-            client = new WebsocketBuilder(url)
-              .withBackoff(new ConstantBackoff(0)) // retry after 1 second
-              .withMaxRetries(5) // retry 5 times
-              .onOpen((instance, ev) => resolve([instance, ev]))
-              .onOpen(onOpen)
-              .onRetry(onRetry)
-              .onReconnect(onReconnect)
-              .build();
-          },
-        ).then(([instance, ev]) => {
-          expect(instance).toBe(client);
-          expect(ev.type).toBe(WebsocketEvent.open);
+        // waiting for the exhausted event instead of sleeping makes the test
+        // independent of how fast the retries actually happen
+        let exhaustedDetail: Date | number | undefined;
+        const exhausted = new Promise<number>((resolveExhausted) => {
+          void new Promise<WebsocketEventListenerParams<WebsocketEvent.open>>(
+            (resolve) => {
+              client = new WebsocketBuilder(url)
+                .withBackoff(new ConstantBackoff(0)) // retry immediately
+                .withMaxRetries(5) // retry 5 times
+                .onOpen((instance, ev) => resolve([instance, ev]))
+                .onOpen(onOpen)
+                .onRetry(onRetry)
+                .onReconnect(onReconnect)
+                .onExhausted((_, ev) => resolveExhausted(ev.detail.retries))
+                .build();
+            },
+          ).then(([instance, ev]) => {
+            expect(instance).toBe(client);
+            expect(ev.type).toBe(WebsocketEvent.open);
+          });
         });
 
         // give some time for all handlers to be called
@@ -796,14 +833,15 @@ describe("Testsuite for Websocket", () => {
         expect(retryCount).toBe(0);
         expect(reconnectCount).toBe(0);
 
-        // stop server so that the client can't reconnect
+        // stop server so that the client can't reconnect, then wait for it to give up
         await stopServer(server, serverTimeout);
-        await new Promise((resolve) => setTimeout(resolve, 100));
+        exhaustedDetail = await exhausted;
 
         // ws should have retried but not reconnect
         expect(openCount).toBe(1);
         expect(retryCount).toBe(5);
         expect(reconnectCount).toBe(0);
+        expect(exhaustedDetail).toBe(5); // the exhausted detail reports the retries performed
       });
     });
   });
@@ -910,6 +948,39 @@ describe("Testsuite for Websocket", () => {
 
       await serverReceivedMessages.then((messages) => {
         expect(messages).toEqual(["Hello1", "Hello2"]);
+      });
+    });
+
+    test("Websocket with a RingQueue buffer should drop the oldest message when over capacity and deliver the rest in order", async () => {
+      const messagesReceived: string[] = [];
+      const serverReceivedMessages = new Promise<string[]>((resolve) => {
+        server?.on("connection", (client) => {
+          client?.on(
+            "message",
+            onStringMessageReceived((str: string) => {
+              messagesReceived.push(str);
+              if (messagesReceived.length === 2) {
+                resolve(messagesReceived);
+              }
+            }),
+          );
+        });
+      });
+
+      await new Promise<WebsocketEventListenerParams<WebsocketEvent.open>>(
+        (resolve) => {
+          client = new WebsocketBuilder(url)
+            .withBuffer(new RingQueue(2)) // capacity 2, the oldest message is evicted
+            .onOpen((instance, ev) => resolve([instance, ev]))
+            .build();
+          client.send("Hello1"); // evicted by Hello3 before the connection opens
+          client.send("Hello2");
+          client.send("Hello3");
+        },
+      );
+
+      await serverReceivedMessages.then((messages) => {
+        expect(messages).toEqual(["Hello2", "Hello3"]);
       });
     });
 
