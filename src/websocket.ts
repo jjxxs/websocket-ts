@@ -28,6 +28,7 @@ export class Websocket {
 
   private _closedByUser: boolean = false; // whether the websocket was closed by the user
   private _lastConnection?: Date; // timestamp of the last connection
+  private _binaryType?: BinaryType; // binaryType chosen by the user, undefined if never set
   private _underlyingWebsocket: WebSocket; // the underlying websocket, e.g. native browser websocket
   private retryTimeout?: ReturnType<typeof globalThis.setTimeout>; // timeout for the next retry, if any
 
@@ -193,11 +194,13 @@ export class Websocket {
   }
 
   /**
-   * Setter for the binaryType of the underlying websocket.
+   * Setter for the binaryType of the underlying websocket. The value is remembered
+   * and re-applied whenever a new underlying websocket is created after a reconnect.
    *
    * @param value to set, 'blob' or 'arraybuffer'.
    */
   set binaryType(value: BinaryType) {
+    this._binaryType = value;
     this._underlyingWebsocket.binaryType = value;
   }
 
@@ -287,6 +290,9 @@ export class Websocket {
         ? this._urlProvider()
         : this._urlProvider;
     this._underlyingWebsocket = new WebSocket(this._url, this.protocols); // create new browser-native websocket and add all event listeners
+    if (this._binaryType !== undefined) {
+      this._underlyingWebsocket.binaryType = this._binaryType; // re-apply the user-chosen binaryType
+    }
     this._underlyingWebsocket.addEventListener(
       WebsocketEvent.open,
       this.handleOpenEvent,
