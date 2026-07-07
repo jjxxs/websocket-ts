@@ -1,4 +1,4 @@
-import { Backoff } from "./backoff";
+import { Backoff } from "./backoff.js";
 
 /**
  * ConstantBackoff always returns the same backoff-time.

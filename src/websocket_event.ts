@@ -1,4 +1,4 @@
-import { Websocket } from "./websocket";
+import { Websocket } from "./websocket.js";
 
 /**
  * Events that can be fired by the websocket.

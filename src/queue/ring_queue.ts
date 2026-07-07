@@ -1,4 +1,4 @@
-import { Queue } from "./queue";
+import { Queue } from "./queue.js";
 
 /**
  * A ring queue is a queue that has a fixed capacity. When the queue is full, the oldest element is

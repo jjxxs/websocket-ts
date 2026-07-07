@@ -2,9 +2,26 @@
   "name": "websocket-ts",
   "description": "A WebSocket client library with optional reconnecting and buffering capabilities.",
   "version": "2.3.0",
-  "main": "dist/cjs/src/index.js",
-  "types": "dist/cjs/src/index.d.ts",
-  "module": "dist/esm/src/index.js",
+  "main": "dist/cjs/index.js",
+  "types": "dist/cjs/index.d.ts",
+  "module": "dist/esm/index.js",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/esm/index.d.ts",
+        "default": "./dist/esm/index.js"
+      },
+      "require": {
+        "types": "./dist/cjs/index.d.ts",
+        "default": "./dist/cjs/index.js"
+      }
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
   "license": "MIT",
   "keywords": [
     "websocket",
@@ -19,9 +36,11 @@
     "url": "github:jjxxs/websocket-ts"
   },
   "scripts": {
-    "build": "npm run build:cjs && npm run build:esm",
+    "build": "npm run typecheck && npm run build:cjs && npm run build:esm && npm run build:finalize",
     "build:cjs": "tsc -p tsconfig.cjs.json",
     "build:esm": "tsc -p tsconfig.esm.json",
+    "build:finalize": "node -e \"const fs=require('fs');fs.writeFileSync('dist/esm/package.json',JSON.stringify({type:'module'}));fs.writeFileSync('dist/cjs/package.json',JSON.stringify({type:'commonjs'}))\"",
+    "typecheck": "tsc -p tsconfig.json",
     "lint": "cross-env-shell eslint './src/**/*.ts' './tests/**/*.ts'",
     "test": "vitest",
     "test:coverage": "vitest --coverage"

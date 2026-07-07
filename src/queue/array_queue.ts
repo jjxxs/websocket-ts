@@ -1,4 +1,4 @@
-import { Queue } from "./queue";
+import { Queue } from "./queue.js";
 
 /**
  * An array queue is a queue that has an unbounded capacity. Reading from an array queue

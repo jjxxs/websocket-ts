@@ -1,5 +1,5 @@
-import { Backoff } from "./backoff/backoff";
-import { WebsocketBuffer } from "./websocket_buffer";
+import { Backoff } from "./backoff/backoff.js";
+import { WebsocketBuffer } from "./websocket_buffer.js";
 import {
   ExhaustedEventDetail,
   ReconnectEventDetail,
@@ -10,9 +10,9 @@ import {
   WebsocketEventListeners,
   WebsocketEventListenerWithOptions,
   WebsocketEventMap,
-} from "./websocket_event";
-import { WebsocketOptions } from "./websocket_options";
-import { WebsocketConnectionRetryOptions } from "./websocket_retry_options";
+} from "./websocket_event.js";
+import { WebsocketOptions } from "./websocket_options.js";
+import { WebsocketConnectionRetryOptions } from "./websocket_retry_options.js";
 
 /**
  * A URL or a function that returns a URL. When a function is provided, it is called on each connection attempt,

@@ -1,4 +1,4 @@
-import { Backoff } from "./backoff";
+import { Backoff } from "./backoff.js";
 
 /**
  * ExponentialBackoff increases the backoff-time exponentially.

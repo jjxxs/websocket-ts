@@ -1,12 +1,12 @@
-import { Backoff } from "./backoff/backoff";
+import { Backoff } from "./backoff/backoff.js";
 import {
   WebsocketEvent,
   WebsocketEventListener,
   WebsocketEventListenerOptions,
-} from "./websocket_event";
-import { UrlProvider, Websocket } from "./websocket";
-import { WebsocketBuffer } from "./websocket_buffer";
-import { WebsocketOptions } from "./websocket_options";
+} from "./websocket_event.js";
+import { UrlProvider, Websocket } from "./websocket.js";
+import { WebsocketBuffer } from "./websocket_buffer.js";
+import { WebsocketOptions } from "./websocket_options.js";
 
 /**
  * Builder for websockets.
