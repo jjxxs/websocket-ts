@@ -6,7 +6,6 @@ import {
   WebsocketEvent,
   WebsocketEventListener,
   WebsocketEventListenerOptions,
-  WebsocketEventListeners,
   WebsocketEventListenerWithOptions,
   WebsocketEventMap,
 } from "./websocket_event";
@@ -376,14 +375,14 @@ export class Websocket {
   ) {
     // iterate over a snapshot so that listeners registered during dispatch are
     // not invoked in this round, while mutations of the live list persist
-    const snapshot: WebsocketEventListeners[K] = [
+    const snapshot: WebsocketEventListenerWithOptions<K>[] = [
       ...this._options.listeners[type],
     ];
 
     snapshot.forEach((listenerWithOptions) => {
       // re-read the live list on every invocation: a listener may have
       // added/removed listeners of this type, or replaced the list entirely
-      const listeners: WebsocketEventListeners[K] =
+      const listeners: WebsocketEventListenerWithOptions<K>[] =
         this._options.listeners[type];
 
       const index = listeners.indexOf(listenerWithOptions);
