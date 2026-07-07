@@ -425,7 +425,17 @@ export class Websocket {
       case WebsocketEvent.retry:
         this.dispatchEvent(type, event); // dispatch retry event and try to connect
         this.clearWebsocket(); // clear the old websocket
-        this.tryConnect();
+        try {
+          this.tryConnect();
+        } catch {
+          // the url provider or websocket-construction threw; surface it as an
+          // 'error' event and keep the retry chain alive under the usual rules
+          this.dispatchEvent(
+            WebsocketEvent.error,
+            new Event(WebsocketEvent.error),
+          );
+          this.scheduleConnectionRetryIfNeeded();
+        }
         break;
 
       default:
