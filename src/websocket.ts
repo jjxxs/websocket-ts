@@ -431,18 +431,24 @@ export class Websocket {
   }
 
   /**
-   * Sends buffered data if there is a buffer defined.
+   * Sends buffered data if there is a buffer defined. Draining stops as soon as the
+   * websocket is no longer open, e.g. when a listener closed it during the drain;
+   * remaining elements stay buffered for the next successful connection. Without
+   * this guard, send() would re-add each read element to the buffer, cycling forever.
    */
   private sendBufferedData() {
     if (this.buffer === undefined) {
       return; // no buffer defined, nothing to send
     }
 
-    for (
-      let ele = this.buffer.read();
-      ele !== undefined;
-      ele = this.buffer.read()
+    while (
+      !this.closedByUser &&
+      this._underlyingWebsocket.readyState === this._underlyingWebsocket.OPEN
     ) {
+      const ele = this.buffer.read();
+      if (ele === undefined) {
+        return; // buffer is empty
+      }
       this.send(ele); // send buffered data
     }
   }
