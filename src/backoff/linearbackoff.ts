@@ -76,9 +76,10 @@ export class LinearBackoff implements Backoff {
   }
 
   next(): number {
+    const backoff = this.current;
     this._retries++;
     this.i++;
-    return this.current;
+    return backoff;
   }
 
   reset(): void {

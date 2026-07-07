@@ -48,7 +48,7 @@ describe("Testsuite for ExponentialBackoff", () => {
     const backoff = new ExponentialBackoff(2);
     for (let i = 0; i < 10; i++) {
       expect(backoff.current).toBe(2 * Math.pow(2, i));
-      expect(backoff.next()).toBe(2 * Math.pow(2, i + 1));
+      expect(backoff.next()).toBe(2 * Math.pow(2, i));
       expect(backoff.current).toBe(2 * Math.pow(2, i + 1));
     }
   });
@@ -57,7 +57,7 @@ describe("Testsuite for ExponentialBackoff", () => {
     const backoff = new ExponentialBackoff(2, 3);
     for (let i = 0; i < 10; i++) {
       expect(backoff.current).toBe(2 * Math.pow(2, Math.min(3, i)));
-      expect(backoff.next()).toBe(2 * Math.pow(2, Math.min(3, i + 1)));
+      expect(backoff.next()).toBe(2 * Math.pow(2, Math.min(3, i)));
       expect(backoff.current).toBe(2 * Math.pow(2, Math.min(3, i + 1)));
     }
   });

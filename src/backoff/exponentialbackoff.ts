@@ -63,12 +63,13 @@ export class ExponentialBackoff implements Backoff {
   }
 
   next(): number {
+    const backoff = this.current;
     this._retries++;
     this.i =
       this.expMax === undefined
         ? this.i + 1
         : Math.min(this.i + 1, this.expMax);
-    return this.current;
+    return backoff;
   }
 
   reset(): void {
