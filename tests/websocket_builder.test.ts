@@ -5,17 +5,40 @@ import {
   WebsocketBuilder,
 } from "../src";
 import { WebsocketBuffer } from "../src";
-import { WebsocketEvent, WebsocketEventListenerWithOptions } from "../src";
+import { WebsocketEvent, WebsocketEventListenerOptions } from "../src";
 import { vi, describe, test, expect } from "vitest";
 
 describe("Testsuite for WebSocketBuilder", () => {
   const url = "ws://localhost:8080";
 
+  /**
+   * build() opens a real connection attempt; close it immediately so tests
+   * don't leak connecting/retrying websockets.
+   */
+  const buildAndClose = (builder: WebsocketBuilder): Websocket => {
+    const ws = builder.build();
+    ws.close();
+    return ws;
+  };
+
+  /**
+   * Returns the listener-registrations for the given event type, from either
+   * a builder or a built websocket. Centralizes the private-state access so
+   * only this helper breaks if internals are refactored.
+   */
+  const registeredListeners = (
+    target: WebsocketBuilder | Websocket,
+    event: WebsocketEvent,
+  ): unknown[] =>
+    target instanceof WebsocketBuilder
+      ? (target["_options"]?.listeners?.[event] ?? [])
+      : target["_options"].listeners[event];
+
   test("WebsocketBuilder should set url", () => {
     const builder = new WebsocketBuilder(url);
     expect(builder.url).toBe(url);
 
-    const ws = builder.build();
+    const ws = buildAndClose(builder);
     expect(ws.url).toBe(url);
   });
 
@@ -24,7 +47,7 @@ describe("Testsuite for WebSocketBuilder", () => {
     const builder = new WebsocketBuilder(urlProvider);
     expect(builder.url).toBe(urlProvider);
 
-    const ws = builder.build();
+    const ws = buildAndClose(builder);
     expect(ws.url).toBe(url);
   });
 
@@ -34,7 +57,7 @@ describe("Testsuite for WebSocketBuilder", () => {
     const builder = new WebsocketBuilder(url).withProtocols(protocols);
     expect(builder.protocols).toBe(protocols);
 
-    const ws = builder.build();
+    const ws = buildAndClose(builder);
     expect(ws.protocols).toBe(protocols);
   });
 
@@ -47,7 +70,7 @@ describe("Testsuite for WebSocketBuilder", () => {
       .withProtocols(protocols2);
     expect(builder.protocols).toBe(protocols2);
 
-    const ws = builder.build();
+    const ws = buildAndClose(builder);
     expect(ws.protocols).toBe(protocols2);
   });
 
@@ -59,7 +82,7 @@ describe("Testsuite for WebSocketBuilder", () => {
       .withMaxRetries(maxRetries);
     expect(builder.maxRetries).toBe(maxRetries);
 
-    const ws = builder.build();
+    const ws = buildAndClose(builder);
     expect(ws.maxRetries).toBe(maxRetries);
   });
 
@@ -73,7 +96,7 @@ describe("Testsuite for WebSocketBuilder", () => {
       .withMaxRetries(maxRetries2);
     expect(builder.maxRetries).toBe(maxRetries2);
 
-    const ws = builder.build();
+    const ws = buildAndClose(builder);
     expect(ws.maxRetries).toBe(maxRetries2);
   });
 
@@ -81,7 +104,7 @@ describe("Testsuite for WebSocketBuilder", () => {
     const builder = new WebsocketBuilder(url);
     expect(builder.maxRetries).toBeUndefined();
 
-    const ws = builder.build();
+    const ws = buildAndClose(builder);
     expect(ws.maxRetries).toBeUndefined();
   });
 
@@ -93,7 +116,7 @@ describe("Testsuite for WebSocketBuilder", () => {
       .withInstantReconnect(instantReconnect);
     expect(builder.instantReconnect).toBe(instantReconnect);
 
-    const ws = builder.build();
+    const ws = buildAndClose(builder);
     expect(ws.instantReconnect).toBe(instantReconnect);
   });
 
@@ -101,7 +124,7 @@ describe("Testsuite for WebSocketBuilder", () => {
     const builder = new WebsocketBuilder(url);
     expect(builder.instantReconnect).toBeUndefined();
 
-    const ws = builder.build();
+    const ws = buildAndClose(builder);
     expect(ws.instantReconnect).toBeUndefined();
   });
 
@@ -111,7 +134,7 @@ describe("Testsuite for WebSocketBuilder", () => {
     const builder = new WebsocketBuilder(url).withBackoff(backoff);
     expect(builder.backoff).toBe(backoff);
 
-    const ws = builder.build();
+    const ws = buildAndClose(builder);
     expect(ws.backoff).toBe(backoff);
   });
 
@@ -124,7 +147,7 @@ describe("Testsuite for WebSocketBuilder", () => {
       .withBackoff(backoff2);
     expect(builder.backoff).toBe(backoff2);
 
-    const ws = builder.build();
+    const ws = buildAndClose(builder);
     expect(ws.backoff).toBe(backoff2);
   });
 
@@ -132,7 +155,7 @@ describe("Testsuite for WebSocketBuilder", () => {
     const builder = new WebsocketBuilder(url);
     expect(builder.backoff).toBeUndefined();
 
-    const ws = builder.build();
+    const ws = buildAndClose(builder);
     expect(ws.backoff).toBeUndefined();
   });
 
@@ -142,7 +165,7 @@ describe("Testsuite for WebSocketBuilder", () => {
     const builder = new WebsocketBuilder(url).withBuffer(buffer);
     expect(builder.buffer).toBe(buffer);
 
-    const ws = builder.build();
+    const ws = buildAndClose(builder);
     expect(ws.buffer).toBe(buffer);
   });
 
@@ -155,7 +178,7 @@ describe("Testsuite for WebSocketBuilder", () => {
       .withBuffer(buffer2);
     expect(builder.buffer).toBe(buffer2);
 
-    const ws = builder.build();
+    const ws = buildAndClose(builder);
     expect(ws.buffer).toBe(buffer2);
   });
 
@@ -163,747 +186,115 @@ describe("Testsuite for WebSocketBuilder", () => {
     const builder = new WebsocketBuilder(url);
     expect(builder.buffer).toBeUndefined();
 
-    const ws = builder.build();
+    const ws = buildAndClose(builder);
     expect(ws.buffer).toBeUndefined();
   });
 
-  test("WebsocketBuilder should set 'open'-listener", () => {
-    const listener = vi.fn();
+  describe.each([
+    { event: WebsocketEvent.open, method: "onOpen" as const },
+    { event: WebsocketEvent.close, method: "onClose" as const },
+    { event: WebsocketEvent.error, method: "onError" as const },
+    { event: WebsocketEvent.message, method: "onMessage" as const },
+    { event: WebsocketEvent.retry, method: "onRetry" as const },
+    { event: WebsocketEvent.reconnect, method: "onReconnect" as const },
+    { event: WebsocketEvent.exhausted, method: "onExhausted" as const },
+  ])("Listener registration for '$event'", ({ event, method }) => {
+    /** Registers a listener for this case's event type via the builder method. */
+    const register = (
+      builder: WebsocketBuilder,
+      listener: () => void,
+      options?: WebsocketEventListenerOptions,
+    ): WebsocketBuilder =>
+      (
+        builder[method] as (
+          l: () => void,
+          o?: WebsocketEventListenerOptions,
+        ) => WebsocketBuilder
+      ).call(builder, listener, options);
 
-    const builder = new WebsocketBuilder(url).onOpen(listener);
-    expect(builder["_options"]!["listeners"]!.open).toStrictEqual<
-      WebsocketEventListenerWithOptions<WebsocketEvent.open>[]
-    >([
-      {
-        listener,
-        options: undefined,
-      },
-    ]);
+    test(`WebsocketBuilder should set '${event}'-listener`, () => {
+      const listener = vi.fn();
 
-    const ws = builder.build();
-    expect(ws["_options"]["listeners"].open).toStrictEqual<
-      WebsocketEventListenerWithOptions<WebsocketEvent.open>[]
-    >([
-      {
-        listener,
-        options: undefined,
-      },
-    ]);
-  });
+      const builder = register(new WebsocketBuilder(url), listener);
+      expect(registeredListeners(builder, event)).toStrictEqual([
+        { listener, options: undefined },
+      ]);
 
-  test("WebsocketBuilder should set 'open'-listener for subsequent calls", () => {
-    const listener1 = vi.fn();
-    const listener2 = vi.fn();
+      const ws = buildAndClose(builder);
+      expect(registeredListeners(ws, event)).toStrictEqual([
+        { listener, options: undefined },
+      ]);
+    });
 
-    const builder = new WebsocketBuilder(url)
-      .onOpen(listener1)
-      .onOpen(listener2);
-    expect(builder["_options"]!["listeners"]!.open).toStrictEqual<
-      WebsocketEventListenerWithOptions<WebsocketEvent.open>[]
-    >([
-      {
-        listener: listener1,
-        options: undefined,
-      },
-      { listener: listener2, options: undefined },
-    ]);
+    test(`WebsocketBuilder should set '${event}'-listener for subsequent calls`, () => {
+      const listener1 = vi.fn();
+      const listener2 = vi.fn();
 
-    const ws = builder.build();
-    expect(ws["_options"]!["listeners"]!.open).toStrictEqual<
-      WebsocketEventListenerWithOptions<WebsocketEvent.open>[]
-    >([
-      {
-        listener: listener1,
-        options: undefined,
-      },
-      { listener: listener2, options: undefined },
-    ]);
-  });
+      const builder = register(
+        register(new WebsocketBuilder(url), listener1),
+        listener2,
+      );
+      expect(registeredListeners(builder, event)).toStrictEqual([
+        { listener: listener1, options: undefined },
+        { listener: listener2, options: undefined },
+      ]);
 
-  test("WebsocketBuilder should set 'open'-listener with options", () => {
-    const listener = vi.fn();
-    const options = { once: true };
+      const ws = buildAndClose(builder);
+      expect(registeredListeners(ws, event)).toStrictEqual([
+        { listener: listener1, options: undefined },
+        { listener: listener2, options: undefined },
+      ]);
+    });
 
-    const builder = new WebsocketBuilder(url).onOpen(listener, options);
-    expect(builder["_options"]!["listeners"]!.open).toStrictEqual<
-      WebsocketEventListenerWithOptions<WebsocketEvent.open>[]
-    >([{ listener, options }]);
+    test(`WebsocketBuilder should set '${event}'-listener with options`, () => {
+      const listener = vi.fn();
+      const options = { once: true };
 
-    const ws = builder.build();
-    expect(ws["_options"]!["listeners"]!.open).toStrictEqual<
-      WebsocketEventListenerWithOptions<WebsocketEvent.open>[]
-    >([{ listener, options }]);
-  });
+      const builder = register(new WebsocketBuilder(url), listener, options);
+      expect(registeredListeners(builder, event)).toStrictEqual([
+        { listener, options },
+      ]);
 
-  test("WebsocketBuilder should set 'open'-listener with mixed options", () => {
-    const listener1 = vi.fn();
-    const listener2 = vi.fn();
-    const options = { once: true };
+      const ws = buildAndClose(builder);
+      expect(registeredListeners(ws, event)).toStrictEqual([
+        { listener, options },
+      ]);
+    });
 
-    const builder = new WebsocketBuilder(url)
-      .onOpen(listener1)
-      .onOpen(listener2, options);
-    expect(builder["_options"]!["listeners"]!.open).toStrictEqual<
-      WebsocketEventListenerWithOptions<WebsocketEvent.open>[]
-    >([
-      {
-        listener: listener1,
-        options: undefined,
-      },
-      { listener: listener2, options },
-    ]);
+    test(`WebsocketBuilder should set '${event}'-listener with mixed options`, () => {
+      const listener1 = vi.fn();
+      const listener2 = vi.fn();
+      const options = { once: true };
 
-    const ws = builder.build();
-    expect(ws["_options"]!["listeners"]!.open).toStrictEqual<
-      WebsocketEventListenerWithOptions<WebsocketEvent.open>[]
-    >([
-      {
-        listener: listener1,
-        options: undefined,
-      },
-      { listener: listener2, options },
-    ]);
-  });
-
-  test("WebsocketBuilder should set 'close'-listener", () => {
-    const listener = vi.fn();
-
-    const builder = new WebsocketBuilder(url).onClose(listener);
-    expect(builder["_options"]!["listeners"]!.close).toStrictEqual<
-      WebsocketEventListenerWithOptions<WebsocketEvent.close>[]
-    >([
-      {
-        listener,
-        options: undefined,
-      },
-    ]);
-
-    const ws = builder.build();
-    expect(ws["_options"]!["listeners"]!.close).toStrictEqual<
-      WebsocketEventListenerWithOptions<WebsocketEvent.close>[]
-    >([
-      {
-        listener,
-        options: undefined,
-      },
-    ]);
-  });
-
-  test("WebsocketBuilder should set 'close'-listener for subsequent calls", () => {
-    const listener1 = vi.fn();
-    const listener2 = vi.fn();
-
-    const builder = new WebsocketBuilder(url)
-      .onClose(listener1)
-      .onClose(listener2);
-    expect(builder["_options"]!["listeners"]!.close).toStrictEqual<
-      WebsocketEventListenerWithOptions<WebsocketEvent.close>[]
-    >([
-      {
-        listener: listener1,
-        options: undefined,
-      },
-      { listener: listener2, options: undefined },
-    ]);
-
-    const ws = builder.build();
-    expect(ws["_options"]!["listeners"]!.close).toStrictEqual<
-      WebsocketEventListenerWithOptions<WebsocketEvent.close>[]
-    >([
-      {
-        listener: listener1,
-        options: undefined,
-      },
-      { listener: listener2, options: undefined },
-    ]);
-  });
-
-  test("WebsocketBuilder should set 'close'-listener with options", () => {
-    const listener = vi.fn();
-    const options = { once: true };
-
-    const builder = new WebsocketBuilder(url).onClose(listener, options);
-    expect(builder["_options"]!["listeners"]!.close).toStrictEqual<
-      WebsocketEventListenerWithOptions<WebsocketEvent.close>[]
-    >([
-      {
-        listener,
+      const builder = register(
+        register(new WebsocketBuilder(url), listener1),
+        listener2,
         options,
-      },
-    ]);
-
-    const ws = builder.build();
-    expect(ws["_options"]!["listeners"]!.close).toStrictEqual<
-      WebsocketEventListenerWithOptions<WebsocketEvent.close>[]
-    >([{ listener, options }]);
-  });
-
-  test("WebsocketBuilder should set 'close'-listener with mixed options", () => {
-    const listener1 = vi.fn();
-    const listener2 = vi.fn();
-    const options = { once: true };
-
-    const builder = new WebsocketBuilder(url)
-      .onClose(listener1)
-      .onClose(listener2, options);
-    expect(builder["_options"]!["listeners"]!.close).toStrictEqual<
-      WebsocketEventListenerWithOptions<WebsocketEvent.close>[]
-    >([
-      {
-        listener: listener1,
-        options: undefined,
-      },
-      { listener: listener2, options },
-    ]);
-
-    const ws = builder.build();
-    expect(ws["_options"]!["listeners"]!.close).toStrictEqual<
-      WebsocketEventListenerWithOptions<WebsocketEvent.close>[]
-    >([
-      {
-        listener: listener1,
-        options: undefined,
-      },
-      { listener: listener2, options },
-    ]);
-  });
-
-  test("WebsocketBuilder should set 'error'-listener", () => {
-    const listener = vi.fn();
-
-    const builder = new WebsocketBuilder(url).onError(listener);
-    expect(builder["_options"]!["listeners"]!.error).toStrictEqual<
-      WebsocketEventListenerWithOptions<WebsocketEvent.error>[]
-    >([
-      {
-        listener,
-        options: undefined,
-      },
-    ]);
-
-    const ws = builder.build();
-    expect(ws["_options"]!["listeners"]!.error).toStrictEqual<
-      WebsocketEventListenerWithOptions<WebsocketEvent.error>[]
-    >([
-      {
-        listener,
-        options: undefined,
-      },
-    ]);
-  });
-
-  test("WebsocketBuilder should set 'error'-listener for subsequent calls", () => {
-    const listener1 = vi.fn();
-    const listener2 = vi.fn();
-
-    const builder = new WebsocketBuilder(url)
-      .onError(listener1)
-      .onError(listener2);
-    expect(builder["_options"]!["listeners"]!.error).toStrictEqual<
-      WebsocketEventListenerWithOptions<WebsocketEvent.error>[]
-    >([
-      {
-        listener: listener1,
-        options: undefined,
-      },
-      { listener: listener2, options: undefined },
-    ]);
-
-    const ws = builder.build();
-    expect(ws["_options"]!["listeners"]!.error).toStrictEqual<
-      WebsocketEventListenerWithOptions<WebsocketEvent.error>[]
-    >([
-      {
-        listener: listener1,
-        options: undefined,
-      },
-      { listener: listener2, options: undefined },
-    ]);
-  });
-
-  test("WebsocketBuilder should set 'error'-listener with options", () => {
-    const listener = vi.fn();
-    const options = { once: true };
-
-    const builder = new WebsocketBuilder(url).onError(listener, options);
-    expect(builder["_options"]!["listeners"]!.error).toStrictEqual<
-      WebsocketEventListenerWithOptions<WebsocketEvent.error>[]
-    >([
-      {
-        listener,
-        options,
-      },
-    ]);
-
-    const ws = builder.build();
-    expect(ws["_options"]!["listeners"]!.error).toStrictEqual<
-      WebsocketEventListenerWithOptions<WebsocketEvent.error>[]
-    >([{ listener, options }]);
-  });
-
-  test("WebsocketBuilder should set 'error'-listener with mixed options", () => {
-    const listener1 = vi.fn();
-    const listener2 = vi.fn();
-    const options = { once: true };
-
-    const builder = new WebsocketBuilder(url)
-      .onError(listener1)
-      .onError(listener2, options);
-    expect(builder["_options"]!["listeners"]!.error).toStrictEqual<
-      WebsocketEventListenerWithOptions<WebsocketEvent.error>[]
-    >([
-      {
-        listener: listener1,
-        options: undefined,
-      },
-      { listener: listener2, options },
-    ]);
-
-    const ws = builder.build();
-    expect(ws["_options"]!["listeners"]!.error).toStrictEqual<
-      WebsocketEventListenerWithOptions<WebsocketEvent.error>[]
-    >([
-      {
-        listener: listener1,
-        options: undefined,
-      },
-      { listener: listener2, options },
-    ]);
-  });
-
-  test("WebsocketBuilder should set 'message'-listener", () => {
-    const listener = vi.fn();
-
-    const builder = new WebsocketBuilder(url).onMessage(listener);
-    expect(builder["_options"]!["listeners"]!.message).toStrictEqual<
-      WebsocketEventListenerWithOptions<WebsocketEvent.message>[]
-    >([
-      {
-        listener,
-        options: undefined,
-      },
-    ]);
-
-    const ws = builder.build();
-    expect(ws["_options"]!["listeners"]!.message).toStrictEqual<
-      WebsocketEventListenerWithOptions<WebsocketEvent.message>[]
-    >([
-      {
-        listener,
-        options: undefined,
-      },
-    ]);
-  });
-
-  test("WebsocketBuilder should set 'message'-listener for subsequent calls", () => {
-    const listener1 = vi.fn();
-    const listener2 = vi.fn();
-
-    const builder = new WebsocketBuilder(url)
-      .onMessage(listener1)
-      .onMessage(listener2);
-    expect(builder["_options"]!["listeners"]!.message).toStrictEqual<
-      WebsocketEventListenerWithOptions<WebsocketEvent.message>[]
-    >([
-      {
-        listener: listener1,
-        options: undefined,
-      },
-      { listener: listener2, options: undefined },
-    ]);
-
-    const ws = builder.build();
-    expect(ws["_options"]!["listeners"]!.message).toStrictEqual<
-      WebsocketEventListenerWithOptions<WebsocketEvent.message>[]
-    >([
-      {
-        listener: listener1,
-        options: undefined,
-      },
-      { listener: listener2, options: undefined },
-    ]);
-  });
-
-  test("WebsocketBuilder should set 'message'-listener with options", () => {
-    const listener = vi.fn();
-    const options = { once: true };
-
-    const builder = new WebsocketBuilder(url).onMessage(listener, options);
-    expect(builder["_options"]!["listeners"]!.message).toStrictEqual<
-      WebsocketEventListenerWithOptions<WebsocketEvent.message>[]
-    >([
-      {
-        listener,
-        options,
-      },
-    ]);
-
-    const ws = builder.build();
-    expect(ws["_options"]!["listeners"]!.message).toStrictEqual<
-      WebsocketEventListenerWithOptions<WebsocketEvent.message>[]
-    >([
-      {
-        listener,
-        options,
-      },
-    ]);
-  });
-
-  test("WebsocketBuilder should set 'message'-listener with mixed options", () => {
-    const listener1 = vi.fn();
-    const listener2 = vi.fn();
-    const options = { once: true };
-
-    const builder = new WebsocketBuilder(url)
-      .onMessage(listener1)
-      .onMessage(listener2, options);
-    expect(builder["_options"]!["listeners"]!.message).toStrictEqual<
-      WebsocketEventListenerWithOptions<WebsocketEvent.message>[]
-    >([
-      {
-        listener: listener1,
-        options: undefined,
-      },
-      { listener: listener2, options },
-    ]);
-
-    const ws = builder.build();
-    expect(ws["_options"]!["listeners"]!.message).toStrictEqual<
-      WebsocketEventListenerWithOptions<WebsocketEvent.message>[]
-    >([
-      {
-        listener: listener1,
-        options: undefined,
-      },
-      { listener: listener2, options },
-    ]);
-  });
-
-  test("WebsocketBuilder should set 'retry'-listener", () => {
-    const listener = vi.fn();
-
-    const builder = new WebsocketBuilder(url).onRetry(listener);
-    expect(builder["_options"]!["listeners"]!.retry).toStrictEqual<
-      WebsocketEventListenerWithOptions<WebsocketEvent.retry>[]
-    >([
-      {
-        listener,
-        options: undefined,
-      },
-    ]);
-
-    const ws = builder.build();
-    expect(ws["_options"]!["listeners"]!.retry).toStrictEqual<
-      WebsocketEventListenerWithOptions<WebsocketEvent.retry>[]
-    >([
-      {
-        listener,
-        options: undefined,
-      },
-    ]);
-  });
-
-  test("WebsocketBuilder should set 'retry'-listener for subsequent calls", () => {
-    const listener1 = vi.fn();
-    const listener2 = vi.fn();
-
-    const builder = new WebsocketBuilder(url)
-      .onRetry(listener1)
-      .onRetry(listener2);
-    expect(builder["_options"]!["listeners"]!.retry).toStrictEqual<
-      WebsocketEventListenerWithOptions<WebsocketEvent.retry>[]
-    >([
-      {
-        listener: listener1,
-        options: undefined,
-      },
-      { listener: listener2, options: undefined },
-    ]);
-
-    const ws = builder.build();
-    expect(ws["_options"]!["listeners"]!.retry).toStrictEqual<
-      WebsocketEventListenerWithOptions<WebsocketEvent.retry>[]
-    >([
-      {
-        listener: listener1,
-        options: undefined,
-      },
-      { listener: listener2, options: undefined },
-    ]);
-  });
-
-  test("WebsocketBuilder should set 'retry'-listener with options", () => {
-    const listener = vi.fn();
-    const options = { once: true };
-
-    const builder = new WebsocketBuilder(url).onRetry(listener, options);
-    expect(builder["_options"]!["listeners"]!.retry).toStrictEqual<
-      WebsocketEventListenerWithOptions<WebsocketEvent.retry>[]
-    >([
-      {
-        listener,
-        options,
-      },
-    ]);
-
-    const ws = builder.build();
-    expect(ws["_options"]!["listeners"]!.retry).toStrictEqual<
-      WebsocketEventListenerWithOptions<WebsocketEvent.retry>[]
-    >([{ listener, options }]);
-  });
-
-  test("WebsocketBuilder should set 'retry'-listener with mixed options", () => {
-    const listener1 = vi.fn();
-    const listener2 = vi.fn();
-    const options = { once: true };
-
-    const builder = new WebsocketBuilder(url)
-      .onRetry(listener1)
-      .onRetry(listener2, options);
-    expect(builder["_options"]!["listeners"]!.retry).toStrictEqual<
-      WebsocketEventListenerWithOptions<WebsocketEvent.retry>[]
-    >([
-      {
-        listener: listener1,
-        options: undefined,
-      },
-      { listener: listener2, options },
-    ]);
-
-    const ws = builder.build();
-    expect(ws["_options"]!["listeners"]!.retry).toStrictEqual<
-      WebsocketEventListenerWithOptions<WebsocketEvent.retry>[]
-    >([
-      {
-        listener: listener1,
-        options: undefined,
-      },
-      { listener: listener2, options },
-    ]);
-  });
-
-  test("WebsocketBuilder should set 'reconnect'-listener", () => {
-    const listener = vi.fn();
-
-    const builder = new WebsocketBuilder(url).onReconnect(listener);
-    expect(builder["_options"]!["listeners"]!.reconnect).toStrictEqual<
-      WebsocketEventListenerWithOptions<WebsocketEvent.reconnect>[]
-    >([
-      {
-        listener,
-        options: undefined,
-      },
-    ]);
-
-    const ws = builder.build();
-    expect(ws["_options"]!["listeners"]!.reconnect).toStrictEqual<
-      WebsocketEventListenerWithOptions<WebsocketEvent.reconnect>[]
-    >([
-      {
-        listener,
-        options: undefined,
-      },
-    ]);
-  });
-
-  test("WebsocketBuilder should set 'reconnect'-listener for subsequent calls", () => {
-    const listener1 = vi.fn();
-    const listener2 = vi.fn();
-
-    const builder = new WebsocketBuilder(url)
-      .onReconnect(listener1)
-      .onReconnect(listener2);
-    expect(builder["_options"]!["listeners"]!.reconnect).toStrictEqual<
-      WebsocketEventListenerWithOptions<WebsocketEvent.reconnect>[]
-    >([
-      {
-        listener: listener1,
-        options: undefined,
-      },
-      { listener: listener2, options: undefined },
-    ]);
-
-    const ws = builder.build();
-    expect(ws["_options"]!["listeners"]!.reconnect).toStrictEqual<
-      WebsocketEventListenerWithOptions<WebsocketEvent.reconnect>[]
-    >([
-      {
-        listener: listener1,
-        options: undefined,
-      },
-      { listener: listener2, options: undefined },
-    ]);
-  });
-
-  test("WebsocketBuilder should set 'reconnect'-listener with options", () => {
-    const listener = vi.fn();
-    const options = { once: true };
-
-    const builder = new WebsocketBuilder(url).onReconnect(listener, options);
-    expect(builder["_options"]!["listeners"]!.reconnect).toStrictEqual<
-      WebsocketEventListenerWithOptions<WebsocketEvent.reconnect>[]
-    >([
-      {
-        listener,
-        options,
-      },
-    ]);
-
-    const ws = builder.build();
-    expect(ws["_options"]!["listeners"]!.reconnect).toStrictEqual<
-      WebsocketEventListenerWithOptions<WebsocketEvent.reconnect>[]
-    >([
-      {
-        listener,
-        options,
-      },
-    ]);
-  });
-
-  test("WebsocketBuilder should set 'reconnect'-listener with mixed options", () => {
-    const listener1 = vi.fn();
-    const listener2 = vi.fn();
-    const options = { once: true };
-
-    const builder = new WebsocketBuilder(url)
-      .onReconnect(listener1)
-      .onReconnect(listener2, options);
-    expect(builder["_options"]!["listeners"]!.reconnect).toStrictEqual<
-      WebsocketEventListenerWithOptions<WebsocketEvent.reconnect>[]
-    >([
-      {
-        listener: listener1,
-        options: undefined,
-      },
-      { listener: listener2, options },
-    ]);
-
-    const ws = builder.build();
-    expect(ws["_options"]!["listeners"]!.reconnect).toStrictEqual<
-      WebsocketEventListenerWithOptions<WebsocketEvent.reconnect>[]
-    >([
-      {
-        listener: listener1,
-        options: undefined,
-      },
-      { listener: listener2, options },
-    ]);
-  });
-
-  test("WebsocketBuilder should set 'exhausted'-listener", () => {
-    const listener = vi.fn();
-
-    const builder = new WebsocketBuilder(url).onExhausted(listener);
-    expect(builder["_options"]!["listeners"]!.exhausted).toStrictEqual<
-      WebsocketEventListenerWithOptions<WebsocketEvent.exhausted>[]
-    >([
-      {
-        listener,
-        options: undefined,
-      },
-    ]);
-
-    const ws = builder.build();
-    expect(ws["_options"]!["listeners"]!.exhausted).toStrictEqual<
-      WebsocketEventListenerWithOptions<WebsocketEvent.exhausted>[]
-    >([
-      {
-        listener,
-        options: undefined,
-      },
-    ]);
-  });
-
-  test("WebsocketBuilder should set 'exhausted'-listener for subsequent calls", () => {
-    const listener1 = vi.fn();
-    const listener2 = vi.fn();
-
-    const builder = new WebsocketBuilder(url)
-      .onExhausted(listener1)
-      .onExhausted(listener2);
-    expect(builder["_options"]!["listeners"]!.exhausted).toStrictEqual<
-      WebsocketEventListenerWithOptions<WebsocketEvent.exhausted>[]
-    >([
-      {
-        listener: listener1,
-        options: undefined,
-      },
-      { listener: listener2, options: undefined },
-    ]);
-
-    const ws = builder.build();
-    expect(ws["_options"]!["listeners"]!.exhausted).toStrictEqual<
-      WebsocketEventListenerWithOptions<WebsocketEvent.exhausted>[]
-    >([
-      {
-        listener: listener1,
-        options: undefined,
-      },
-      { listener: listener2, options: undefined },
-    ]);
-  });
-
-  test("WebsocketBuilder should set 'exhausted'-listener with options", () => {
-    const listener = vi.fn();
-    const options = { once: true };
-
-    const builder = new WebsocketBuilder(url).onExhausted(listener, options);
-    expect(builder["_options"]!["listeners"]!.exhausted).toStrictEqual<
-      WebsocketEventListenerWithOptions<WebsocketEvent.exhausted>[]
-    >([
-      {
-        listener,
-        options,
-      },
-    ]);
-
-    const ws = builder.build();
-    expect(ws["_options"]!["listeners"]!.exhausted).toStrictEqual<
-      WebsocketEventListenerWithOptions<WebsocketEvent.exhausted>[]
-    >([{ listener, options }]);
-  });
-
-  test("WebsocketBuilder should set 'exhausted'-listener with mixed options", () => {
-    const listener1 = vi.fn();
-    const listener2 = vi.fn();
-    const options = { once: true };
-
-    const builder = new WebsocketBuilder(url)
-      .onExhausted(listener1)
-      .onExhausted(listener2, options);
-    expect(builder["_options"]!["listeners"]!.exhausted).toStrictEqual<
-      WebsocketEventListenerWithOptions<WebsocketEvent.exhausted>[]
-    >([
-      {
-        listener: listener1,
-        options: undefined,
-      },
-      { listener: listener2, options },
-    ]);
-
-    const ws = builder.build();
-    expect(ws["_options"]!["listeners"]!.exhausted).toStrictEqual<
-      WebsocketEventListenerWithOptions<WebsocketEvent.exhausted>[]
-    >([
-      {
-        listener: listener1,
-        options: undefined,
-      },
-      { listener: listener2, options },
-    ]);
+      );
+      expect(registeredListeners(builder, event)).toStrictEqual([
+        { listener: listener1, options: undefined },
+        { listener: listener2, options },
+      ]);
+
+      const ws = buildAndClose(builder);
+      expect(registeredListeners(ws, event)).toStrictEqual([
+        { listener: listener1, options: undefined },
+        { listener: listener2, options },
+      ]);
+    });
   });
 
   test("WebsocketBuilder should return a Websocket instance", () => {
     const builder = new WebsocketBuilder(url);
-    const ws = builder.build();
+    const ws = buildAndClose(builder);
 
     expect(ws).toBeInstanceOf(Websocket);
   });
 
   test("WebsocketBuilder should create new Websocket instances with subsequent 'build' calls", () => {
     const builder = new WebsocketBuilder(url);
-    const ws1 = builder.build();
-    const ws2 = builder.build();
+    const ws1 = buildAndClose(builder);
+    const ws2 = buildAndClose(builder);
 
     expect(ws1).not.toBe(ws2);
   });
