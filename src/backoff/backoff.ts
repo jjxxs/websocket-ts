@@ -9,13 +9,13 @@ export interface Backoff {
   readonly retries: number;
 
   /**
-   * Current number in the series.
+   * Current number in the series, i.e. the value that the next call to next() will return.
    */
   readonly current: number;
 
   /**
-   * Advances the series to the next number and returns it.
-   * @return the next number in the series
+   * Returns the current number in the series and advances the series by one step.
+   * @return the current number in the series
    */
   next(): number;
 

@@ -60,7 +60,7 @@ describe("Testsuite for LinearBackoff", () => {
     const backoff = new LinearBackoff(1000, 1000);
     for (let i = 0; i < 10; i++) {
       expect(backoff.current).toBe(1000 + i * 1000);
-      expect(backoff.next()).toBe(1000 + (i + 1) * 1000);
+      expect(backoff.next()).toBe(1000 + i * 1000);
       expect(backoff.current).toBe(1000 + (i + 1) * 1000);
     }
   });
@@ -69,7 +69,7 @@ describe("Testsuite for LinearBackoff", () => {
     const backoff = new LinearBackoff(1000, 1000, 5000);
     for (let i = 0; i < 10; i++) {
       expect(backoff.current).toBe(Math.min(1000 + i * 1000, 5000));
-      expect(backoff.next()).toBe(Math.min(1000 + (i + 1) * 1000, 5000));
+      expect(backoff.next()).toBe(Math.min(1000 + i * 1000, 5000));
       expect(backoff.current).toBe(Math.min(1000 + (i + 1) * 1000, 5000));
     }
   });
