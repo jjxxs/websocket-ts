@@ -1,7 +1,7 @@
 {
   "name": "websocket-ts",
   "description": "A WebSocket client library with optional reconnecting and buffering capabilities.",
-  "version": "2.3.0",
+  "version": "3.0.0",
   "main": "dist/cjs/index.js",
   "types": "dist/cjs/index.d.ts",
   "module": "dist/esm/index.js",
