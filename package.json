@@ -52,15 +52,13 @@
     "@typescript-eslint/eslint-plugin": "^8.57.2",
     "@typescript-eslint/parser": "^8.57.2",
     "@vitest/coverage-v8": "^4.1.10",
-    "coveralls-next": "^5.0.0",
-    "cross-env": "^10.1.0",
     "eslint": "^10.6.0",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.5",
     "globals": "^17.7.0",
     "jsdom": "^26.1.0",
-    "ts-node": "^10.9.2",
-    "typescript": "^5.9.3",
+    "prettier": "^3.9.4",
+    "typescript": "^6.0.3",
     "vitest": "^4.1.10",
     "ws": "^8.20.0"
   }

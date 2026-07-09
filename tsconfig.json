@@ -5,7 +5,7 @@
   "compilerOptions": {
     "target": "ES2018",
     "module": "esnext",
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
     "noEmit": true,
 
     /* Strict Type-Checking Options */
@@ -13,10 +13,6 @@
     "noImplicitAny": true,
 
     /* Module Resolution Options */
-    "paths": {
-      // workaround for: https://github.com/vitest-dev/vitest/issues/4567
-      "rollup/parseAst": ["./node_modules/rollup/dist/parseAst"]
-    },
     "esModuleInterop": true,
 
     /* Advanced Options */
