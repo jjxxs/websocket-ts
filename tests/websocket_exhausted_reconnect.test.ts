@@ -208,7 +208,9 @@ describe("Testsuite for the exhausted event and reconnect()", () => {
     });
 
     test("WebsocketBuilder.build() should throw when retry options are set without a backoff", () => {
-      expect(() => new WebsocketBuilder(url).withMaxRetries(5).build()).toThrow();
+      expect(() =>
+        new WebsocketBuilder(url).withMaxRetries(5).build(),
+      ).toThrow();
       expect(() =>
         new WebsocketBuilder(url).withInstantReconnect(true).build(),
       ).toThrow();

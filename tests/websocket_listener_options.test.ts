@@ -46,7 +46,9 @@ describe("Testsuite for listener options (once/signal)", () => {
         signal: controller.signal,
       });
 
-      expect(getListenersWithOptions(client, WebsocketEvent.message)).toHaveLength(0);
+      expect(
+        getListenersWithOptions(client, WebsocketEvent.message),
+      ).toHaveLength(0);
     });
 
     test("Websocket should remove a listener when its signal is aborted", () => {
@@ -56,10 +58,14 @@ describe("Testsuite for listener options (once/signal)", () => {
       client.addEventListener(WebsocketEvent.message, () => undefined, {
         signal: controller.signal,
       });
-      expect(getListenersWithOptions(client, WebsocketEvent.message)).toHaveLength(1);
+      expect(
+        getListenersWithOptions(client, WebsocketEvent.message),
+      ).toHaveLength(1);
 
       controller.abort();
-      expect(getListenersWithOptions(client, WebsocketEvent.message)).toHaveLength(0);
+      expect(
+        getListenersWithOptions(client, WebsocketEvent.message),
+      ).toHaveLength(0);
     });
 
     test("Websocket should remove all listeners registered with the same signal when it is aborted", () => {
@@ -77,9 +83,15 @@ describe("Testsuite for listener options (once/signal)", () => {
       });
 
       controller.abort(); // one abort tears down the whole group
-      expect(getListenersWithOptions(client, WebsocketEvent.message)).toHaveLength(0);
-      expect(getListenersWithOptions(client, WebsocketEvent.close)).toHaveLength(0);
-      expect(getListenersWithOptions(client, WebsocketEvent.open)).toHaveLength(0);
+      expect(
+        getListenersWithOptions(client, WebsocketEvent.message),
+      ).toHaveLength(0);
+      expect(
+        getListenersWithOptions(client, WebsocketEvent.close),
+      ).toHaveLength(0);
+      expect(getListenersWithOptions(client, WebsocketEvent.open)).toHaveLength(
+        0,
+      );
     });
 
     test("Aborting a signal should remove only the registration made with it, not other registrations of the same listener", () => {
@@ -91,7 +103,9 @@ describe("Testsuite for listener options (once/signal)", () => {
         signal: controller.signal,
       });
       client.addEventListener(WebsocketEvent.message, listener); // no signal
-      expect(getListenersWithOptions(client, WebsocketEvent.message)).toHaveLength(2);
+      expect(
+        getListenersWithOptions(client, WebsocketEvent.message),
+      ).toHaveLength(2);
 
       controller.abort();
       expect(getListenersWithOptions(client, WebsocketEvent.message)).toEqual([
@@ -130,7 +144,10 @@ describe("Testsuite for listener options (once/signal)", () => {
       "A once-listener with a signal should fire once and its abort-handler should be unhooked",
       async () => {
         const controller = new AbortController();
-        const signalRemoveSpy = vi.spyOn(controller.signal, "removeEventListener");
+        const signalRemoveSpy = vi.spyOn(
+          controller.signal,
+          "removeEventListener",
+        );
         const received: string[] = [];
 
         await new Promise<void>((resolve) => {
@@ -147,7 +164,9 @@ describe("Testsuite for listener options (once/signal)", () => {
         await sendFromServerAndWait(server, "only-once");
         await sendFromServerAndWait(server, "not-delivered");
         expect(received).toEqual(["only-once"]);
-        expect(getListenersWithOptions(client, WebsocketEvent.message)).toHaveLength(0);
+        expect(
+          getListenersWithOptions(client, WebsocketEvent.message),
+        ).toHaveLength(0);
         expect(signalRemoveSpy).toHaveBeenCalledWith(
           "abort",
           expect.any(Function),
@@ -158,7 +177,10 @@ describe("Testsuite for listener options (once/signal)", () => {
 
     test("removeEventListener should unhook the abort-handler of the removed registration", () => {
       const controller = new AbortController();
-      const signalRemoveSpy = vi.spyOn(controller.signal, "removeEventListener");
+      const signalRemoveSpy = vi.spyOn(
+        controller.signal,
+        "removeEventListener",
+      );
       const listener = () => undefined;
 
       client = new Websocket(url);
@@ -167,7 +189,9 @@ describe("Testsuite for listener options (once/signal)", () => {
       });
       client.removeEventListener(WebsocketEvent.message, listener);
 
-      expect(getListenersWithOptions(client, WebsocketEvent.message)).toHaveLength(0);
+      expect(
+        getListenersWithOptions(client, WebsocketEvent.message),
+      ).toHaveLength(0);
       expect(signalRemoveSpy).toHaveBeenCalledWith(
         "abort",
         expect.any(Function),
@@ -175,7 +199,9 @@ describe("Testsuite for listener options (once/signal)", () => {
 
       // aborting afterwards must be a harmless no-op
       controller.abort();
-      expect(getListenersWithOptions(client, WebsocketEvent.message)).toHaveLength(0);
+      expect(
+        getListenersWithOptions(client, WebsocketEvent.message),
+      ).toHaveLength(0);
     });
 
     test("Initial listeners provided via the builder should honor their signal", () => {
@@ -189,10 +215,14 @@ describe("Testsuite for listener options (once/signal)", () => {
         .build();
 
       // the already-aborted registration is dropped at construction
-      expect(getListenersWithOptions(client, WebsocketEvent.message)).toHaveLength(1);
+      expect(
+        getListenersWithOptions(client, WebsocketEvent.message),
+      ).toHaveLength(1);
 
       controller.abort();
-      expect(getListenersWithOptions(client, WebsocketEvent.message)).toHaveLength(0);
+      expect(
+        getListenersWithOptions(client, WebsocketEvent.message),
+      ).toHaveLength(0);
     });
   });
 

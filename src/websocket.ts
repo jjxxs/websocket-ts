@@ -610,8 +610,7 @@ export class Websocket {
     ) {
       const detail: ExhaustedEventDetail = {
         retries: this.backoff.retries,
-        lastConnection:
-          this._lastConnection && new Date(this._lastConnection),
+        lastConnection: this._lastConnection && new Date(this._lastConnection),
       };
       const event: CustomEvent<ExhaustedEventDetail> =
         new CustomEvent<ExhaustedEventDetail>(WebsocketEvent.exhausted, {

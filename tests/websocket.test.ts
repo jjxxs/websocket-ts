@@ -621,8 +621,7 @@ describe("Testsuite for Websocket", () => {
         // independent of how fast the retry actually happens; also capture the
         // reconnect detail to verify its contents
         let reconnectDetail:
-          | { retries: number; lastConnection: Date | undefined }
-          | undefined;
+          { retries: number; lastConnection: Date | undefined } | undefined;
         const reconnected = new Promise<void>((resolveReconnected) => {
           void new Promise<WebsocketEventListenerParams<WebsocketEvent.open>>(
             (resolve) => {
@@ -807,7 +806,6 @@ describe("Testsuite for Websocket", () => {
 
         // waiting for the exhausted event instead of sleeping makes the test
         // independent of how fast the retries actually happen
-        let exhaustedDetail: Date | number | undefined;
         const exhausted = new Promise<number>((resolveExhausted) => {
           void new Promise<WebsocketEventListenerParams<WebsocketEvent.open>>(
             (resolve) => {
@@ -835,7 +833,7 @@ describe("Testsuite for Websocket", () => {
 
         // stop server so that the client can't reconnect, then wait for it to give up
         await stopServer(server, serverTimeout);
-        exhaustedDetail = await exhausted;
+        const exhaustedDetail = await exhausted;
 
         // ws should have retried but not reconnect
         expect(openCount).toBe(1);
