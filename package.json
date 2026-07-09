@@ -41,7 +41,7 @@
     "build:esm": "tsc -p tsconfig.esm.json",
     "build:finalize": "node -e \"const fs=require('fs');fs.writeFileSync('dist/esm/package.json',JSON.stringify({type:'module'}));fs.writeFileSync('dist/cjs/package.json',JSON.stringify({type:'commonjs'}))\"",
     "typecheck": "tsc -p tsconfig.json",
-    "lint": "cross-env-shell eslint './src/**/*.ts' './tests/**/*.ts'",
+    "lint": "eslint \"./src/**/*.ts\" \"./tests/**/*.ts\"",
     "test": "vitest",
     "test:coverage": "vitest --coverage"
   },
