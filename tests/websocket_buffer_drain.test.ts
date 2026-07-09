@@ -45,12 +45,10 @@ describe("Testsuite for Websocket buffer draining", () => {
    * never cause more add() calls than the messages that actually exist.
    */
   class CycleDetectingBuffer implements WebsocketBuffer {
-    private readonly queue = new ArrayQueue<
-      string | ArrayBufferLike | Blob | ArrayBufferView
-    >();
+    private readonly queue = new ArrayQueue<string | Blob | BufferSource>();
     public adds = 0;
 
-    add(element: string | ArrayBufferLike | Blob | ArrayBufferView): void {
+    add(element: string | Blob | BufferSource): void {
       this.adds++;
       if (this.adds > 10) {
         throw new Error("buffer re-add cycle detected");
@@ -58,7 +56,7 @@ describe("Testsuite for Websocket buffer draining", () => {
       this.queue.add(element);
     }
 
-    read(): string | ArrayBufferLike | Blob | ArrayBufferView | undefined {
+    read(): string | Blob | BufferSource | undefined {
       return this.queue.read();
     }
 

@@ -262,7 +262,7 @@ export class Websocket {
    * @see https://developer.mozilla.org/en-US/docs/Web/API/WebSocket/send
    * @param data to send.
    */
-  public send(data: string | ArrayBufferLike | Blob | ArrayBufferView): void {
+  public send(data: string | Blob | BufferSource): void {
     if (this.closedByUser) return; // no-op if closed by user
 
     if (
