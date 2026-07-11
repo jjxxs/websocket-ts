@@ -1,6 +1,6 @@
-import { WebsocketBuffer } from "./websocket_buffer";
-import { WebsocketConnectionRetryOptions } from "./websocket_retry_options";
-import { WebsocketEventListeners } from "./websocket_event";
+import { WebsocketBuffer } from "./websocket_buffer.js";
+import { WebsocketConnectionRetryOptions } from "./websocket_retry_options.js";
+import { WebsocketEventListeners } from "./websocket_event.js";
 
 /**
  * Options that can be passed to the Websocket constructor.
@@ -17,7 +17,8 @@ export interface WebsocketOptions {
   readonly retry?: WebsocketConnectionRetryOptions;
 
   /**
-   * The initial listeners to add to the websocket.
+   * The initial listeners to add to the websocket. Event-types without
+   * listeners can be omitted.
    */
-  readonly listeners?: WebsocketEventListeners;
+  readonly listeners?: Partial<WebsocketEventListeners>;
 }

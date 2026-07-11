@@ -1,12 +1,12 @@
-import { Backoff } from "./backoff/backoff";
+import { Backoff } from "./backoff/backoff.js";
 import {
   WebsocketEvent,
   WebsocketEventListener,
   WebsocketEventListenerOptions,
-} from "./websocket_event";
-import { UrlProvider, Websocket } from "./websocket";
-import { WebsocketBuffer } from "./websocket_buffer";
-import { WebsocketOptions } from "./websocket_options";
+} from "./websocket_event.js";
+import { UrlProvider, Websocket } from "./websocket.js";
+import { WebsocketBuffer } from "./websocket_buffer.js";
+import { WebsocketOptions } from "./websocket_options.js";
 
 /**
  * Builder for websockets.
@@ -58,6 +58,7 @@ export class WebsocketBuilder {
 
   /**
    * Sets the maximum number of retries before giving up. No limit if undefined.
+   * Must be a non-negative integer, otherwise build() will throw.
    *
    * @param maxRetries the maximum number of retries before giving up
    */
@@ -234,6 +235,21 @@ export class WebsocketBuilder {
   }
 
   /**
+   * Adds an 'exhausted' event listener to the websocket. Subsequent calls to this method will add additional listeners that will be
+   * called in the order they were added.
+   *
+   * @param listener the listener to add
+   * @param options the listener options
+   */
+  public onExhausted(
+    listener: WebsocketEventListener<WebsocketEvent.exhausted>,
+    options?: WebsocketEventListenerOptions,
+  ): WebsocketBuilder {
+    this.addListener(WebsocketEvent.exhausted, listener, options);
+    return this;
+  }
+
+  /**
    * Builds the websocket.
    *
    * @return a new websocket, with the set options
@@ -263,6 +279,7 @@ export class WebsocketBuilder {
         message: this._options?.listeners?.message ?? [],
         retry: this._options?.listeners?.retry ?? [],
         reconnect: this._options?.listeners?.reconnect ?? [],
+        exhausted: this._options?.listeners?.exhausted ?? [],
         [event]: [
           ...(this._options?.listeners?.[event] ?? []),
           { listener, options },

@@ -1,4 +1,4 @@
-import { Backoff } from "./backoff";
+import { Backoff } from "./backoff.js";
 
 /**
  * ConstantBackoff always returns the same backoff-time.
@@ -9,11 +9,11 @@ export class ConstantBackoff implements Backoff {
 
   /**
    * Creates a new ConstantBackoff.
-   * @param backoff the backoff-time to return
+   * @param backoff the backoff-time (in milliseconds) to return
    */
   constructor(backoff: number) {
-    if (!Number.isInteger(backoff) || backoff < 0) {
-      throw new Error("Backoff must be a positive integer");
+    if (!Number.isFinite(backoff) || backoff < 0) {
+      throw new Error("Backoff must be a finite, non-negative number");
     }
 
     this.backoff = backoff;

@@ -1,10 +1,27 @@
 {
   "name": "websocket-ts",
   "description": "A WebSocket client library with optional reconnecting and buffering capabilities.",
-  "version": "2.3.0",
-  "main": "dist/cjs/src/index.js",
-  "types": "dist/cjs/src/index.d.ts",
-  "module": "dist/esm/src/index.js",
+  "version": "3.0.0",
+  "main": "dist/cjs/index.js",
+  "types": "dist/cjs/index.d.ts",
+  "module": "dist/esm/index.js",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/esm/index.d.ts",
+        "default": "./dist/esm/index.js"
+      },
+      "require": {
+        "types": "./dist/cjs/index.d.ts",
+        "default": "./dist/cjs/index.js"
+      }
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
   "license": "MIT",
   "keywords": [
     "websocket",
@@ -19,30 +36,30 @@
     "url": "github:jjxxs/websocket-ts"
   },
   "scripts": {
-    "build": "npm run build:cjs && npm run build:esm",
+    "build": "npm run typecheck && npm run build:cjs && npm run build:esm && npm run build:finalize",
     "build:cjs": "tsc -p tsconfig.cjs.json",
     "build:esm": "tsc -p tsconfig.esm.json",
-    "lint": "cross-env-shell eslint './src/{**/*,*}.{js,ts}' './tests/{**/*,*}.{js,ts}'",
+    "build:finalize": "node -e \"const fs=require('fs');fs.writeFileSync('dist/esm/package.json',JSON.stringify({type:'module'}));fs.writeFileSync('dist/cjs/package.json',JSON.stringify({type:'commonjs'}))\"",
+    "typecheck": "tsc -p tsconfig.json",
+    "lint": "eslint \"./src/**/*.ts\" \"./tests/**/*.ts\"",
     "test": "vitest",
     "test:coverage": "vitest --coverage"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.5",
-    "@eslint/js": "^9.39.4",
+    "@eslint/js": "^10.0.1",
     "@types/ws": "^8.18.1",
     "@typescript-eslint/eslint-plugin": "^8.57.2",
     "@typescript-eslint/parser": "^8.57.2",
-    "@vitest/coverage-v8": "^3.2.4",
-    "coveralls-next": "^5.0.0",
-    "cross-env": "^10.1.0",
-    "eslint": "^9.39.4",
+    "@vitest/coverage-v8": "^4.1.10",
+    "eslint": "^10.6.0",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.5",
-    "globals": "^16.5.0",
+    "globals": "^17.7.0",
     "jsdom": "^26.1.0",
-    "ts-node": "^10.9.2",
-    "typescript": "^5.9.3",
-    "vitest": "^3.2.4",
+    "prettier": "^3.9.4",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.10",
     "ws": "^8.20.0"
   }
 }

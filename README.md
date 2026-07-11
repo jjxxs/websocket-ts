@@ -18,7 +18,7 @@ A <b>WebSocket</b> for browsers with <b>auto-reconnect</b> and <b>message buffer
 <div align="center">
 
 [![npm version](https://img.shields.io/npm/v/websocket-ts.svg)](https://www.npmjs.org/package/websocket-ts)
-[![Bundle Size](https://deno.bundlejs.com/badge?q=websocket-ts@2.2.1)](https://bundlejs.com/?q=websocket-ts)
+[![Bundle Size](https://deno.bundlejs.com/badge?q=websocket-ts)](https://bundlejs.com/?q=websocket-ts)
 [![Snyk security](https://snyk.io/test/npm/websocket-ts/badge.svg)](https://snyk.io/test/npm/websocket-ts)
 [![License](https://img.shields.io/npm/l/websocket-ts)](LICENSE)
 
@@ -26,7 +26,7 @@ A <b>WebSocket</b> for browsers with <b>auto-reconnect</b> and <b>message buffer
 
 ## Features
 
-- **Lightweight & Standalone**: No dependencies, 2.5 kB minified & gzipped.
+- **Lightweight & Standalone**: No dependencies, only a few kB minified & gzipped (see badge).
 - **Browser-native**: Utilizes native WebSocket API, offers direct access to the underlying connection.
 - **Smart Reconnect**: Optional auto-reconnect and message buffering.
 - **Easy Setup**: Optional builder class for quick initialization.
@@ -88,7 +88,7 @@ const ws = new WebsocketBuilder("ws://localhost:42421").build();
 
 #### Events
 
-There are six events you can listen for:
+There are seven events you can listen for:
 
 | Event | Description |
 |---|---|
@@ -98,8 +98,12 @@ There are six events you can listen for:
 | `message` | Message received |
 | `retry` | Reconnect attempt |
 | `reconnect` | Successful reconnect |
+| `exhausted` | Gave up reconnecting after `maxRetries` consecutive failed attempts |
 
 You can use either `WebsocketEvent.open` or the string `"open"` when registering listeners.
+
+The `retry`, `reconnect` and `exhausted` events are `CustomEvent`s whose `detail`
+carries the number of retries and the time of the last successful connection.
 
 #### Add Event Listeners
 Event listeners receive the websocket instance (`i`) and the triggering event (`ev`) as arguments.
@@ -112,12 +116,28 @@ const ws = new WebsocketBuilder("ws://localhost:42421")
   .onMessage((i, ev) => console.log("message"))
   .onRetry((i, ev) => console.log("retry"))
   .onReconnect((i, ev) => console.log("reconnect"))
+  .onExhausted((i, ev) => console.log("gave up"))
   .build();
+```
+
+Listeners accept the options `once` (remove after the first call) and `signal`
+(an `AbortSignal`). Aborting the signal removes the listener again, which is
+handy for tearing down a group of listeners in one call, e.g. when a component
+unmounts:
+
+```typescript
+const controller = new AbortController();
+ws.addEventListener(WebsocketEvent.message, onMessage, { signal: controller.signal });
+ws.addEventListener(WebsocketEvent.close, onClose, { signal: controller.signal });
+/* ... on teardown: */
+controller.abort(); // removes both listeners
 ```
 
 #### Remove Event Listeners
 
-To unregister a specific event listener, use `removeEventListener`:
+To unregister a specific event listener, use `removeEventListener`. Listeners
+are matched by function identity; the options they were registered with are
+ignored when matching:
 
 ```typescript
 let ws: Websocket
@@ -134,6 +154,11 @@ let ws: Websocket;
 /* ... */
 ws.send("Hello World!");
 ```
+
+If the websocket is not connected, the message is stored in the buffer and
+sent once the connection is (re-)established — but only if a buffer was
+configured (see below). Without a buffer, or after `close()` was called, the
+message is silently dropped.
 
 #### Reconnect & Backoff (Optional)
 
@@ -174,6 +199,46 @@ commonly used in networking. For example, to use a base of 1000ms with a maximum
 const ws = new WebsocketBuilder("ws://localhost:42421")
   .withBackoff(new ExponentialBackoff(1000, 6)) // 1s, 2s, 4s, 8s, 16s, 32s, 64s
   .build();
+```
+
+##### Retry Limit & Instant Reconnect
+
+Two options refine the retry behavior. Both require a backoff to be
+configured — setting them without one throws at construction:
+
+- `withMaxRetries(n)` stops reconnecting after `n` consecutive failed
+  attempts. The counter resets on every successful reconnect, so the limit
+  applies per outage, not per websocket lifetime. When the limit is reached,
+  the `exhausted` event fires.
+- `withInstantReconnect(true)` skips the backoff delay for the *first* retry
+  of an outage — useful when a dropped connection is usually recoverable
+  immediately (e.g. a server restart). Subsequent retries follow the backoff.
+
+```typescript
+const ws = new WebsocketBuilder("ws://localhost:42421")
+  .withBackoff(new ExponentialBackoff(1000, 6))
+  .withMaxRetries(10)          // give up after 10 consecutive failures
+  .withInstantReconnect(true)  // first retry of an outage is instant
+  .build();
+```
+
+##### Giving Up & Resuming
+
+When `maxRetries` is exhausted, the websocket stops retrying and fires the
+`exhausted` event. Use `reconnect()` to resume — it resets the retry budget,
+resolves the URL (provider) again and connects immediately. It also works on
+an open or user-closed websocket, e.g. to force a new connection after an
+auth-token rotation or when the browser comes back online:
+
+```typescript
+const ws = new WebsocketBuilder("ws://localhost:42421")
+  .withBackoff(new ConstantBackoff(1000))
+  .withMaxRetries(5)
+  .onExhausted(() => showReconnectBanner())
+  .build();
+
+reconnectButton.onclick = () => ws.reconnect();
+window.addEventListener("online", () => ws.reconnect());
 ```
 
 #### Buffer (Optional)
@@ -217,6 +282,9 @@ const ws = new WebsocketBuilder(() => `ws://localhost:42421?token=${getToken()}`
   .withBackoff(new ConstantBackoff(1000))
   .build();
 ```
+
+Calling `reconnect()` also re-runs the provider, so a fresh URL (e.g. a new
+token) can be forced without waiting for the connection to drop.
 
 ## Build & Tests
 
