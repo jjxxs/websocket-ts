@@ -965,6 +965,40 @@ describe("Testsuite for Websocket", () => {
       });
     });
 
+    test("Websocket without a buffer should silently drop messages sent while disconnected", async () => {
+      const messagesReceived: string[] = [];
+      const firstMessage = new Promise<string>((resolve) => {
+        server?.on("connection", (client) => {
+          client?.on(
+            "message",
+            onStringMessageReceived((str: string) => {
+              messagesReceived.push(str);
+              resolve(str);
+            }),
+          );
+        });
+      });
+
+      await new Promise<WebsocketEventListenerParams<WebsocketEvent.open>>(
+        (resolve) => {
+          client = new WebsocketBuilder(url)
+            .onOpen((instance, ev) => {
+              instance.send("delivered");
+              resolve([instance, ev]);
+            })
+            .build();
+          // still CONNECTING and no buffer configured: the documented
+          // behavior is to drop the message, not to throw or queue it
+          expect(() => client!.send("dropped")).not.toThrow();
+        },
+      );
+
+      // "delivered" was sent after "dropped"; once it arrives, the dropped
+      // message can no longer be in flight
+      await firstMessage.then((message) => expect(message).toBe("delivered"));
+      expect(messagesReceived).toEqual(["delivered"]);
+    });
+
     test("Websocket with a RingQueue buffer should drop the oldest message when over capacity and deliver the rest in order", async () => {
       const messagesReceived: string[] = [];
       const serverReceivedMessages = new Promise<string[]>((resolve) => {

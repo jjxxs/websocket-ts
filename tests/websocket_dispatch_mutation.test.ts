@@ -10,7 +10,11 @@ import { describe, test, expect, beforeEach, afterEach } from "vitest";
  * dispatch.
  */
 describe("Testsuite for listener mutation during dispatch", () => {
-  const port: number = process.env.PORT ? parseInt(process.env.PORT) : 41403;
+  // dedicated env var (not PORT) so this file never collides with
+  // tests/websocket.test.ts when the whole suite runs in parallel
+  const port: number = process.env.DISPATCH_MUTATION_PORT
+    ? parseInt(process.env.DISPATCH_MUTATION_PORT)
+    : 41403;
   const url = `ws://localhost:${port}`;
   const timeout = 5_000;
 

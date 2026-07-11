@@ -3,7 +3,11 @@ import { ConstantBackoff, Websocket, WebsocketBuilder } from "../src";
 import { describe, test, expect, beforeEach, afterEach } from "vitest";
 
 describe("Testsuite for throwing URL providers during retry", () => {
-  const port: number = process.env.PORT ? parseInt(process.env.PORT) : 41406;
+  // dedicated env var (not PORT) so this file never collides with
+  // tests/websocket.test.ts when the whole suite runs in parallel
+  const port: number = process.env.URL_PROVIDER_THROW_PORT
+    ? parseInt(process.env.URL_PROVIDER_THROW_PORT)
+    : 41406;
   const url: string = `ws://localhost:${port}`;
   const testTimeout = 10_000;
 
