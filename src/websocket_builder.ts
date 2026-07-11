@@ -58,6 +58,7 @@ export class WebsocketBuilder {
 
   /**
    * Sets the maximum number of retries before giving up. No limit if undefined.
+   * Must be a non-negative integer, otherwise build() will throw.
    *
    * @param maxRetries the maximum number of retries before giving up
    */

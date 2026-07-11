@@ -59,6 +59,7 @@ export class Websocket {
    * @param protocols optional protocols to use.
    * @param options optional options to use.
    * @throws Error if retry options (maxRetries, instantReconnect) are set without a backoff.
+   * @throws Error if maxRetries is not a non-negative integer.
    */
   constructor(
     url: UrlProvider,
@@ -74,6 +75,16 @@ export class Websocket {
       throw new Error(
         "Retry options (maxRetries, instantReconnect) require a backoff to be configured",
       );
+    }
+    if (
+      options?.retry?.maxRetries !== undefined &&
+      (!Number.isInteger(options.retry.maxRetries) ||
+        options.retry.maxRetries < 0)
+    ) {
+      // NaN/Infinity would never exhaust, negative values exhaust before any
+      // retry, and fractions break the promise that the exhausted-detail
+      // retries equal the configured limit; fail fast like the backoffs do
+      throw new Error("MaxRetries must be undefined or a non-negative integer");
     }
 
     this._urlProvider = url;

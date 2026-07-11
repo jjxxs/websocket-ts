@@ -225,6 +225,60 @@ describe("Testsuite for the exhausted event and reconnect()", () => {
       expect(client.maxRetries).toBe(5);
     });
   });
+
+  describe("MaxRetries must be a non-negative integer", () => {
+    // NaN and Infinity would never exhaust, negative values exhaust before
+    // any retry, and fractions break the promise that the exhausted-detail
+    // retries equal the configured limit
+    test.each([NaN, Infinity, -Infinity, -1, 2.5])(
+      "Websocket constructor should throw when maxRetries is %f",
+      (maxRetries) => {
+        expect(
+          () =>
+            new Websocket(url, undefined, {
+              retry: { maxRetries, backoff: new ConstantBackoff(1000) },
+            }),
+        ).toThrow("MaxRetries must be undefined or a non-negative integer");
+      },
+    );
+
+    test("WebsocketBuilder.build() should throw when maxRetries is invalid", () => {
+      expect(() =>
+        new WebsocketBuilder(url)
+          .withBackoff(new ConstantBackoff(1000))
+          .withMaxRetries(NaN)
+          .build(),
+      ).toThrow("MaxRetries must be undefined or a non-negative integer");
+    });
+
+    test(
+      "A maxRetries of zero is valid and exhausts on the first disconnect without retrying",
+      async () => {
+        let retryCount = 0;
+        const exhaustedDetails: ExhaustedEventDetail[] = [];
+
+        await new Promise<void>((resolve) => {
+          client = new WebsocketBuilder(url)
+            .withBackoff(new ConstantBackoff(50))
+            .withMaxRetries(0)
+            .onOpen(() => resolve())
+            .onRetry(() => retryCount++)
+            .onExhausted((_, ev) => exhaustedDetails.push(ev.detail))
+            .build();
+        });
+        await stopServer(server, serverTimeout).then(
+          () => (server = undefined),
+        );
+
+        await new Promise((resolve) => setTimeout(resolve, 300));
+
+        expect(retryCount).toBe(0); // the budget is zero: no retry at all
+        expect(exhaustedDetails).toHaveLength(1);
+        expect(exhaustedDetails[0].retries).toBe(0);
+      },
+      testTimeout,
+    );
+  });
 });
 
 /**
