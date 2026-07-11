@@ -10,7 +10,7 @@ A <b>WebSocket</b> for browsers with <b>auto-reconnect</b> and <b>message buffer
 
 [![Build Status](https://img.shields.io/github/actions/workflow/status/jjxxs/websocket-ts/build.yml)](https://github.com/jjxxs/websocket-ts/actions/workflows/build.yml)
 [![Test Status](https://img.shields.io/github/actions/workflow/status/jjxxs/websocket-ts/test.yml?label=tests)](https://github.com/jjxxs/websocket-ts/actions/workflows/test.yml)
-[![Coverage Status](https://img.shields.io/coveralls/github/jjxxs/websocket-ts/master)](https://coveralls.io/github/jjxxs/websocket-ts?branch=master)
+[![Coverage Status](https://img.shields.io/coveralls/github/jjxxs/websocket-ts/main)](https://coveralls.io/github/jjxxs/websocket-ts?branch=main)
 [![npm downloads](https://img.shields.io/npm/dm/websocket-ts.svg)](https://npm-stat.com/charts.html?package=websocket-ts)
 
 </div>
