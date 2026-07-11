@@ -220,6 +220,22 @@ describe("Testsuite for Websocket", () => {
           expect(instance.lastConnection).not.toBeUndefined();
         });
       });
+
+      test("Mutating the date returned by the getter should not affect the websocket's state", async () => {
+        await new Promise<void>((resolve) => {
+          client = new WebsocketBuilder(url)
+            .onOpen(() => resolve(), { once: true })
+            .build();
+        });
+
+        // the getter must hand out a defensive copy: retry/reconnect/exhausted
+        // event details are derived from the internal timestamp later on
+        const lastConnection = client!.lastConnection!;
+        const originalTime = lastConnection.getTime();
+        lastConnection.setTime(0);
+
+        expect(client!.lastConnection!.getTime()).toBe(originalTime);
+      });
     });
 
     describe("UnderlyingWebsocket", () => {
