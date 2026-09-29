@@ -17,7 +17,7 @@ jobs:
         with:
           node-version: '24'
           check-latest: true
-          cache: 'npm'
+          package-manager-cache: false
           registry-url: 'https://registry.npmjs.org'
 
       # Install, build & publish to npm
