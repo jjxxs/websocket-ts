@@ -97,7 +97,7 @@ There are seven events you can listen for:
 | `error` | An error occurred |
 | `message` | Message received |
 | `retry` | Reconnect attempt |
-| `reconnect` | Successful reconnect |
+| `reconnect` | Automatic retry succeeded (fires before `open`) |
 | `exhausted` | Gave up reconnecting after `maxRetries` consecutive failed attempts |
 
 You can use either `WebsocketEvent.open` or the string `"open"` when registering listeners.
@@ -286,6 +286,30 @@ const ws = new WebsocketBuilder(() => `ws://localhost:42421?token=${getToken()}`
 
 Calling `reconnect()` also re-runs the provider, so a fresh URL (e.g. a new
 token) can be forced without waiting for the connection to drop.
+
+## Upgrading from 2.x
+
+- **Imports**: import from `websocket-ts` only. Deep imports such as
+  `websocket-ts/dist/cjs/src/...` no longer resolve.
+- **JavaScript target**: the published code is ES2018 (2.x shipped ES5/ES2015).
+  Transpile it yourself if you support older browsers.
+- **Retry options**: setting `maxRetries` or `instantReconnect` (even to `false`)
+  without a backoff now throws, as does a `maxRetries` that is neither a whole
+  number ≥ 0 nor `Infinity`.
+- **`instantReconnect`**: only the first retry of an outage is instant; later
+  retries follow the backoff and count towards `maxRetries`. In 2.x every retry
+  was instant and `maxRetries` was ignored.
+- **Backoff**: the first retry now waits the first value of the series, as
+  documented, e.g. `ExponentialBackoff(1000)` waits 1s, 2s, 4s, … (2.x: 2s, 4s, …).
+  Custom `Backoff`s must return `current` from `next()` and then advance.
+- **`reconnect` event**: fires (before `open`) whenever an automatic retry
+  succeeds, now also if the initial connection failed. A manual `reconnect()`
+  only fires `open`, so put (re-)subscription logic into `open`.
+- **Listeners**: options are limited to `once` and `signal`.
+  `removeEventListener` removes every registration of the given function,
+  regardless of its options.
+- **Types**: `send()` and buffers accept `string | Blob | BufferSource`;
+  `SharedArrayBuffer`-backed data is no longer accepted.
 
 ## Build & Tests
 
