@@ -10,7 +10,11 @@ export const WebsocketEvent = {
   /** Fired when the connection is closed. */
   close: "close",
 
-  /** Fired when the connection has been closed because of an error, such as when some data couldn't be sent. */
+  /**
+   * Fired when the connection has been closed because of an error, such as when some data couldn't be sent.
+   * Also fired when an automatic retry fails because the URL provider or the WebSocket constructor threw;
+   * that event is an ErrorEvent whose 'error' is the thrown value.
+   */
   error: "error",
 
   /** Fired when a message is received. */

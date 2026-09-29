@@ -143,6 +143,46 @@ describe("Testsuite for exceptions thrown by event listeners", () => {
   );
 
   test(
+    "A throwing 'error'-listener does not stop the retry after a failed connection attempt",
+    async () => {
+      const boom = new Error("error listener boom");
+      const providerError = new Error("token fetch failed");
+      let providerCalls = 0;
+      const attemptErrors: unknown[] = [];
+      let openCount = 0;
+
+      await new Promise<void>((resolve) => {
+        client = new WebsocketBuilder(() => {
+          providerCalls++;
+          if (providerCalls === 2) throw providerError; // the first retry fails
+          return url;
+        })
+          .withBackoff(new ConstantBackoff(50))
+          .onOpen(() => {
+            openCount++;
+            resolve();
+          })
+          .build();
+      });
+      client!.addEventListener(WebsocketEvent.error, () => {
+        throw boom;
+      });
+      client!.addEventListener(WebsocketEvent.error, (_, ev) => {
+        if (ev instanceof ErrorEvent) attemptErrors.push(ev.error);
+      });
+
+      server?.clients.forEach((c) => c.terminate());
+      await sleep(400);
+
+      expect(attemptErrors).toEqual([providerError]); // later error-listener still ran
+      expect(providerCalls).toBe(3); // the next retry was still scheduled
+      expect(openCount).toBe(2); // and the websocket reconnected
+      expect(reportedErrors).toContain(boom);
+    },
+    testTimeout,
+  );
+
+  test(
     "A throwing 'reconnect'-listener does not prevent the backoff reset or the 'open' dispatch",
     async () => {
       const boom = new Error("reconnect listener boom");

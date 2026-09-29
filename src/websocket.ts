@@ -22,6 +22,10 @@ import { WebsocketConnectionRetryOptions } from "./websocket_retry_options.js";
  * connection attempt after construction, it synchronously calls close() or reconnect() on the websocket, the
  * attempt that called it is abandoned without creating a socket. It must not call reconnect() on every
  * invocation, as that recurses indefinitely.
+ *
+ * If it throws during an automatic retry, that attempt fails with an 'error' event (an ErrorEvent whose
+ * 'error' is the thrown value) and retrying continues. During construction and reconnect(), the exception
+ * propagates to the caller instead.
  */
 export type UrlProvider = string | (() => string);
 
@@ -628,12 +632,17 @@ export class Websocket {
         this.clearWebsocket(); // clear the old websocket
         try {
           this.tryConnect();
-        } catch {
-          // the url provider or websocket-construction threw; surface it as an
-          // 'error' event and keep the retry chain alive under the usual rules
+        } catch (error) {
+          // the url provider or websocket-construction threw; surface the thrown
+          // value as an 'error' event and keep the retry chain alive under the
+          // usual rules. Native error events are plain Events, so listeners can
+          // tell this case apart with 'instanceof ErrorEvent'
           this.dispatchEvent(
             WebsocketEvent.error,
-            new Event(WebsocketEvent.error),
+            new ErrorEvent(WebsocketEvent.error, {
+              error,
+              message: error instanceof Error ? error.message : "",
+            }),
           );
           if (generation !== this._connectionGeneration) break;
           this.scheduleConnectionRetryIfNeeded();

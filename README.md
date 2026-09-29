@@ -105,6 +105,21 @@ You can use either `WebsocketEvent.open` or the string `"open"` when registering
 The `retry`, `reconnect` and `exhausted` events are `CustomEvent`s whose `detail`
 carries the number of retries and the time of the last successful connection.
 
+The browser's own `error` events carry no details. When an automatic retry
+fails because the URL provider or the `WebSocket` constructor threw, the
+`error` event is an `ErrorEvent` whose `error` is the thrown value:
+
+```typescript
+ws.addEventListener(WebsocketEvent.error, (i, ev) => {
+  if (ev instanceof ErrorEvent) {
+    console.warn("connection attempt failed", ev.error);
+  }
+});
+```
+
+Errors thrown by the `WebSocket` constructor may include the URL in their
+message, so take care when forwarding them to logs if the URL contains a token.
+
 #### Add Event Listeners
 Event listeners receive the websocket instance (`i`) and the triggering event (`ev`) as arguments.
 
@@ -287,6 +302,11 @@ const ws = new WebsocketBuilder(() => `ws://localhost:42421?token=${getToken()}`
 Calling `reconnect()` also re-runs the provider, so a fresh URL (e.g. a new
 token) can be forced without waiting for the connection to drop.
 
+If the provider throws during an automatic retry, the websocket fires an
+`error` event carrying the thrown value (see [Events](#events)) and keeps
+retrying under the usual backoff and `maxRetries` rules. When called from the
+constructor or `reconnect()`, the exception propagates to the caller.
+
 ## Upgrading from 2.x
 
 - **Imports**: import from `websocket-ts` only. Deep imports such as
@@ -305,6 +325,10 @@ token) can be forced without waiting for the connection to drop.
 - **`reconnect` event**: fires (before `open`) whenever an automatic retry
   succeeds, now also if the initial connection failed. A manual `reconnect()`
   only fires `open`, so put (re-)subscription logic into `open`.
+- **URL provider errors**: an exception from the provider (or the `WebSocket`
+  constructor) during an automatic retry no longer escapes as an uncaught
+  error that stops reconnecting. It is delivered as an `error` event (an
+  `ErrorEvent` carrying the thrown value), and retrying continues.
 - **Listeners**: options are limited to `once` and `signal`.
   `removeEventListener` removes every registration of the given function,
   regardless of its options.

@@ -34,25 +34,32 @@ describe("Testsuite for throwing URL providers during retry", () => {
     server = undefined;
   }, testTimeout);
 
-  test(
-    "Websocket should dispatch 'error' and keep retrying when the URL provider throws on a retry",
-    async () => {
+  test.each([
+    {
+      kind: "an Error",
+      thrown: new Error("token fetch failed"),
+      message: "token fetch failed",
+    },
+    { kind: "a non-Error value", thrown: "token fetch failed", message: "" },
+  ])(
+    "Websocket should dispatch 'error' carrying the thrown value and keep retrying when the URL provider throws $kind on a retry",
+    async ({ thrown, message }) => {
       let providerCalls = 0;
       const urlProvider = () => {
         providerCalls++;
         if (providerCalls === 2) {
-          throw new Error("token fetch failed");
+          throw thrown;
         }
         return url;
       };
 
-      let errorCount = 0;
+      const errorEvents: Event[] = [];
       const openEvents: number[] = [];
 
       const secondOpen = new Promise<void>((resolve) => {
         client = new WebsocketBuilder(urlProvider)
           .withBackoff(new ConstantBackoff(50))
-          .onError(() => errorCount++)
+          .onError((_, ev) => errorEvents.push(ev))
           .onOpen(() => {
             openEvents.push(providerCalls);
             if (openEvents.length === 2) resolve();
@@ -71,7 +78,14 @@ describe("Testsuite for throwing URL providers during retry", () => {
       await secondOpen;
 
       expect(providerCalls).toBeGreaterThanOrEqual(3); // 1st ok, 2nd threw, 3rd ok
-      expect(errorCount).toBeGreaterThanOrEqual(1); // the throwing attempt surfaced as 'error'
+      // the throwing attempt surfaced as 'error'; native error events (e.g. for
+      // the terminated connection) are plain Events, so only it is an ErrorEvent
+      const attemptErrors = errorEvents.filter(
+        (ev): ev is ErrorEvent => ev instanceof ErrorEvent,
+      );
+      expect(attemptErrors).toHaveLength(1);
+      expect(attemptErrors[0].error).toBe(thrown);
+      expect(attemptErrors[0].message).toBe(message);
       expect(client!.readyState).toBe(WebSocket.OPEN);
     },
     testTimeout,
