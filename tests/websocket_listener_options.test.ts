@@ -224,6 +224,70 @@ describe("Testsuite for listener options (once/signal)", () => {
         getListenersWithOptions(client, WebsocketEvent.message),
       ).toHaveLength(0);
     });
+    test("A failed construction should unhook the abort-handlers of its initial listeners", () => {
+      const controller = new AbortController();
+      const signalAddSpy = vi.spyOn(controller.signal, "addEventListener");
+      const signalRemoveSpy = vi.spyOn(
+        controller.signal,
+        "removeEventListener",
+      );
+      const providerError = new Error("token fetch failed");
+
+      expect(
+        () =>
+          new Websocket(
+            () => {
+              throw providerError;
+            },
+            undefined,
+            {
+              listeners: {
+                open: [
+                  {
+                    listener: () => undefined,
+                    options: { signal: controller.signal },
+                  },
+                ],
+                message: [
+                  {
+                    listener: () => undefined,
+                    options: { signal: controller.signal },
+                  },
+                ],
+              },
+            },
+          ),
+      ).toThrow(providerError); // the original error is rethrown
+
+      // every abort-handler that was hooked is unhooked again, so the
+      // signal no longer retains the instance that was never returned
+      const hooked = signalAddSpy.mock.calls.map(([, handler]) => handler);
+      const unhooked = signalRemoveSpy.mock.calls.map(([, handler]) => handler);
+      expect(hooked).toHaveLength(2);
+      expect(unhooked).toEqual(hooked);
+    });
+
+    test("A failed build should unhook the abort-handlers of its initial listeners", () => {
+      const controller = new AbortController();
+      const signalAddSpy = vi.spyOn(controller.signal, "addEventListener");
+      const signalRemoveSpy = vi.spyOn(
+        controller.signal,
+        "removeEventListener",
+      );
+
+      // the WebSocket constructor rejects the URL with a SyntaxError
+      expect(() =>
+        new WebsocketBuilder("not a url")
+          .onOpen(() => undefined, { signal: controller.signal })
+          .onClose(() => undefined, { signal: controller.signal })
+          .build(),
+      ).toThrow();
+
+      const hooked = signalAddSpy.mock.calls.map(([, handler]) => handler);
+      const unhooked = signalRemoveSpy.mock.calls.map(([, handler]) => handler);
+      expect(hooked).toHaveLength(2);
+      expect(unhooked).toEqual(hooked);
+    });
   });
 
   describe("Type surface", () => {

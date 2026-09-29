@@ -114,34 +114,44 @@ export class Websocket {
       },
     };
 
-    // register the initial listeners through addEventListener so that
-    // listener options (e.g. 'signal') are honored for them as well
-    options?.listeners?.open?.forEach((l) =>
-      this.addEventListener(WebsocketEvent.open, l.listener, l.options),
-    );
-    options?.listeners?.close?.forEach((l) =>
-      this.addEventListener(WebsocketEvent.close, l.listener, l.options),
-    );
-    options?.listeners?.error?.forEach((l) =>
-      this.addEventListener(WebsocketEvent.error, l.listener, l.options),
-    );
-    options?.listeners?.message?.forEach((l) =>
-      this.addEventListener(WebsocketEvent.message, l.listener, l.options),
-    );
-    options?.listeners?.retry?.forEach((l) =>
-      this.addEventListener(WebsocketEvent.retry, l.listener, l.options),
-    );
-    options?.listeners?.reconnect?.forEach((l) =>
-      this.addEventListener(WebsocketEvent.reconnect, l.listener, l.options),
-    );
-    options?.listeners?.exhausted?.forEach((l) =>
-      this.addEventListener(WebsocketEvent.exhausted, l.listener, l.options),
-    );
+    try {
+      // register the initial listeners through addEventListener so that
+      // listener options (e.g. 'signal') are honored for them as well
+      options?.listeners?.open?.forEach((l) =>
+        this.addEventListener(WebsocketEvent.open, l.listener, l.options),
+      );
+      options?.listeners?.close?.forEach((l) =>
+        this.addEventListener(WebsocketEvent.close, l.listener, l.options),
+      );
+      options?.listeners?.error?.forEach((l) =>
+        this.addEventListener(WebsocketEvent.error, l.listener, l.options),
+      );
+      options?.listeners?.message?.forEach((l) =>
+        this.addEventListener(WebsocketEvent.message, l.listener, l.options),
+      );
+      options?.listeners?.retry?.forEach((l) =>
+        this.addEventListener(WebsocketEvent.retry, l.listener, l.options),
+      );
+      options?.listeners?.reconnect?.forEach((l) =>
+        this.addEventListener(WebsocketEvent.reconnect, l.listener, l.options),
+      );
+      options?.listeners?.exhausted?.forEach((l) =>
+        this.addEventListener(WebsocketEvent.exhausted, l.listener, l.options),
+      );
 
-    // this first attempt always assigns the underlying websocket: the URL
-    // provider is called without the instance as 'this', so it cannot reach
-    // close() or reconnect() to supersede it
-    this.tryConnect();
+      // this first attempt always assigns the underlying websocket: the URL
+      // provider is called without the instance as 'this', so it cannot reach
+      // close() or reconnect() to supersede it
+      this.tryConnect();
+    } catch (error) {
+      // the caller never receives this instance and cannot remove its
+      // listeners, so unhook their abort-handlers; otherwise a long-lived
+      // signal would retain the failed instance and everything it references
+      Object.values(this._options.listeners).forEach((listeners) =>
+        listeners.forEach((l: object) => this.cleanupAbortHandler(l)),
+      );
+      throw error;
+    }
   }
 
   /**
