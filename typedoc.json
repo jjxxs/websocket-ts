@@ -1,0 +1,11 @@
+{
+  "$schema": "https://typedoc.org/schema.json",
+  "name": "websocket-ts",
+  "entryPoints": ["./src/index.ts"],
+  "tsconfig": "./tsconfig.esm.json",
+  "out": "./docs",
+  "navigation": {
+    "includeGroups": true
+  },
+  "treatWarningsAsErrors": true
+}

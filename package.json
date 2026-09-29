@@ -43,7 +43,8 @@
     "typecheck": "tsc -p tsconfig.json",
     "lint": "eslint \"./src/**/*.ts\" \"./tests/**/*.ts\"",
     "test": "vitest",
-    "test:coverage": "vitest --coverage"
+    "test:coverage": "vitest --coverage",
+    "docs": "typedoc"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.5",
@@ -58,6 +59,7 @@
     "globals": "^17.7.0",
     "jsdom": "^26.1.0",
     "prettier": "^3.9.4",
+    "typedoc": "^0.28.20",
     "typescript": "^6.0.3",
     "vitest": "^4.1.10",
     "ws": "^8.20.0"

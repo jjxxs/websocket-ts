@@ -16,3 +16,5 @@ jobs:
         run: npm ci
       - name: Run build
         run: npm run build
+      - name: Generate documentation
+        run: npm run docs
