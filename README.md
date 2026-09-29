@@ -264,6 +264,10 @@ the websocket (re)connects. Two built-in `Queue` implementations are available, 
 create your own by implementing the `Queue` interface. If no queue is provided, messages
 won't be buffered.
 
+The buffer only covers the time the websocket is not open: a message handed to an open
+connection is not buffered again, so it is lost if the connection drops before it arrives.
+If you need guaranteed delivery, add acknowledgements at the application level.
+
 Buffered messages are kept when you call `close()` and are sent once `reconnect()` opens a
 new connection, even if the URL provider now returns a URL for a different user. At such a
 boundary, clear the queue you passed in (e.g. `queue.clear()`) or create a new websocket.
