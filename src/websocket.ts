@@ -17,6 +17,11 @@ import { WebsocketConnectionRetryOptions } from "./websocket_retry_options.js";
 /**
  * A URL or a function that returns a URL. When a function is provided, it is called on each connection attempt,
  * enabling use cases like load balancing, auth token rotation, and failover.
+ *
+ * The function is called without the websocket as `this` and should only resolve a URL. If, during a
+ * connection attempt after construction, it synchronously calls close() or reconnect() on the websocket, the
+ * attempt that called it is abandoned without creating a socket. It must not call reconnect() on every
+ * invocation, as that recurses indefinitely.
  */
 export type UrlProvider = string | (() => string);
 
@@ -31,7 +36,7 @@ export class Websocket {
   private _closedByUser: boolean = false; // whether the websocket was closed by the user
   private _lastConnection?: Date; // timestamp of the last connection
   private _binaryType?: BinaryType; // binaryType chosen by the user, undefined if never set
-  private _underlyingWebsocket: WebSocket; // the underlying websocket, e.g. native browser websocket
+  private _underlyingWebsocket!: WebSocket; // the underlying websocket, e.g. native browser websocket; assigned by tryConnect()
   private retryTimeout?: ReturnType<typeof globalThis.setTimeout>; // timeout for the next retry, if any
 
   // incremented by close() and reconnect() to invalidate in-flight lifecycle
@@ -133,11 +138,16 @@ export class Websocket {
       this.addEventListener(WebsocketEvent.exhausted, l.listener, l.options),
     );
 
-    this._underlyingWebsocket = this.tryConnect();
+    // this first attempt always assigns the underlying websocket: the URL
+    // provider is called without the instance as 'this', so it cannot reach
+    // close() or reconnect() to supersede it
+    this.tryConnect();
   }
 
   /**
-   * Getter for the url.
+   * Getter for the url of the most recently constructed underlying websocket. This is not
+   * necessarily the URL of the last successful connection, and a URL that the WebSocket
+   * constructor rejected, or whose connection attempt was superseded, is not recorded.
    *
    * @return the url.
    */
@@ -402,16 +412,23 @@ export class Websocket {
 
   /**
    * Creates a new browser-native websocket and connects it to the given URL with the given protocols
-   * and adds all event listeners to the browser-native websocket.
-   *
-   * @return the created browser-native websocket which is also stored in the '_underlyingWebsocket' property.
+   * and adds all event listeners to the browser-native websocket. The new websocket is stored in the
+   * '_underlyingWebsocket' property, unless the URL provider superseded this attempt by calling close()
+   * or reconnect().
    */
-  private tryConnect(): WebSocket {
-    this._url =
-      typeof this._urlProvider === "function"
-        ? this._urlProvider()
-        : this._urlProvider;
-    this._underlyingWebsocket = new WebSocket(this._url, this.protocols); // create new browser-native websocket and add all event listeners
+  private tryConnect(): void {
+    const generation = this._connectionGeneration;
+    const urlProvider = this._urlProvider; // call the provider without the wrapper as receiver
+    const url = typeof urlProvider === "function" ? urlProvider() : urlProvider;
+    // the URL provider is user code and may have re-entered close() or
+    // reconnect(); that call now owns the lifecycle, so this attempt must
+    // neither open a socket after close() nor overwrite (and thereby orphan)
+    // the socket a nested reconnect() already committed
+    if (generation !== this._connectionGeneration) return;
+
+    const socket = new WebSocket(url, this.protocols); // create new browser-native websocket and add all event listeners
+    this._url = url;
+    this._underlyingWebsocket = socket;
     if (this._binaryType !== undefined) {
       this._underlyingWebsocket.binaryType = this._binaryType; // re-apply the user-chosen binaryType
     }
@@ -431,8 +448,6 @@ export class Websocket {
       WebsocketEvent.message,
       this.handleMessageEvent,
     );
-
-    return this._underlyingWebsocket;
   }
 
   /**
