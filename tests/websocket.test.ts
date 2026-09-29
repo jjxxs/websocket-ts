@@ -20,6 +20,7 @@ import {
   beforeAll,
   beforeEach,
   afterEach,
+  vi,
 } from "vitest";
 
 describe("Testsuite for Websocket", () => {
@@ -677,6 +678,39 @@ describe("Testsuite for Websocket", () => {
         // the reconnect detail reports the retries of the outage and the previous connection date
         expect(reconnectDetail?.retries).toBe(1);
         expect(reconnectDetail?.lastConnection).toBeInstanceOf(Date);
+      });
+
+      test("Retry delays beyond the timer limit should be capped instead of overflowing into an immediate retry", async () => {
+        const maxTimerDelay = 2 ** 31 - 1;
+        const retryBackoffs: number[] = [];
+
+        await new Promise<void>((resolve) => {
+          client = new WebsocketBuilder(url)
+            .withBackoff(new ConstantBackoff(2 ** 31))
+            .onOpen(() => resolve(), { once: true })
+            .onRetry((_, ev) => retryBackoffs.push(ev.detail.backoff))
+            .build();
+        });
+
+        // fake only the timers, and only after connecting; like browsers, they
+        // turn a delay beyond the timer limit into an (almost) immediate one
+        vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+        try {
+          const closed = new Promise((resolve) =>
+            client!.addEventListener(WebsocketEvent.close, resolve, {
+              once: true,
+            }),
+          );
+          server?.clients.forEach((c) => c.terminate());
+          await closed;
+
+          vi.advanceTimersByTime(maxTimerDelay - 1);
+          expect(retryBackoffs).toEqual([]); // an overflowing delay would already have retried
+          vi.advanceTimersByTime(1);
+          expect(retryBackoffs).toEqual([maxTimerDelay]); // the capped delay is the one reported
+        } finally {
+          vi.useRealTimers();
+        }
       });
     });
   });

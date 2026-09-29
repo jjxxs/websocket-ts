@@ -722,8 +722,10 @@ export class Websocket {
     const isFirstRetryOfEpisode = this.backoff.retries === 0;
 
     // advance the backoff so the retry-count is accurate and maxRetries applies;
-    // with 'instantReconnect' only the episode's first retry is instant
-    const backoff = this.backoff.next();
+    // with 'instantReconnect' only the episode's first retry is instant. Browsers
+    // store timer delays as signed 32-bit integers, so longer delays would
+    // overflow and fire (almost) immediately; cap them at the maximum instead
+    const backoff = Math.min(this.backoff.next(), 2 ** 31 - 1);
     const retryEventDetail: RetryEventDetail = {
       backoff:
         this._options.retry.instantReconnect === true && isFirstRetryOfEpisode
