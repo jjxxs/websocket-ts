@@ -264,6 +264,10 @@ the websocket (re)connects. Two built-in `Queue` implementations are available, 
 create your own by implementing the `Queue` interface. If no queue is provided, messages
 won't be buffered.
 
+Buffered messages are kept when you call `close()` and are sent once `reconnect()` opens a
+new connection, even if the URL provider now returns a URL for a different user. At such a
+boundary, clear the queue you passed in (e.g. `queue.clear()`) or create a new websocket.
+
 ##### RingQueue
 
 `RingQueue` is a fixed-capacity, first-in-first-out (FIFO) queue. When it reaches capacity,
