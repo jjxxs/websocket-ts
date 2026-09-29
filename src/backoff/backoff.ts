@@ -1,6 +1,9 @@
 /**
  * A Backoff produces a series of numbers that are used to determine
  * the delay between connection-retries. Values are expected to be in milliseconds.
+ *
+ * Implementations must not call back into the websocket (e.g. close() or reconnect()):
+ * the websocket calls them in the middle of its lifecycle transitions.
  */
 export interface Backoff {
   /**
