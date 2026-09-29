@@ -20,7 +20,7 @@ A <b>WebSocket</b> for browsers with <b>auto-reconnect</b> and <b>message buffer
 [![npm version](https://img.shields.io/npm/v/websocket-ts.svg)](https://www.npmjs.org/package/websocket-ts)
 [![Bundle Size](https://deno.bundlejs.com/badge?q=websocket-ts)](https://bundlejs.com/?q=websocket-ts)
 [![Snyk security](https://snyk.io/test/npm/websocket-ts/badge.svg)](https://snyk.io/test/npm/websocket-ts)
-[![License](https://img.shields.io/npm/l/websocket-ts)](LICENSE)
+[![License](https://img.shields.io/npm/l/websocket-ts)](https://github.com/jjxxs/websocket-ts/blob/main/LICENSE)
 
 </div>
 
