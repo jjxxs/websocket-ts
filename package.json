@@ -52,7 +52,7 @@
     "@types/ws": "^8.18.1",
     "@typescript-eslint/eslint-plugin": "^8.57.2",
     "@typescript-eslint/parser": "^8.57.2",
-    "@vitest/coverage-v8": "^4.1.10",
+    "@vitest/coverage-v8": "^4.1.11",
     "eslint": "^10.6.0",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.5",
@@ -61,7 +61,7 @@
     "prettier": "^3.9.4",
     "typedoc": "^0.28.20",
     "typescript": "^6.0.3",
-    "vitest": "^4.1.10",
+    "vitest": "^4.1.11",
     "ws": "^8.20.0"
   }
 }
