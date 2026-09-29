@@ -234,4 +234,44 @@ describe("Testsuite for RingQueue", () => {
     }
     expect(queue.read()).toBeUndefined();
   });
+
+  test("Queue should store and read 'undefined' elements without stalling", () => {
+    const queue = new RingQueue<number | undefined>(42);
+    queue.add(undefined);
+    queue.add(1);
+    expect(queue.length()).toBe(2);
+    expect(queue.read()).toBeUndefined(); // the stored element
+    expect(queue.length()).toBe(1); // read must advance past a stored 'undefined'
+    expect(queue.read()).toBe(1);
+    expect(queue.isEmpty()).toBe(true);
+  });
+
+  test("Read should drop the reference of the read element", () => {
+    const queue = new RingQueue<string>(2);
+    queue.add("a");
+    queue.add("b");
+    queue.read();
+    // read elements must not be retained by the internal array
+    expect(queue["elements"]).not.toContain("a");
+    expect(queue["elements"]).toContain("b");
+  });
+
+  test("Add should drop the reference of an overwritten element", () => {
+    const queue = new RingQueue<string>(2);
+    queue.add("a");
+    queue.add("b");
+    queue.add("c"); // evicts "a"
+    expect(queue["elements"]).not.toContain("a");
+    expect(queue["elements"]).toContain("b");
+    expect(queue["elements"]).toContain("c");
+  });
+
+  test("Clear should drop the references of all elements", () => {
+    const queue = new RingQueue<string>(4);
+    queue.add("a");
+    queue.add("b");
+    queue.clear();
+    expect(queue["elements"]).not.toContain("a");
+    expect(queue["elements"]).not.toContain("b");
+  });
 });

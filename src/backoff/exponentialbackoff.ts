@@ -1,4 +1,4 @@
-import { Backoff } from "./backoff";
+import { Backoff } from "./backoff.js";
 
 /**
  * ExponentialBackoff increases the backoff-time exponentially.
@@ -38,15 +38,15 @@ export class ExponentialBackoff implements Backoff {
 
   /**
    * Creates a new ExponentialBackoff.
-   * @param base the base of the exponentiation
+   * @param base the base of the exponentiation (in milliseconds)
    * @param expMax the maximum exponent, no bound if undefined
    */
   constructor(base: number, expMax?: number) {
-    if (!Number.isInteger(base) || base < 0) {
-      throw new Error("Base must be a positive integer or zero");
+    if (!Number.isFinite(base) || base < 0) {
+      throw new Error("Base must be a finite, non-negative number");
     }
     if (expMax !== undefined && (!Number.isInteger(expMax) || expMax < 0)) {
-      throw new Error("ExpMax must be undefined, a positive integer, or zero");
+      throw new Error("ExpMax must be undefined or a non-negative integer");
     }
 
     this.base = base;
@@ -63,12 +63,13 @@ export class ExponentialBackoff implements Backoff {
   }
 
   next(): number {
+    const backoff = this.current;
     this._retries++;
     this.i =
       this.expMax === undefined
         ? this.i + 1
         : Math.min(this.i + 1, this.expMax);
-    return this.current;
+    return backoff;
   }
 
   reset(): void {

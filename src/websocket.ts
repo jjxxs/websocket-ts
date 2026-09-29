@@ -1,6 +1,7 @@
-import { Backoff } from "./backoff/backoff";
-import { WebsocketBuffer } from "./websocket_buffer";
+import { Backoff } from "./backoff/backoff.js";
+import { WebsocketBuffer } from "./websocket_buffer.js";
 import {
+  ExhaustedEventDetail,
   ReconnectEventDetail,
   RetryEventDetail,
   WebsocketEvent,
@@ -9,12 +10,22 @@ import {
   WebsocketEventListeners,
   WebsocketEventListenerWithOptions,
   WebsocketEventMap,
-} from "./websocket_event";
-import { WebsocketOptions } from "./websocket_options";
+} from "./websocket_event.js";
+import { WebsocketOptions } from "./websocket_options.js";
+import { WebsocketConnectionRetryOptions } from "./websocket_retry_options.js";
 
 /**
  * A URL or a function that returns a URL. When a function is provided, it is called on each connection attempt,
  * enabling use cases like load balancing, auth token rotation, and failover.
+ *
+ * The function is called without the websocket as `this` and should only resolve a URL. If, during a
+ * connection attempt after construction, it synchronously calls close() or reconnect() on the websocket, the
+ * attempt that called it is abandoned without creating a socket. It must not call reconnect() on every
+ * invocation, as that recurses indefinitely.
+ *
+ * If it throws during an automatic retry, that attempt fails with an 'error' event (an ErrorEvent whose
+ * 'error' is the thrown value) and retrying continues. During construction and reconnect(), the exception
+ * propagates to the caller instead.
  */
 export type UrlProvider = string | (() => string);
 
@@ -28,11 +39,27 @@ export class Websocket {
 
   private _closedByUser: boolean = false; // whether the websocket was closed by the user
   private _lastConnection?: Date; // timestamp of the last connection
-  private _underlyingWebsocket: WebSocket; // the underlying websocket, e.g. native browser websocket
+  private _binaryType?: BinaryType; // binaryType chosen by the user, undefined if never set
+  private _underlyingWebsocket!: WebSocket; // the underlying websocket, e.g. native browser websocket; assigned by tryConnect()
   private retryTimeout?: ReturnType<typeof globalThis.setTimeout>; // timeout for the next retry, if any
 
-  private _options: WebsocketOptions &
-    Required<Pick<WebsocketOptions, "listeners" | "retry">>; // options/config for the websocket
+  // incremented by close() and reconnect() to invalidate in-flight lifecycle
+  // work: event handlers and retry timers belonging to an older generation
+  // must not commit further state transitions or create sockets
+  private _connectionGeneration = 0;
+
+  // for each listener-registration made with an AbortSignal, the function that
+  // unhooks the 'abort'-handler again; used to avoid piling up dead handlers on
+  // long-lived signals when listeners are removed by other means
+  private readonly abortHandlerCleanups = new WeakMap<object, () => void>();
+
+  // options/config for the websocket; internally the retry options and the
+  // listeners for every event-type are always present, even when the
+  // user-supplied options omitted them
+  private _options: Omit<WebsocketOptions, "listeners" | "retry"> & {
+    readonly retry: WebsocketConnectionRetryOptions;
+    readonly listeners: WebsocketEventListeners;
+  };
 
   /**
    * Creates a new websocket.
@@ -40,12 +67,39 @@ export class Websocket {
    * @param url to connect to, or a function that returns a URL.
    * @param protocols optional protocols to use.
    * @param options optional options to use.
+   * @throws Error if retry options (maxRetries, instantReconnect) are set without a backoff.
+   * @throws Error if maxRetries is neither Infinity nor a non-negative integer.
    */
   constructor(
     url: UrlProvider,
     protocols?: string | string[],
     options?: WebsocketOptions,
   ) {
+    if (
+      options?.retry?.backoff === undefined &&
+      (options?.retry?.maxRetries !== undefined ||
+        options?.retry?.instantReconnect !== undefined)
+    ) {
+      // retrying is driven by the backoff; without one, the other retry options would silently do nothing
+      throw new Error(
+        "Retry options (maxRetries, instantReconnect) require a backoff to be configured",
+      );
+    }
+    const maxRetries = options?.retry?.maxRetries;
+    if (
+      maxRetries !== undefined &&
+      maxRetries !== Infinity &&
+      (!Number.isInteger(maxRetries) || maxRetries < 0)
+    ) {
+      // NaN would silently never exhaust, negative values exhaust before any
+      // retry, and fractions break the promise that the exhausted-detail
+      // retries equal the configured limit; fail fast like the backoffs do.
+      // Infinity is accepted as an explicit 'no limit', like undefined
+      throw new Error(
+        "MaxRetries must be undefined, Infinity or a non-negative integer",
+      );
+    }
+
     this._urlProvider = url;
     this._protocols = protocols;
 
@@ -58,20 +112,45 @@ export class Websocket {
         backoff: options?.retry?.backoff,
       },
       listeners: {
-        open: [...(options?.listeners?.open ?? [])],
-        close: [...(options?.listeners?.close ?? [])],
-        error: [...(options?.listeners?.error ?? [])],
-        message: [...(options?.listeners?.message ?? [])],
-        retry: [...(options?.listeners?.retry ?? [])],
-        reconnect: [...(options?.listeners?.reconnect ?? [])],
+        open: [],
+        close: [],
+        error: [],
+        message: [],
+        retry: [],
+        reconnect: [],
+        exhausted: [],
       },
     };
 
-    this._underlyingWebsocket = this.tryConnect();
+    try {
+      // register the initial listeners through addEventListener so that
+      // listener options (e.g. 'signal') are honored for them as well; the
+      // generic helper keeps each event's listeners typed for that event
+      const register = <K extends WebsocketEvent>(type: K) =>
+        options?.listeners?.[type]?.forEach((l) =>
+          this.addEventListener(type, l.listener, l.options),
+        );
+      Object.values(WebsocketEvent).forEach(register);
+
+      // this first attempt always assigns the underlying websocket: the URL
+      // provider is called without the instance as 'this', so it cannot reach
+      // close() or reconnect() to supersede it
+      this.tryConnect();
+    } catch (error) {
+      // the caller never receives this instance and cannot remove its
+      // listeners, so unhook their abort-handlers; otherwise a long-lived
+      // signal would retain the failed instance and everything it references
+      Object.values(this._options.listeners).forEach((listeners) =>
+        listeners.forEach((l: object) => this.cleanupAbortHandler(l)),
+      );
+      throw error;
+    }
   }
 
   /**
-   * Getter for the url.
+   * Getter for the url of the most recently constructed underlying websocket. This is not
+   * necessarily the URL of the last successful connection, and a URL that the WebSocket
+   * constructor rejected, or whose connection attempt was superseded, is not recorded.
    *
    * @return the url.
    */
@@ -134,12 +213,14 @@ export class Websocket {
   }
 
   /**
-   * Getter for the last 'open' event, e.g. the last time the websocket was connected.
+   * Getter for the time of the last 'open' event, i.e. the last time the websocket was connected.
    *
-   * @return the last 'open' event, or undefined if the websocket was never connected.
+   * @return the time of the last 'open' event, or undefined if the websocket was never connected.
    */
   get lastConnection(): Date | undefined {
-    return this._lastConnection;
+    // defensive copy: retry/reconnect/exhausted event details are derived
+    // from the internal timestamp, so callers must not be able to mutate it
+    return this._lastConnection && new Date(this._lastConnection);
   }
 
   /**
@@ -193,11 +274,13 @@ export class Websocket {
   }
 
   /**
-   * Setter for the binaryType of the underlying websocket.
+   * Setter for the binaryType of the underlying websocket. The value is remembered
+   * and re-applied whenever a new underlying websocket is created after a reconnect.
    *
    * @param value to set, 'blob' or 'arraybuffer'.
    */
   set binaryType(value: BinaryType) {
+    this._binaryType = value;
     this._underlyingWebsocket.binaryType = value;
   }
 
@@ -210,7 +293,7 @@ export class Websocket {
    * @see https://developer.mozilla.org/en-US/docs/Web/API/WebSocket/send
    * @param data to send.
    */
-  public send(data: string | ArrayBufferLike | Blob | ArrayBufferView): void {
+  public send(data: string | Blob | BufferSource): void {
     if (this.closedByUser) return; // no-op if closed by user
 
     if (
@@ -223,20 +306,47 @@ export class Websocket {
   }
 
   /**
-   * Close the websocket. No connection-retry will be attempted after this.
+   * Close the websocket. No automatic connection-retry will be attempted after this,
+   * until reconnect() is called.
    *
    * @see https://developer.mozilla.org/en-US/docs/Web/API/WebSocket/close
    * @param code optional close code.
    * @param reason optional close reason.
    */
   public close(code?: number, reason?: string): void {
+    this._connectionGeneration++; // invalidate in-flight lifecycle work and pending retries
     this.cancelScheduledConnectionRetry(); // cancel any scheduled retries
     this._closedByUser = true; // mark websocket as closed by user
     this._underlyingWebsocket.close(code, reason); // close underlying websocket with provided code and reason
   }
 
   /**
-   * Adds an event listener for the given event-type.
+   * (Re-)connects the websocket immediately, regardless of its current state:
+   * any scheduled retry is cancelled, the backoff and its retry-counter are
+   * reset, the URL provider is resolved again and a new connection is opened.
+   * This also revives a websocket that was closed by the user or that gave up
+   * after exceeding maxRetries (see the 'exhausted' event).
+   *
+   * Typical uses: a "reconnect" button after the 'exhausted' event, reacting to
+   * the browser's 'online' event, or forcing the URL provider to pick up a new
+   * auth token without waiting for the connection to drop.
+   *
+   * @throws whatever the URL provider or the WebSocket constructor throws.
+   */
+  public reconnect(): void {
+    this._connectionGeneration++; // invalidate in-flight lifecycle work and pending retries
+    this.cancelScheduledConnectionRetry(); // cancel any scheduled retries
+    this._closedByUser = false; // revive if the websocket was closed by the user
+    this.backoff?.reset(); // start the next disconnection episode with a fresh retry budget
+    this.clearWebsocket(); // detach and close the current underlying websocket
+    this.tryConnect();
+  }
+
+  /**
+   * Adds an event listener for the given event-type. When an AbortSignal is
+   * provided in the options, aborting it removes exactly this registration;
+   * a listener whose signal is already aborted is never registered, mirroring
+   * the native EventTarget.
    *
    * @see https://developer.mozilla.org/en-US/docs/Web/API/EventTarget/addEventListener
    * @param type of the event to add the listener for.
@@ -248,24 +358,56 @@ export class Websocket {
     listener: WebsocketEventListener<K>,
     options?: WebsocketEventListenerOptions,
   ): void {
-    this._options.listeners[type].push({ listener, options }); // add listener to list of listeners
+    const signal = options?.signal;
+    if (signal?.aborted) {
+      return; // the signal is already aborted, never register the listener
+    }
+
+    const entry: WebsocketEventListenerWithOptions<K> = { listener, options };
+
+    if (signal !== undefined) {
+      // aborting the signal removes exactly this registration; the same
+      // listener-function may be registered again with a different signal
+      const removeOnAbort = () => {
+        this.abortHandlerCleanups.delete(entry);
+        (this._options.listeners[
+          type
+        ] as WebsocketEventListenerWithOptions<K>[]) = this._options.listeners[
+          type
+        ].filter((l) => l !== entry);
+      };
+      signal.addEventListener("abort", removeOnAbort, { once: true });
+      this.abortHandlerCleanups.set(entry, () =>
+        signal.removeEventListener("abort", removeOnAbort),
+      );
+    }
+
+    this._options.listeners[type].push(entry); // add listener to list of listeners
   }
 
   /**
-   * Removes one or more event listener for the given event-type that match the given listener and options.
+   * Removes all event listeners for the given event-type that match the given listener.
+   *
+   * Matching is done by listener identity only, mirroring the native EventTarget:
+   * the options a listener was added with are ignored when matching.
    *
    * @param type of the event to remove the listener for.
    * @param listener to remove.
-   * @param options that were used when the listener was added.
+   * @param options ignored when matching, present for backward compatibility.
    */
   public removeEventListener<K extends WebsocketEvent>(
     type: K,
     listener: WebsocketEventListener<K>,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     options?: WebsocketEventListenerOptions,
   ): void {
     const isListenerNotToBeRemoved = (
       l: WebsocketEventListenerWithOptions<K>,
-    ) => l.listener !== listener || l.options !== options;
+    ) => l.listener !== listener;
+
+    this._options.listeners[type]
+      .filter((l) => !isListenerNotToBeRemoved(l))
+      .forEach((l) => this.cleanupAbortHandler(l)); // unhook abort-handlers of removed listeners
 
     (this._options.listeners[type] as WebsocketEventListenerWithOptions<K>[]) =
       this._options.listeners[type].filter(isListenerNotToBeRemoved); // only keep listeners that are not to be removed
@@ -273,16 +415,26 @@ export class Websocket {
 
   /**
    * Creates a new browser-native websocket and connects it to the given URL with the given protocols
-   * and adds all event listeners to the browser-native websocket.
-   *
-   * @return the created browser-native websocket which is also stored in the '_underlyingWebsocket' property.
+   * and adds all event listeners to the browser-native websocket. The new websocket is stored in the
+   * '_underlyingWebsocket' property, unless the URL provider superseded this attempt by calling close()
+   * or reconnect().
    */
-  private tryConnect(): WebSocket {
-    this._url =
-      typeof this._urlProvider === "function"
-        ? this._urlProvider()
-        : this._urlProvider;
-    this._underlyingWebsocket = new WebSocket(this._url, this.protocols); // create new browser-native websocket and add all event listeners
+  private tryConnect(): void {
+    const generation = this._connectionGeneration;
+    const urlProvider = this._urlProvider; // call the provider without the wrapper as receiver
+    const url = typeof urlProvider === "function" ? urlProvider() : urlProvider;
+    // the URL provider is user code and may have re-entered close() or
+    // reconnect(); that call now owns the lifecycle, so this attempt must
+    // neither open a socket after close() nor overwrite (and thereby orphan)
+    // the socket a nested reconnect() already committed
+    if (generation !== this._connectionGeneration) return;
+
+    const socket = new WebSocket(url, this.protocols); // create new browser-native websocket and add all event listeners
+    this._url = url;
+    this._underlyingWebsocket = socket;
+    if (this._binaryType !== undefined) {
+      this._underlyingWebsocket.binaryType = this._binaryType; // re-apply the user-chosen binaryType
+    }
     this._underlyingWebsocket.addEventListener(
       WebsocketEvent.open,
       this.handleOpenEvent,
@@ -299,8 +451,6 @@ export class Websocket {
       WebsocketEvent.message,
       this.handleMessageEvent,
     );
-
-    return this._underlyingWebsocket;
   }
 
   /**
@@ -364,23 +514,55 @@ export class Websocket {
     type: K,
     event: WebsocketEventMap[K],
   ) {
-    const eventListeners: WebsocketEventListeners[K] =
-      this._options.listeners[type];
-    const newEventListeners: WebsocketEventListeners[K] = [];
+    // iterate over a snapshot so that listeners registered during dispatch are
+    // not invoked in this round, while mutations of the live list persist
+    const snapshot: WebsocketEventListenerWithOptions<K>[] = [
+      ...this._options.listeners[type],
+    ];
 
-    eventListeners.forEach(({ listener, options }) => {
-      listener(this, event); // invoke listener with event
+    snapshot.forEach((listenerWithOptions) => {
+      // re-read the live list on every invocation: a listener may have
+      // added/removed listeners of this type, or replaced the list entirely
+      const listeners: WebsocketEventListenerWithOptions<K>[] =
+        this._options.listeners[type];
 
-      if (
-        options === undefined ||
-        options.once === undefined ||
-        !options.once
-      ) {
-        newEventListeners.push({ listener, options }); // only keep listener if it isn't a once-listener
+      const index = listeners.indexOf(listenerWithOptions);
+      if (index === -1) {
+        return; // listener was removed during dispatch, don't invoke it
+      }
+      if (listenerWithOptions.options?.once) {
+        listeners.splice(index, 1); // remove once-listener before invoking it
+        this.cleanupAbortHandler(listenerWithOptions); // unhook its abort-handler, if any
+      }
+
+      try {
+        listenerWithOptions.listener(this, event); // invoke listener with event
+      } catch (error) {
+        // a throwing listener must neither stop the remaining listeners nor the
+        // lifecycle work that follows dispatch (retry scheduling, reconnection),
+        // mirroring how the native EventTarget isolates listener exceptions
+        this.reportListenerError(error);
       }
     });
+  }
 
-    this._options.listeners[type] = newEventListeners; // replace old listeners with new listeners that don't include once-listeners
+  /**
+   * Reports an exception thrown by a user-provided event listener. Uses
+   * globalThis.reportError where available (browsers); otherwise the exception
+   * is rethrown asynchronously so it still reaches the runtime's global
+   * error handling (e.g. 'uncaughtException' in Node.js) without breaking
+   * the dispatch it escaped from.
+   *
+   * @param error the exception thrown by the listener.
+   */
+  private reportListenerError(error: unknown) {
+    if (typeof globalThis.reportError === "function") {
+      globalThis.reportError(error);
+    } else {
+      globalThis.setTimeout(() => {
+        throw error;
+      }, 0);
+    }
   }
 
   /**
@@ -393,35 +575,63 @@ export class Websocket {
     type: K,
     event: WebsocketEventMap[K],
   ) {
+    // a listener may re-enter close() or reconnect() during dispatch; both bump
+    // the generation, in which case the transitions below must not be committed
+    const generation = this._connectionGeneration;
+
     switch (type) {
       case WebsocketEvent.close:
         this.dispatchEvent(type, event);
+        if (generation !== this._connectionGeneration) break; // a listener already closed/reconnected
         this.scheduleConnectionRetryIfNeeded(); // schedule a new connection retry if the websocket was closed by the server
         break;
 
-      case WebsocketEvent.open:
-        if (this.backoff !== undefined && this._lastConnection !== undefined) {
-          // websocket was reconnected, dispatch reconnect event and reset backoff
+      case WebsocketEvent.open: {
+        if (this.backoff !== undefined && this.backoff.retries > 0) {
+          // a retry preceded this open, so the websocket was reconnected; this
+          // includes recovery from a server that was unavailable at construction,
+          // where no previous connection exists yet
           const detail: ReconnectEventDetail = {
             retries: this.backoff.retries,
-            lastConnection: new Date(this._lastConnection),
+            lastConnection:
+              this._lastConnection && new Date(this._lastConnection),
           };
+          this.backoff.reset(); // reset before dispatch, so listeners observe a fresh retry budget
           const event: CustomEvent<ReconnectEventDetail> =
             new CustomEvent<ReconnectEventDetail>(WebsocketEvent.reconnect, {
               detail,
             });
           this.dispatchEvent(WebsocketEvent.reconnect, event);
-          this.backoff.reset();
+          if (generation !== this._connectionGeneration) break;
         }
         this._lastConnection = new Date();
         this.dispatchEvent(type, event); // dispatch open event and send buffered data
+        if (generation !== this._connectionGeneration) break;
         this.sendBufferedData();
         break;
+      }
 
       case WebsocketEvent.retry:
         this.dispatchEvent(type, event); // dispatch retry event and try to connect
+        if (generation !== this._connectionGeneration) break; // this attempt was superseded during dispatch
         this.clearWebsocket(); // clear the old websocket
-        this.tryConnect();
+        try {
+          this.tryConnect();
+        } catch (error) {
+          // the url provider or websocket-construction threw; surface the thrown
+          // value as an 'error' event and keep the retry chain alive under the
+          // usual rules. Native error events are plain Events, so listeners can
+          // tell this case apart with 'instanceof ErrorEvent'
+          this.dispatchEvent(
+            WebsocketEvent.error,
+            new ErrorEvent(WebsocketEvent.error, {
+              error,
+              message: error instanceof Error ? error.message : "",
+            }),
+          );
+          if (generation !== this._connectionGeneration) break;
+          this.scheduleConnectionRetryIfNeeded();
+        }
         break;
 
       default:
@@ -431,18 +641,24 @@ export class Websocket {
   }
 
   /**
-   * Sends buffered data if there is a buffer defined.
+   * Sends buffered data if there is a buffer defined. Draining stops as soon as the
+   * websocket is no longer open, e.g. when a listener closed it during the drain;
+   * remaining elements stay buffered for the next successful connection. Without
+   * this guard, send() would re-add each read element to the buffer, cycling forever.
    */
   private sendBufferedData() {
     if (this.buffer === undefined) {
       return; // no buffer defined, nothing to send
     }
 
-    for (
-      let ele = this.buffer.read();
-      ele !== undefined;
-      ele = this.buffer.read()
+    while (
+      !this.closedByUser &&
+      this._underlyingWebsocket.readyState === this._underlyingWebsocket.OPEN
     ) {
+      const ele = this.buffer.read();
+      if (ele === undefined) {
+        return; // buffer is empty
+      }
       this.send(ele); // send buffered data
     }
   }
@@ -467,27 +683,50 @@ export class Websocket {
       this.handleEvent(WebsocketEvent.retry, event);
     };
 
-    // create retry event detail, depending on the 'instantReconnect' option
+    // when the maximum number of retries is exceeded, give up and dispatch the
+    // exhausted event; checked before advancing the backoff so that the counter
+    // equals the number of retries actually performed
+    if (
+      this._options.retry.maxRetries !== undefined &&
+      this.backoff.retries >= this._options.retry.maxRetries
+    ) {
+      const detail: ExhaustedEventDetail = {
+        retries: this.backoff.retries,
+        lastConnection: this._lastConnection && new Date(this._lastConnection),
+      };
+      const event: CustomEvent<ExhaustedEventDetail> =
+        new CustomEvent<ExhaustedEventDetail>(WebsocketEvent.exhausted, {
+          detail,
+        });
+      this.dispatchEvent(WebsocketEvent.exhausted, event);
+      return;
+    }
+
+    // the backoff is reset on every successful reconnect, so a retry-count of
+    // zero means this is the first retry of the current disconnection episode
+    const isFirstRetryOfEpisode = this.backoff.retries === 0;
+
+    // advance the backoff so the retry-count is accurate and maxRetries applies;
+    // with 'instantReconnect' only the episode's first retry is instant. Browsers
+    // store timer delays as signed 32-bit integers, so longer delays would
+    // overflow and fire (almost) immediately; cap them at the maximum instead
+    const backoff = Math.min(this.backoff.next(), 2 ** 31 - 1);
     const retryEventDetail: RetryEventDetail = {
       backoff:
-        this._options.retry.instantReconnect === true ? 0 : this.backoff.next(),
-      retries:
-        this._options.retry.instantReconnect === true
+        this._options.retry.instantReconnect === true && isFirstRetryOfEpisode
           ? 0
-          : this.backoff.retries,
-      lastConnection: this._lastConnection,
+          : backoff,
+      retries: this.backoff.retries,
+      lastConnection: this._lastConnection && new Date(this._lastConnection), // copy so listeners can't mutate our state
     };
 
-    // schedule a new connection-retry if the maximum number of retries is not reached yet
-    if (
-      this._options.retry.maxRetries === undefined ||
-      retryEventDetail.retries <= this._options.retry.maxRetries
-    ) {
-      this.retryTimeout = globalThis.setTimeout(
-        () => handleRetryEvent(retryEventDetail),
-        retryEventDetail.backoff,
-      );
-    }
+    // no generation check is needed here: close() and reconnect() bump the
+    // generation and synchronously cancel this timeout, so a superseded
+    // attempt can never fire
+    this.retryTimeout = globalThis.setTimeout(() => {
+      this.retryTimeout = undefined;
+      handleRetryEvent(retryEventDetail);
+    }, retryEventDetail.backoff);
   }
 
   /**
@@ -495,5 +734,20 @@ export class Websocket {
    */
   private cancelScheduledConnectionRetry() {
     globalThis.clearTimeout(this.retryTimeout);
+    this.retryTimeout = undefined;
+  }
+
+  /**
+   * Unhooks the 'abort'-handler that was registered on the AbortSignal of the
+   * given listener-registration, if there is one.
+   *
+   * @param entry the listener-registration to unhook the abort-handler for.
+   */
+  private cleanupAbortHandler(entry: object) {
+    const cleanup = this.abortHandlerCleanups.get(entry);
+    if (cleanup !== undefined) {
+      cleanup();
+      this.abortHandlerCleanups.delete(entry);
+    }
   }
 }

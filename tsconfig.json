@@ -1,0 +1,24 @@
+{
+  // Base config for type-checking (npm run typecheck) and IDEs: covers sources,
+  // tests and tooling without emitting. The build configs (tsconfig.cjs.json /
+  // tsconfig.esm.json) extend this and compile only 'src'.
+  "compilerOptions": {
+    "target": "ES2018",
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "noEmit": true,
+
+    /* Strict Type-Checking Options */
+    "strict": true,
+    "noImplicitAny": true,
+
+    /* Module Resolution Options */
+    "esModuleInterop": true,
+
+    /* Advanced Options */
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true
+  },
+  "include": ["src", "tests", "vitest.config.ts"],
+  "exclude": ["node_modules", "dist"]
+}

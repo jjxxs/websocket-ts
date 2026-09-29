@@ -1,11 +1,12 @@
-import { Backoff } from "./backoff/backoff";
+import { Backoff } from "./backoff/backoff.js";
 
 /**
  * Options for the websockets retry-strategy.
  */
 export interface WebsocketConnectionRetryOptions {
   /**
-   * The maximum number of retries before giving up. No limit if undefined.
+   * The maximum number of retries before giving up. No limit if undefined or Infinity.
+   * Must be Infinity or a non-negative integer; zero means no retry is ever made.
    */
   readonly maxRetries?: number;
 

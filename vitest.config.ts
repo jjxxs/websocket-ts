@@ -6,7 +6,7 @@ export default defineConfig({
     globals: false,
     environment: "jsdom",
     coverage: {
-      enabled: true,
+      // opt-in via 'npm run test:coverage' (vitest --coverage)
       provider: "v8",
       reporter: ["text", "lcov"],
     },

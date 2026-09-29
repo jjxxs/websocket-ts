@@ -1,9 +1,7 @@
 /**
  * A WebsocketBuffer is used to store messages temporarily until they can be sent.
  */
-export interface WebsocketBuffer<
-  E = string | ArrayBufferLike | Blob | ArrayBufferView,
-> {
+export interface WebsocketBuffer<E = string | Blob | BufferSource> {
   /**
    * Adds an element to the buffer.
    * @param element the element to add

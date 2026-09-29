@@ -1,4 +1,4 @@
-import { Websocket } from "./websocket";
+import { Websocket } from "./websocket.js";
 
 /**
  * Events that can be fired by the websocket.
@@ -10,7 +10,11 @@ export const WebsocketEvent = {
   /** Fired when the connection is closed. */
   close: "close",
 
-  /** Fired when the connection has been closed because of an error, such as when some data couldn't be sent. */
+  /**
+   * Fired when the connection has been closed because of an error, such as when some data couldn't be sent.
+   * Also fired when an automatic retry fails because the URL provider or the WebSocket constructor threw;
+   * that event is an ErrorEvent whose 'error' is the thrown value.
+   */
   error: "error",
 
   /** Fired when a message is received. */
@@ -21,6 +25,9 @@ export const WebsocketEvent = {
 
   /** Fired when the websocket successfully reconnects after a connection loss. */
   reconnect: "reconnect",
+
+  /** Fired when the websocket gives up reconnecting after exceeding maxRetries. */
+  exhausted: "exhausted",
 } as const;
 
 /** Union of all event type strings, allowing plain strings like "open" as event types. */
@@ -36,6 +43,7 @@ export namespace WebsocketEvent {
   export type message = typeof WebsocketEvent.message;
   export type retry = typeof WebsocketEvent.retry;
   export type reconnect = typeof WebsocketEvent.reconnect;
+  export type exhausted = typeof WebsocketEvent.exhausted;
 }
 
 /***
@@ -48,7 +56,7 @@ export type RetryEventDetail = {
   /** Time (ms) waited since the last connection-retry. */
   readonly backoff: number;
 
-  /** Timestamp of when the connection was lost or undefined if the connection has never been established. */
+  /** Timestamp of the last successful connection ('open' event) or undefined if the connection has never been established. */
   readonly lastConnection: Date | undefined;
 };
 
@@ -56,6 +64,12 @@ export type RetryEventDetail = {
  * Properties of a reconnect-event.
  */
 export type ReconnectEventDetail = Omit<RetryEventDetail, "backoff">;
+
+/**
+ * Properties of an exhausted-event. The 'retries' field holds the number of
+ * retries that were performed before giving up, i.e. the configured maxRetries.
+ */
+export type ExhaustedEventDetail = Omit<RetryEventDetail, "backoff">;
 
 /**
  * Maps websocket events to their corresponding event.
@@ -67,6 +81,7 @@ export type WebsocketEventMap = {
   [WebsocketEvent.message]: MessageEvent;
   [WebsocketEvent.retry]: CustomEvent<RetryEventDetail>;
   [WebsocketEvent.reconnect]: CustomEvent<ReconnectEventDetail>;
+  [WebsocketEvent.exhausted]: CustomEvent<ExhaustedEventDetail>;
 };
 
 /**
@@ -82,10 +97,14 @@ export type WebsocketEventListenerParams<K extends WebsocketEvent> = Parameters<
 >;
 
 /**
- * Options for websocket events.
+ * Options for websocket event listeners. Only 'once' and 'signal' are
+ * supported: a websocket has no capture/bubble phases and its events are not
+ * cancelable, so the remaining AddEventListenerOptions have no meaning here.
  */
-export type WebsocketEventListenerOptions = EventListenerOptions &
-  AddEventListenerOptions;
+export type WebsocketEventListenerOptions = Pick<
+  AddEventListenerOptions,
+  "once" | "signal"
+>;
 
 /**
  * Listener for websocket events with options.

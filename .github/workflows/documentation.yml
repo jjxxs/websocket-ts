@@ -12,26 +12,18 @@ jobs:
   documentation:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4.2.2
-      - uses: actions/setup-node@v4.4.0
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-node@v7.0.0
         with:
           node-version: '22'
           check-latest: true
           cache: 'npm'
-      - name: Install dependencies and generate documentation
-        run: |
-          npm ci
-          npm i -D typedoc@0.28.9 typedoc-theme-hierarchy@6.0.0
-          npx typedoc --tsconfig tsconfig.esm.json \
-            --exclude "src/**/index.ts" \
-            --entryPoints ./src \
-            --entryPointStrategy expand \
-            --out ./docs \
-            --plugin typedoc-theme-hierarchy \
-            --theme hierarchy \
-            --name websocket-ts
+      - name: Install dependencies
+        run: npm ci
+      - name: Generate documentation
+        run: npm run docs
       - name: Deploy
-        uses: JamesIves/github-pages-deploy-action@v4.7.3
+        uses: JamesIves/github-pages-deploy-action@v4.9.0
         with:
           branch: gh-pages
           folder: docs
