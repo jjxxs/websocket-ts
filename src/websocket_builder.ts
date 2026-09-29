@@ -266,20 +266,14 @@ export class WebsocketBuilder {
    * @param options the listener options
    */
   private addListener<K extends WebsocketEvent>(
-    event: WebsocketEvent,
+    event: K,
     listener: WebsocketEventListener<K>,
     options?: WebsocketEventListenerOptions,
   ): WebsocketBuilder {
     this._options = {
       ...this._options,
       listeners: {
-        open: this._options?.listeners?.open ?? [],
-        close: this._options?.listeners?.close ?? [],
-        error: this._options?.listeners?.error ?? [],
-        message: this._options?.listeners?.message ?? [],
-        retry: this._options?.listeners?.retry ?? [],
-        reconnect: this._options?.listeners?.reconnect ?? [],
-        exhausted: this._options?.listeners?.exhausted ?? [],
+        ...this._options?.listeners,
         [event]: [
           ...(this._options?.listeners?.[event] ?? []),
           { listener, options },
