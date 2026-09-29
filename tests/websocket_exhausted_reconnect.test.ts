@@ -226,11 +226,11 @@ describe("Testsuite for the exhausted event and reconnect()", () => {
     });
   });
 
-  describe("MaxRetries must be a non-negative integer", () => {
-    // NaN and Infinity would never exhaust, negative values exhaust before
-    // any retry, and fractions break the promise that the exhausted-detail
+  describe("MaxRetries must be Infinity or a non-negative integer", () => {
+    // NaN would silently never exhaust, negative values exhaust before any
+    // retry, and fractions break the promise that the exhausted-detail
     // retries equal the configured limit
-    test.each([NaN, Infinity, -Infinity, -1, 2.5])(
+    test.each([NaN, -Infinity, -1, 2.5])(
       "Websocket constructor should throw when maxRetries is %f",
       (maxRetries) => {
         expect(
@@ -238,7 +238,9 @@ describe("Testsuite for the exhausted event and reconnect()", () => {
             new Websocket(url, undefined, {
               retry: { maxRetries, backoff: new ConstantBackoff(1000) },
             }),
-        ).toThrow("MaxRetries must be undefined or a non-negative integer");
+        ).toThrow(
+          "MaxRetries must be undefined, Infinity or a non-negative integer",
+        );
       },
     );
 
@@ -248,8 +250,38 @@ describe("Testsuite for the exhausted event and reconnect()", () => {
           .withBackoff(new ConstantBackoff(1000))
           .withMaxRetries(NaN)
           .build(),
-      ).toThrow("MaxRetries must be undefined or a non-negative integer");
+      ).toThrow(
+        "MaxRetries must be undefined, Infinity or a non-negative integer",
+      );
     });
+
+    test(
+      "A maxRetries of Infinity is valid and never exhausts",
+      async () => {
+        let retryCount = 0;
+        let exhaustedCount = 0;
+
+        await new Promise<void>((resolve) => {
+          client = new WebsocketBuilder(url)
+            .withBackoff(new ConstantBackoff(10))
+            .withMaxRetries(Infinity)
+            .onOpen(() => resolve())
+            .onRetry(() => retryCount++)
+            .onExhausted(() => exhaustedCount++)
+            .build();
+        });
+        expect(client!.maxRetries).toBe(Infinity);
+        await stopServer(server, serverTimeout).then(
+          () => (server = undefined),
+        );
+
+        await new Promise((resolve) => setTimeout(resolve, 300));
+
+        expect(retryCount).toBeGreaterThan(1); // keeps retrying
+        expect(exhaustedCount).toBe(0);
+      },
+      testTimeout,
+    );
 
     test(
       "A maxRetries of zero is valid and exhausts on the first disconnect without retrying",

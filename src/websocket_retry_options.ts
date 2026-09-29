@@ -5,8 +5,8 @@ import { Backoff } from "./backoff/backoff.js";
  */
 export interface WebsocketConnectionRetryOptions {
   /**
-   * The maximum number of retries before giving up. No limit if undefined.
-   * Must be a non-negative integer; zero means no retry is ever made.
+   * The maximum number of retries before giving up. No limit if undefined or Infinity.
+   * Must be Infinity or a non-negative integer; zero means no retry is ever made.
    */
   readonly maxRetries?: number;
 
