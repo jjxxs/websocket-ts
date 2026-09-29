@@ -224,9 +224,9 @@ export class Websocket {
   }
 
   /**
-   * Getter for the last 'open' event, e.g. the last time the websocket was connected.
+   * Getter for the time of the last 'open' event, i.e. the last time the websocket was connected.
    *
-   * @return the last 'open' event, or undefined if the websocket was never connected.
+   * @return the time of the last 'open' event, or undefined if the websocket was never connected.
    */
   get lastConnection(): Date | undefined {
     // defensive copy: retry/reconnect/exhausted event details are derived

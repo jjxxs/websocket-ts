@@ -52,7 +52,7 @@ export type RetryEventDetail = {
   /** Time (ms) waited since the last connection-retry. */
   readonly backoff: number;
 
-  /** Timestamp of when the connection was lost or undefined if the connection has never been established. */
+  /** Timestamp of the last successful connection ('open' event) or undefined if the connection has never been established. */
   readonly lastConnection: Date | undefined;
 };
 
