@@ -124,28 +124,13 @@ export class Websocket {
 
     try {
       // register the initial listeners through addEventListener so that
-      // listener options (e.g. 'signal') are honored for them as well
-      options?.listeners?.open?.forEach((l) =>
-        this.addEventListener(WebsocketEvent.open, l.listener, l.options),
-      );
-      options?.listeners?.close?.forEach((l) =>
-        this.addEventListener(WebsocketEvent.close, l.listener, l.options),
-      );
-      options?.listeners?.error?.forEach((l) =>
-        this.addEventListener(WebsocketEvent.error, l.listener, l.options),
-      );
-      options?.listeners?.message?.forEach((l) =>
-        this.addEventListener(WebsocketEvent.message, l.listener, l.options),
-      );
-      options?.listeners?.retry?.forEach((l) =>
-        this.addEventListener(WebsocketEvent.retry, l.listener, l.options),
-      );
-      options?.listeners?.reconnect?.forEach((l) =>
-        this.addEventListener(WebsocketEvent.reconnect, l.listener, l.options),
-      );
-      options?.listeners?.exhausted?.forEach((l) =>
-        this.addEventListener(WebsocketEvent.exhausted, l.listener, l.options),
-      );
+      // listener options (e.g. 'signal') are honored for them as well; the
+      // generic helper keeps each event's listeners typed for that event
+      const register = <K extends WebsocketEvent>(type: K) =>
+        options?.listeners?.[type]?.forEach((l) =>
+          this.addEventListener(type, l.listener, l.options),
+        );
+      Object.values(WebsocketEvent).forEach(register);
 
       // this first attempt always assigns the underlying websocket: the URL
       // provider is called without the instance as 'this', so it cannot reach
